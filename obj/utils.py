@@ -3,29 +3,42 @@ import torch.nn as nn
 import time
 import torchvision
 from networks import MLP, ConvNet, LeNet, AlexNet, VGG, ResNet, BasicBlock, Bottleneck
+from networks import VGG11, VGG11_Tiny, VGG11BN, ResNet18, ResNet18_Tiny, ResNet18BN, ResNet18BN_Tiny, ResNet18BN_AP, ResNet18_AP
 
 
-def get_convnet(channel, num_classes, net_width, net_depth, net_act, net_norm, net_pooling):
+class TensorDataset(torch.utils.data.Dataset):
+    def __init__(self, images: Tensor, labels: Tensor):
+        self.images = images
+        self.labels = labels
+
+    def __getitem__(self, index: int):
+        return self.images[index], self.labels[index]
+    
+    def __len__(self):
+        return len(self.images)
+        
+
+def get_convnet(im_size, channel, num_classes, net_width, net_depth, net_act, net_norm, net_pooling):
     print(f"Creating ConvNet with width={net_width}, depth={net_depth}, act={net_act}, norm={net_norm}, pooling={net_pooling}")
     return ConvNet(channel=channel, num_classes=num_classes, net_width=net_width, net_depth=net_depth,
-                   net_act=net_act, net_norm=net_norm, net_pooling=net_pooling)
+                   net_act=net_act, net_norm=net_norm, net_pooling=net_pooling, im_size=im_size)
 
-def get_mlp(channel, num_classes):
+def get_mlp(im_size, channel, num_classes):
     print(f"Creating MLP with channel={channel}, num_classes={num_classes}")
-    return MLP(channel=channel, num_classes=num_classes)
+    return MLP(channel=channel, num_classes=num_classes, res=im_size[0])
 
-def get_lenet(channel, num_classes):
+def get_lenet(im_size, channel, num_classes):
     print(f"Creating LeNet with channel={channel}, num_classes={num_classes}")
-    return LeNet(channel=channel, num_classes=num_classes)
+    return LeNet(channel=channel, num_classes=num_classes, res=im_size[0])
 
-def get_alexnet(channel, num_classes, use_torchvision=False):
+def get_alexnet(im_size, channel, num_classes, use_torchvision=False):
     print(f"Creating AlexNet with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         return torchvision.models.alexnet(num_classes=num_classes, pretrained=False)
     else:
-        return AlexNet(channel=channel, num_classes=num_classes)
+        return AlexNet(channel=channel, num_classes=num_classes, res=im_size[0])
 
-def get_vgg(channel, num_classes, depth=11, batchnorm=False, use_torchvision=False):
+def get_vgg(im_size, channel, num_classes, depth=11, batchnorm=False, use_torchvision=False):
     print(f"Creating VGG{depth} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         if depth == 11:
@@ -49,10 +62,10 @@ def get_vgg(channel, num_classes, depth=11, batchnorm=False, use_torchvision=Fal
             else:
                 return torchvision.models.vgg19(num_classes=num_classes, pretrained=False)
     else:
-        return VGG(f'VGG{depth}', channel, num_classes, norm='batchnorm' if batchnorm else 'instancenorm')
+        return VGG(f'VGG{depth}', channel, num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
     
 
-def get_resnet(channel, num_classes, depth=18, batchnorm=False, use_torchvision=False):
+def get_resnet(im_size, channel, num_classes, depth=18, batchnorm=False, use_torchvision=False):
     print(f"Creating ResNet{depth} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         if depth == 18:
@@ -72,18 +85,19 @@ def get_resnet(channel, num_classes, depth=18, batchnorm=False, use_torchvision=
                 return torchvision.models.resnet50(num_classes=num_classes, pretrained=False)
     else:
         if depth == 18:
-            return ResNet(BasicBlock, [2,2,2,2], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm')
+            return ResNet(BasicBlock, [2,2,2,2], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
         elif depth == 34:
-            return ResNet(BasicBlock, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm')
+            return ResNet(BasicBlock, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
         elif depth == 50:
-            return ResNet(Bottleneck, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm')
+            return ResNet(Bottleneck, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
+
 
 def get_other_models(model_name, channel, num_classes, im_size=(32, 32), dist=True):
     pass
 
 def get_network(model_name, channel, num_classes, im_size=(32, 32), dist=True):
     torch.random.manual_seed(int(time.time() * 1000) % 100000)
-    net_width, net_depth, net_act, net_norm, net_pooling = get_default_convnet_setting()
+    net_width, net_depth, net_act, net_norm, net_pooling = 128, 3, 'relu', 'instancenorm', 'avgpooling'
 
     """ MLP """
     if model_name == 'MLP':
@@ -217,7 +231,7 @@ def get_network(model_name, channel, num_classes, im_size=(32, 32), dist=True):
 
     else:
         net = None
-        exit('DC error: unknown model')
+        exit('Error: unknown model')
 
     if dist:
         gpu_num = torch.cuda.device_count()
