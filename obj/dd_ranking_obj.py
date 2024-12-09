@@ -17,12 +17,13 @@ from train import train_one_epoch, validate
 class DD_Ranking_Objective:
 
     def __init__(self, dataset: str="CIFAR10", real_data_path: str=None, syn_data_path: str=None, images: Tensor=None, num_classes: int=10, 
-                 ipc: int=1, model_name: str=None, use_default_transform: bool=True, num_eval: int=5,
+                 ipc: int=1, model_name: str=None, use_default_transform: bool=True, num_eval: int=5, 
+                 num_epochs: int=100, lr: float=0.01, batch_size: int=256,
                  custom_transform: transforms.Compose=None, device=torch.device('cuda')):
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
-        self.images_test, self.labels_test, self.class_indices_test = self.load_real_data(dst_test, class_map, num_classes)
-
+        # self.images_test, self.labels_test, self.class_indices_test = self.load_real_data(dst_test, class_map, num_classes)
+        self.test_loader = DataLoader(dst_test, batch_size=batch_size, shuffle=False)
         if syn_data_path is not None:
             image_path = os.path.join(syn_data_path, 'images.pt')
             assert os.path.exists(image_path), "Image file not found in {}".format(data_path)
@@ -34,10 +35,16 @@ class DD_Ranking_Objective:
             raise ValueError("Either data_path or images must be provided")
         
         assert len(self.syn_images) == ipc * num_classes, "Number of images must be equal to ipc * num_classes"
+        # data info
         self.im_size = self.syn_images[0].shape
         self.num_classes = num_classes
         self.ipc = ipc
+
+        # training info
         self.num_eval = num_eval
+        self.batch_size = batch_size
+        self.num_epochs = num_epochs
+        self.lr = lr
         self.device = device
     
     def load_real_data(self, dataset, class_map, num_classes):
@@ -89,9 +96,6 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         super().__init__(*args, **kwargs)
         self.soft_labels = soft_labels
         self.soft_label_dataset = TensorDataset(self.syn_images.detach().clone(), self.soft_labels.detach().clone())
-        self.num_epochs = 100
-        self.lr = 0.01
-        self.batch_size = 256
 
     @staticmethod
     def SoftCrossEntropy(inputs, target):
@@ -122,9 +126,9 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.ipc, self.num_classes, device=self.device)
-            if metric['acc1'] > best_acc1:
-                best_acc1 = metric['acc1']
+            metric = validate(model, self.test_loader, device=self.device)
+            if metric['top1'] > best_acc1:
+                best_acc1 = metric['top1']
 
         return best_acc1
         
@@ -138,9 +142,9 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.ipc, self.num_classes, device=self.device)
-            if metric['acc1'] > best_acc1:
-                best_acc1 = metric['acc1']
+            metric = validate(model, self.test_loader, device=self.device)
+            if metric['top1'] > best_acc1:
+                best_acc1 = metric['top1']
         
         return best_acc1
 
@@ -156,9 +160,9 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.ipc, self.num_classes, device=self.device)
-            if metric['acc1'] > best_acc1:
-                best_acc1 = metric['acc1']
+            metric = validate(model, self.test_loader, device=self.device)
+            if metric['top1'] > best_acc1:
+                best_acc1 = metric['top1']
         
         return best_acc1
 
@@ -174,9 +178,9 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.ipc, self.num_classes, device=self.device)
-            if metric['acc1'] > best_acc1:
-                best_acc1 = metric['acc1']
+            metric = validate(model, self.test_loader, device=self.device)
+            if metric['top1'] > best_acc1:
+                best_acc1 = metric['top1']
 
         return best_acc1
     

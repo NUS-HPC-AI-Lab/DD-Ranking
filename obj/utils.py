@@ -540,12 +540,10 @@ def train_one_epoch(
 def validate(
     model,
     loader,
-    loss_fn,
     device=torch.device('cuda'),
     log_suffix=''
 ):
     batch_time_m = timm.utils.AverageMeter()
-    losses_m = timm.utils.AverageMeter()
     top1_m = timm.utils.AverageMeter()
     top5_m = timm.utils.AverageMeter()
 
@@ -568,11 +566,9 @@ def validate(
                 if reduce_factor > 1:
                     output = output.unfold(0, reduce_factor, reduce_factor).mean(dim=2)
                     target = target[0:target.size(0):reduce_factor]
-
-                loss = loss_fn(output, target)
+    
             acc1, acc5 = timm.utils.accuracy(output, target, topk=(1, 5))
 
-            losses_m.update(loss.item(), input.size(0))
             top1_m.update(acc1.item(), output.size(0))
             top5_m.update(acc5.item(), output.size(0))
 
@@ -583,11 +579,10 @@ def validate(
                 print(
                     f'{log_name}: [{batch_idx:>4d}/{last_idx}]  '
                     f'Time: {batch_time_m.val:.3f} ({batch_time_m.avg:.3f})  '
-                    f'Loss: {losses_m.val:>7.3f} ({losses_m.avg:>6.3f})  '
                     f'Acc@1: {top1_m.val:>7.3f} ({top1_m.avg:>7.3f})  '
                     f'Acc@5: {top5_m.val:>7.3f} ({top5_m.avg:>7.3f})'
                 )
 
-    metrics = OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg), ('top5', top5_m.avg)])
+    metrics = OrderedDict([('top1', top1_m.avg), ('top5', top5_m.avg)])
 
     return metrics
