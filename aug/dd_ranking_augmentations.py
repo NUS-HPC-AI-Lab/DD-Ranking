@@ -3,18 +3,21 @@ import torch
 from typing import Dict
 from torch import Tensor
 from torchvision import transforms
-from utils import set_seed, Default_Augmentation, calculate_acc
+from utils import set_seed, Default_Augmentation, calculate_acc, AUGMENT_FNS, set_seed_DiffAug
 import random
-import utils
 import kornia
+import numpy as np
 
 
 class Augmentation:
-    def __init__(self, images:Tensor=None, transform_params:Dict=None, model:torch.nn.Module=None):
-        self.images=images
-        self.transform_params=transform_params
-        self.model=model
-        self.transform=None
+    def __init__(self, images:Tensor=None, transform_params:Dict=None, model:torch.nn.Module=None, num_classes:int=None, ipc:int=None):
+        self.images = images
+        self.transform_params = transform_params
+        self.model = model
+        self.transform = None
+        self.num_classes = num_classes
+        self.ipc = ipc
+        self.labels =  torch.tensor([np.ones(ipc) * i for i in range(num_classes)], dtype=torch.long, requires_grad=False).view(-1)
         
         
     def __call__(self):
@@ -42,24 +45,40 @@ class Augmentation:
         
     
 class DSA_Augmentation(Augmentation):
-    def __init__(self, images = None, transform_type = None, transform_params = None):
+    def __init__(self, images = None, transform_type = None, transform_params = None, strategy=None, seed=None):
         super().__init__(images, transform_type, transform_params)
-        self.transform = transforms.Compose(
-        [transforms.RandomHorizontalFlip(p=transform_params["flip"]["prob"]),
-        transforms.RandomAffine(
-            degrees=transform_params["affine"]["degrees"],
-            shear=transform_params["affine"]["shear"],
-            interpolation=transform_params["affine"]["interpolation"]),
-        transforms.RandomGrayscale(p=transform_params["gray"]["prob"]),
-        transforms.ColorJitter(
-        brightness=transform_params["colorjitter"]["brightness"],
-        contrast=transform_params["colorjitter"]["contrast"],
-        saturation=transform_params["colorjitter"]["saturation"],
-        hue=transform_params["colorjitter"]["hue"])]
-        )
-    def __call__(self):
-        return self.transform(images)
+        self.transform = AUGMENT_FNS
+        self.strategy = transform_params["dsa"]["strategy"]
+        self.seed = transform_params["dsa"]["seed"]
         
+    def __call__(self):
+        
+        if self.strategy == 'None' or self.strategy == 'none' or self.strategy == '':
+            return self.images
+
+        if self.seed == -1:  self.transform_params["dsa"]["Siamese"] = False
+        else:  self.transform_params["dsa"]["Siamese"] = True
+            
+        transform_params["dsa"]["latestseed"] = self.seed
+    
+        if self.strategy:
+        
+            if self.transform_params["dsa"]["aug_mode"] == 'M': # original
+                for p in self.strategy.split('_'):
+                    for f in self.transform[p]:
+                        self.images = f(self.images, self.transform_params)
+                    
+            elif self.transform_params["dsa"]["aug_mode"] == 'S':
+                pbties = self.strategy.split('_')
+                set_seed_DiffAug(self.transform_params)
+                p = pbties[torch.randint(0, len(pbties), size=(1,)).item()]
+                for f in self.transform[p]:
+                    self.images = f(self.images, self.transform_params)
+            self.images = self.images.contiguous()
+            
+        return self.images
+        
+
     
 class ZCA_Whitening_Augmentation(Augmentation):
     def __init__(self, images = None, transform_params = None, model = None):
@@ -71,9 +90,8 @@ class ZCA_Whitening_Augmentation(Augmentation):
         
         
 class Mixup_Augmentation(Augmentation):
-    def __init__(self, labels, images = None, transform_params = None, model = None):
+    def __init__(self, images = None, transform_params = None, model = None):
         super().__init__(images, transform_params, model)
-        self.labels=labels
         self.transform = kornia.augmentation.RandomMixUpV2(
         lambda_val = transform_params["mixup"]["lambda_range"],
         same_on_batch = transform_params["mixup"]["same_on_batch"],
@@ -85,9 +103,8 @@ class Mixup_Augmentation(Augmentation):
 
 
 class Cutmix_Augmentation(Augmentation):
-    def __init__(self, labels, images = None, transform_params = None, model = None):
+    def __init__(self, images = None, transform_params = None, model = None):
         super().__init__(images, transform_params, model)
-        self.labels=labels
         self.transform = kornia.augmentation.RandomCutMixV2(
         num_mix = transform_params["cutmix"]["times"],
         cut_size = transform_params["cutmix"]["size"],
