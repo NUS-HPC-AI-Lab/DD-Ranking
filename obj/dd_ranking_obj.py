@@ -15,6 +15,7 @@ from train import train_one_epoch, validate
 
 
 class DD_Ranking_Objective:
+
     def __init__(self, dataset: str="CIFAR10", real_data_path: str=None, syn_data_path: str=None, images: Tensor=None, num_classes: int=10, 
                  ipc: int=1, model_name: str=None, use_default_transform: bool=True, num_eval: int=5,
                  custom_transform: transforms.Compose=None, device=torch.device('cuda')):
@@ -91,11 +92,6 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         self.num_epochs = 100
         self.lr = 0.01
         self.batch_size = 256
-
-        self.syn_data_hard_label_metrics = None
-        self.syn_data_soft_label_metrics = None
-        self.random_data_soft_label_metrics = None
-        self.full_data_hard_label_metrics = None
 
     @staticmethod
     def SoftCrossEntropy(inputs, target):
@@ -207,4 +203,5 @@ class Soft_Label_Objective(DD_Ranking_Objective):
 if __name__ == "__main__":
     images = torch.randn(10, 3, 32, 32)
     obj = DD_Ranking_Objective(images=images, model_name="ConvNet")
+    print(obj.syn_images.shape)
     print(obj.compute_metrics())
