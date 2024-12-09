@@ -47,36 +47,4 @@ def calculate_acc(model,images,labels,transform):
     pass
     
 
-def ZCA_Whitening(x, epsilon=1e-6):
-    
-    # mean centering
-    mean = torch.mean(x, dim=[0, 2, 3], keepdim=True)  # 
-    x = x - mean
-    
-    
-    B, C, H, W = x.shape
-    x_flattened = x.view(B, -1)
-    
-    cov_matrix = torch.cov(x_flattened.T)  # covariance (C*H*W, C*H*W)
-    
-    # Step 4: eigen values and eigen vectors
-    eig_vals, eig_vecs = torch.linalg.eigh(cov_matrix)  
-    
-    # Step 5: whitening matrix
-    eig_vals_inv_sqrt = torch.diag(1.0 / torch.sqrt(eig_vals + epsilon))  
-    whitening_matrix = eig_vecs @ eig_vals_inv_sqrt @ eig_vecs.T  
-    
-    # Step 6: transform the data
-    x_white = x_flattened @ whitening_matrix.T 
-    x_white = x_white.view(B, C, H, W)  
-    
-    return x_white
-
-
-def CutMix(x,y):
-    pass
-
-
-def Mixup(x,y):
-    pass
 
