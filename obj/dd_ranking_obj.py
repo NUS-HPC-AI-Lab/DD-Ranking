@@ -1,17 +1,22 @@
 import os
+import time
 import torch
 import torch.nn.functional as F
+import numpy as np
+import random
 from typing import List
 from torch import Tensor
 from torchvision import transforms, datasets
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from utils import parse_model_name, get_convnet, get_alexnet, get_resnet, get_lenet, get_mlp, get_vgg, get_other_model
 from utils import TensorDataset, get_random_images, get_dataset
 from hard_label import compute_hard_label_metrics
+from train import train_one_epoch, validate
 
 
 class DD_Ranking_Objective:
     def __init__(self, dataset: str="CIFAR10", real_data_path: str=None, syn_data_path: str=None, images: Tensor=None, num_classes: int=10, 
-                 ipc: int=1, model_name: str=None, use_default_transform: bool=True, 
+                 ipc: int=1, model_name: str=None, use_default_transform: bool=True, num_eval: int=5,
                  custom_transform: transforms.Compose=None, device=torch.device('cuda')):
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
@@ -31,8 +36,7 @@ class DD_Ranking_Objective:
         self.im_size = self.syn_images[0].shape
         self.num_classes = num_classes
         self.ipc = ipc
-        
-        self.model = self.build_model(model_name)
+        self.num_eval = num_eval
         self.device = device
     
     def load_real_data(self, dataset, class_map, num_classes):
@@ -72,6 +76,9 @@ class DD_Ranking_Objective:
         else:
             return get_other_model(model_name, num_classes=self.num_classes, im_size=self.im_size)
         
+        model = model.to(self.device)
+        return model
+    
     def compute_metrics(self):
         pass
 
@@ -85,8 +92,10 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         self.lr = 0.01
         self.batch_size = 256
 
-    def compute_syn_data_hard_label_metrics(self):
-        return compute_hard_label_metrics(self.syn_images, self.model, self.ipc, self.num_classes, device=self.device)
+        self.syn_data_hard_label_metrics = None
+        self.syn_data_soft_label_metrics = None
+        self.random_data_soft_label_metrics = None
+        self.full_data_hard_label_metrics = None
 
     @staticmethod
     def SoftCrossEntropy(inputs, target):
@@ -95,34 +104,107 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         batch_size = inputs.shape[0]
         loss = torch.sum(torch.mul(input_log_likelihood, target_log_likelihood)) / batch_size
         return loss
+    
+    @staticmethod
+    def set_seed():
+        seed = int(time.time() * 1000) % 1000000
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
 
-    def compute_syn_data_soft_label_metrics(self):
-        train_loader = DataLoader(self.soft_label_dataset, batch_size=self.batch_size, shuffle=True)
-        loss_fn = self.SoftCrossEntropy
-        optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs * len(train_loader))
+    def compute_syn_data_hard_label_metrics(self):
+        hard_labels = torch.tensor([np.ones(ipc) * i for i in range(num_classes)], dtype=torch.long, requires_grad=False).view(-1)
+        hard_label_dataset = TensorDataset(self.syn_images, hard_labels)
+        train_loader = DataLoader(hard_label_dataset, batch_size=self.batch_size, shuffle=True)
+
+        loss_fn = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
+        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
 
         best_acc1 = 0
-        best_epoch = 0
         for epoch in range(self.num_epochs):
-            train_one_epoch(self.model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(self.model, self.ipc, self.num_classes, device=self.device)
+            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
+            metric = validate(model, self.ipc, self.num_classes, device=self.device)
             if metric['acc1'] > best_acc1:
                 best_acc1 = metric['acc1']
-                best_epoch = epoch
+
+        return best_acc1
         
-        self.syn_data_soft_label = best_acc1
+    def compute_syn_data_soft_label_metrics(self, model):
+            
+        train_loader = DataLoader(self.soft_label_dataset, batch_size=self.batch_size, shuffle=True)
+        loss_fn = self.SoftCrossEntropy
+        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
+        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
 
-    def compute_random_data_soft_label_metrics(self):
-        random_images = get_random_images(self.images_train, self.class_indices_train, target_class, target_num)
+        best_acc1 = 0
+        for epoch in range(self.num_epochs):
+            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
+            metric = validate(model, self.ipc, self.num_classes, device=self.device)
+            if metric['acc1'] > best_acc1:
+                best_acc1 = metric['acc1']
+        
+        return best_acc1
 
-    def compute_full_data_hard_label_metrics(self):
-        pass
+    def compute_random_data_soft_label_metrics(self, model, random_images):
+            
+        random_dataset = TensorDataset(random_images, self.soft_labels.detach().clone())
+        train_loader = DataLoader(random_dataset, batch_size=self.batch_size, shuffle=True)
+        
+        loss_fn = self.SoftCrossEntropy
+        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
+        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
 
+        best_acc1 = 0
+        for epoch in range(self.num_epochs):
+            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
+            metric = validate(model, self.ipc, self.num_classes, device=self.device)
+            if metric['acc1'] > best_acc1:
+                best_acc1 = metric['acc1']
+        
+        return best_acc1
 
+    def compute_full_data_hard_label_metrics(self, model):
+            
+        full_dataset = TensorDataset(self.images_train, self.labels_train)
+        train_loader = DataLoader(full_dataset, batch_size=self.batch_size, shuffle=True)
+
+        loss_fn = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
+        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
+
+        best_acc1 = 0
+        for epoch in range(self.num_epochs):
+            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
+            metric = validate(model, self.ipc, self.num_classes, device=self.device)
+            if metric['acc1'] > best_acc1:
+                best_acc1 = metric['acc1']
+
+        return best_acc1
+    
+    def compute_metrics(self):
+        obj_metrics = []
+        for i in range(self.num_eval):
+            self.set_seed()
+            model = self.build_model(self.model_name)
+            syn_data_hard_label_acc = self.compute_syn_data_hard_label_metrics(model)
+            syn_data_soft_label_acc = self.compute_syn_data_soft_label_metrics(model)
+
+            random_images = get_random_images(self.images_train, self.class_indices_train, self.ipc)
+            random_data_soft_label_acc = self.compute_random_data_soft_label_metrics(model, random_images)
+            full_data_hard_label_acc = self.compute_full_data_hard_label_metrics(model)
+
+            numerator = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
+            denominator = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
+            obj_metrics.append(numerator / denominator)
+        obj_metrics_mean = np.mean(obj_metrics)
+        obj_metrics_std = np.std(obj_metrics)
+        return obj_metrics_mean, obj_metrics_std
 
 
 if __name__ == "__main__":
     images = torch.randn(10, 3, 32, 32)
     obj = DD_Ranking_Objective(images=images, model_name="ConvNet")
-    print(obj.syn_images.shape)
+    print(obj.compute_metrics())
