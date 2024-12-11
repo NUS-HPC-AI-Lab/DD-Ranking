@@ -3,11 +3,21 @@ import torch.nn as nn
 import time
 import torchvision
 import timm
+import numpy as np
+import random
 from networks import MLP, ConvNet, LeNet, AlexNet, VGG, ResNet, BasicBlock, Bottleneck
 from networks import VGG11, VGG11_Tiny, VGG11BN, ResNet18, ResNet18_Tiny, ResNet18BN, ResNet18BN_Tiny, ResNet18BN_AP, ResNet18_AP
 from tqdm import tqdm
 from collections import OrderedDict
 
+
+def set_seed():
+    seed = int(time.time() * 1000) % 1000000
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
 ################################################################################ dataset utils ################################################################################
 class Config:
@@ -440,10 +450,11 @@ def get_network(model_name, channel, num_classes, im_size=(32, 32), dist=True):
 # modified from pytorch-image-models/train.py
 def train_one_epoch(
         epoch,
-        model,
+        stu_model,
         loader,
         optimizer,
         loss_fn,
+        tea_model=None,
         device=torch.device('cuda'),
         lr_scheduler=None,
         grad_accum_steps=1,
@@ -455,7 +466,9 @@ def train_one_epoch(
     data_time_m = timm.utils.AverageMeter()
     losses_m = timm.utils.AverageMeter()
 
-    model.train()
+    stu_model.train()
+    if tea_model is not None:
+        tea_model.eval()
 
     accum_steps = grad_accum_steps
     last_accum_steps = len(loader) % accum_steps
@@ -480,8 +493,12 @@ def train_one_epoch(
         data_time_m.update(accum_steps * (time.time() - data_start_time))
 
         def _forward():
-            output = model(input)
-            loss = loss_fn(output, target)
+            stu_output = stu_model(input)
+            if tea_model is not None:
+                tea_output = tea_model(input)
+                loss = loss_fn(stu_output, tea_output)
+            else:
+                loss = loss_fn(stu_output, target)
             if accum_steps > 1:
                 loss /= accum_steps
             return loss
@@ -503,8 +520,6 @@ def train_one_epoch(
 
         num_updates += 1
         optimizer.zero_grad()
-        if model_ema is not None:
-            model_ema.update(model, step=num_updates)
 
         time_now = time.time()
         update_time_m.update(time.time() - update_start_time)
