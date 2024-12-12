@@ -114,7 +114,7 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         loss_fn = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-
+        print("Caculating syn data hard label metrics...")
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -130,7 +130,7 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         loss_fn = self.SoftCrossEntropy
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-
+        print("Caculating syn data soft label metrics...")
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -148,7 +148,7 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         loss_fn = self.SoftCrossEntropy
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-
+        print("Caculating random data soft label metrics...")
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -166,7 +166,7 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         loss_fn = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-
+        print("Caculating full data hard label metrics...")
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -218,7 +218,7 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         loss_fn = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-
+        print("Caculating syn data hard label metrics...")
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -234,7 +234,7 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         loss_fn = self.KLDivLoss
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-
+        print("Caculating syn data kl divergence metrics...")
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -252,7 +252,7 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         loss_fn = self.KLDivLoss
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-
+        print("Caculating random data kl divergence metrics...")
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -270,7 +270,7 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         loss_fn = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-
+        print("Caculating full data hard label metrics...")
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
