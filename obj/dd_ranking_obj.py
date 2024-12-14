@@ -17,25 +17,14 @@ from train import train_one_epoch, validate
 
 class DD_Ranking_Objective:
 
-    def __init__(self, dataset: str="CIFAR10", real_data_path: str=None, syn_data_path: str=None, images: Tensor=None, num_classes: int=10, 
+    def __init__(self, dataset: str="CIFAR10", real_data_path: str=None, num_classes: int=10, 
                  ipc: int=1, model_name: str=None, use_default_transform: bool=True, num_eval: int=5, 
                  num_epochs: int=100, lr: float=0.01, batch_size: int=256,
                  custom_transform: transforms.Compose=None, device=torch.device('cuda')):
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
-        # self.images_test, self.labels_test, self.class_indices_test = self.load_real_data(dst_test, class_map, num_classes)
         self.test_loader = DataLoader(dst_test, batch_size=batch_size, shuffle=False)
-        if syn_data_path is not None:
-            image_path = os.path.join(syn_data_path, 'images.pt')
-            assert os.path.exists(image_path), "Image file not found in {}".format(data_path)
-            self.syn_images = self.load_syn_data(image_path)
 
-        elif images is not None:
-            self.syn_images = images
-        else:
-            raise ValueError("Either data_path or images must be provided")
-        
-        assert len(self.syn_images) == ipc * num_classes, "Number of images must be equal to ipc * num_classes"
         # data info
         self.im_size = self.syn_images[0].shape
         self.num_classes = num_classes
@@ -62,28 +51,25 @@ class DD_Ranking_Objective:
         
         return images_all, labels_all, class_indices
     
-    def load_syn_data(self, image_path: str):
-        return torch.load(image_path, map_location='cpu')
-    
-    def build_model(self, model_name: str):
+    def build_model(self, model_name: str, pretrained: bool=False):
         assert model_name is not None, "model name must be provided"
         depth, batchnorm = parse_model_name(model_name)
         if model_name.startswith("ConvNet"):
-            return get_convnet(channel=3, num_classes=self.num_classes, im_size=self.im_size, 
-                               net_width=128, net_depth=depth, net_act="relu", net_norm="instancenorm" if not batchnorm else "batchnorm",
-                               net_pooling="avgpooling")
+            return get_convnet(model_name, channel=3, num_classes=self.num_classes, im_size=self.im_size, net_depth=depth, 
+                               net_norm="instancenorm" if not batchnorm else "batchnorm", pretrained=pretrained)
         elif model_name.startswith("AlexNet"):
-            return get_alexnet(im_size=self.im_size, channel=3, num_classes=self.num_classes)
+            return get_alexnet(model_name, im_size=self.im_size, channel=3, num_classes=self.num_classes, pretrained=pretrained)
         elif model_name.startswith("ResNet"):
-            return get_resnet(im_size=self.im_size, channel=3, num_classes=self.num_classes, depth=depth, batchnorm=batchnorm)
+            return get_resnet(model_name, im_size=self.im_size, channel=3, num_classes=self.num_classes, depth=depth, 
+                              batchnorm=batchnorm, pretrained=pretrained)
         elif model_name.startswith("LeNet"):
-            return get_lenet(im_size=self.im_size, channel=3, num_classes=self.num_classes)
+            return get_lenet(model_name, im_size=self.im_size, channel=3, num_classes=self.num_classes, pretrained=pretrained)
         elif model_name.startswith("MLP"):
-            return get_mlp(im_size=self.im_size, channel=3, num_classes=self.num_classes)
+            return get_mlp(model_name, im_size=self.im_size, channel=3, num_classes=self.num_classes, pretrained=pretrained)
         elif model_name.startswith("VGG"):
-            return get_vgg(im_size=self.im_size, channel=3, num_classes=self.num_classes, depth=depth, batchnorm=batchnorm)
+            return get_vgg(model_name, im_size=self.im_size, channel=3, num_classes=self.num_classes, depth=depth, batchnorm=batchnorm, pretrained=pretrained)
         else:
-            return get_other_model(model_name, num_classes=self.num_classes, im_size=self.im_size)
+            return get_other_model(model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=pretrained)
         
         model = model.to(self.device)
         return model
@@ -97,6 +83,8 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         super().__init__(*args, **kwargs)
         self.soft_labels = soft_labels
         self.soft_label_dataset = TensorDataset(self.syn_images.detach().clone(), self.soft_labels.detach().clone())
+        self.teacher_model = self.build_model(self.model_name, pretrained=True, device=self.device)
+        self.teacher_model.eval()
 
     @staticmethod
     def SoftCrossEntropy(inputs, target):
@@ -106,15 +94,16 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         loss = torch.sum(torch.mul(input_log_likelihood, target_log_likelihood)) / batch_size
         return loss
 
-    def compute_syn_data_hard_label_metrics(self):
-        hard_labels = torch.tensor([np.ones(ipc) * i for i in range(num_classes)], dtype=torch.long, requires_grad=False).view(-1)
-        hard_label_dataset = TensorDataset(self.syn_images, hard_labels)
+    def compute_hard_label_metrics(self, model, images, hard_labels=None):
+        if hard_labels is None:
+            hard_labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
+        hard_label_dataset = TensorDataset(images, hard_labels)
         train_loader = DataLoader(hard_label_dataset, batch_size=self.batch_size, shuffle=True)
 
         loss_fn = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating syn data hard label metrics...")
+
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -124,13 +113,14 @@ class Soft_Label_Objective(DD_Ranking_Objective):
 
         return best_acc1
         
-    def compute_syn_data_soft_label_metrics(self, model):
-            
-        train_loader = DataLoader(self.soft_label_dataset, batch_size=self.batch_size, shuffle=True)
+    def compute_soft_label_metrics(self, model, images, soft_labels):
+        soft_label_dataset = TensorDataset(images, soft_labels)
+        train_loader = DataLoader(soft_label_dataset, batch_size=self.batch_size, shuffle=True)
+
         loss_fn = self.SoftCrossEntropy
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating syn data soft label metrics...")
+        
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -140,53 +130,45 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         
         return best_acc1
 
-    def compute_random_data_soft_label_metrics(self, model, random_images):
-            
-        random_dataset = TensorDataset(random_images, self.soft_labels.detach().clone())
-        train_loader = DataLoader(random_dataset, batch_size=self.batch_size, shuffle=True)
-        
-        loss_fn = self.SoftCrossEntropy
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating random data soft label metrics...")
-        best_acc1 = 0
-        for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
-        
-        return best_acc1
-
-    def compute_full_data_hard_label_metrics(self, model):
-            
-        full_dataset = TensorDataset(self.images_train, self.labels_train)
-        train_loader = DataLoader(full_dataset, batch_size=self.batch_size, shuffle=True)
-
-        loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating full data hard label metrics...")
-        best_acc1 = 0
-        for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
-
-        return best_acc1
+    def generate_soft_labels_for_random_data(self, random_images):
+        hard_labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
+        random_dataset = TensorDataset(random_images, hard_labels)
+        train_loader = DataLoader(random_dataset, batch_size=self.batch_size, shuffle=False)
+        soft_labels = []
+        with torch.no_grad():
+            for images, _ in train_loader:
+                images = images.to(self.device)
+                soft_labels.append(self.teacher_model(images).detach().cpu())
+        soft_labels = torch.cat(soft_labels, dim=0)
+        return soft_labels
     
-    def compute_metrics(self):
+    def compute_metrics(self, syn_images, soft_labels):
         obj_metrics = []
         for i in range(self.num_eval):
             set_seed()
-            model = self.build_model(self.model_name)
-            syn_data_hard_label_acc = self.compute_syn_data_hard_label_metrics(model)
-            syn_data_soft_label_acc = self.compute_syn_data_soft_label_metrics(model)
+            print(f"{i+1}th Evaluation")
 
+            print("Caculating syn data hard label metrics...")
+            model = self.build_model(self.model_name, pretrained=False)
+            syn_data_hard_label_acc = self.compute_hard_label_metrics(model, syn_images, hard_labels=None)
+            del model
+
+            print("Caculating full data hard label metrics...")
+            model = self.build_model(self.model_name, pretrained=False)
+            full_data_hard_label_acc = self.compute_hard_label_metrics(model, self.images_train, hard_labels=self.labels_train)
+            del model
+
+            print("Caculating syn data soft label metrics...")
+            model = self.build_model(self.model_name, pretrained=False)
+            syn_data_soft_label_acc = self.compute_soft_label_metrics(model, syn_images, soft_labels)
+            del model
+            
+            print("Caculating random data soft label metrics...")
+            model = self.build_model(self.model_name, pretrained=False)
             random_images = get_random_images(self.images_train, self.class_indices_train, self.ipc)
-            random_data_soft_label_acc = self.compute_random_data_soft_label_metrics(model, random_images)
-            full_data_hard_label_acc = self.compute_full_data_hard_label_metrics(model)
+            random_data_soft_labels = self.generate_soft_labels_for_random_data(random_images)
+            random_data_soft_label_acc = self.compute_soft_label_metrics(model, random_images, random_data_soft_labels)
+            del model
 
             numerator = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
             denominator = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
@@ -210,15 +192,16 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         loss = F.kl_div(stu_probs, tea_probs, reduction='batchmean') * (self.temperature ** 2)
         return loss
     
-    def compute_syn_data_hard_label_metrics(self):
-        hard_labels = torch.tensor([np.ones(ipc) * i for i in range(num_classes)], dtype=torch.long, requires_grad=False).view(-1)
-        hard_label_dataset = TensorDataset(self.syn_images, hard_labels)
+    def compute_hard_label_metrics(self, model, images, hard_labels=None):
+        if hard_labels is None:
+            hard_labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
+        hard_label_dataset = TensorDataset(images, hard_labels)
         train_loader = DataLoader(hard_label_dataset, batch_size=self.batch_size, shuffle=True)
 
         loss_fn = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating syn data hard label metrics...")
+
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -228,13 +211,16 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
 
         return best_acc1
         
-    def compute_syn_data_kl_divergence_metrics(self, model):
-            
-        train_loader = DataLoader(self.soft_label_dataset, batch_size=self.batch_size, shuffle=True)
+    def compute_kl_divergence_metrics(self, model, images, labels=None):
+        if labels is None:
+            labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
+        soft_label_dataset = TensorDataset(images, labels)
+        train_loader = DataLoader(soft_label_dataset, batch_size=self.batch_size, shuffle=True)
+
         loss_fn = self.KLDivLoss
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
         lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating syn data kl divergence metrics...")
+
         best_acc1 = 0
         for epoch in range(self.num_epochs):
             train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
@@ -242,55 +228,34 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
             if metric['top1'] > best_acc1:
                 best_acc1 = metric['top1']
         
-        return best_acc1
-
-    def compute_random_data_kl_divergence_metrics(self, model, random_images):
-            
-        random_dataset = TensorDataset(random_images, self.soft_labels.detach().clone())
-        train_loader = DataLoader(random_dataset, batch_size=self.batch_size, shuffle=True)
-        
-        loss_fn = self.KLDivLoss
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating random data kl divergence metrics...")
-        best_acc1 = 0
-        for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
-        
-        return best_acc1
-
-    def compute_full_data_hard_label_metrics(self, model):
-            
-        full_dataset = TensorDataset(self.images_train, self.labels_train)
-        train_loader = DataLoader(full_dataset, batch_size=self.batch_size, shuffle=True)
-
-        loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating full data hard label metrics...")
-        best_acc1 = 0
-        for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
-
         return best_acc1
     
-    def compute_metrics(self):
+    def compute_metrics(self, images, labels=None):
         obj_metrics = []
         for i in range(self.num_eval):
             set_seed()
-            model = self.build_model(self.model_name)
-            syn_data_hard_label_acc = self.compute_syn_data_hard_label_metrics(model)
-            syn_data_kl_divergence_acc = self.compute_syn_data_kl_divergence_metrics(model)
+            print(f"{i+1}th Evaluation")
 
+            print("Caculating syn data hard label metrics...")
+            model = self.build_model(self.model_name)
+            syn_data_hard_label_acc = self.compute_hard_label_metrics(model, images, hard_labels=None)
+            del model
+
+            print("Caculating full data hard label metrics...")
+            model = self.build_model(self.model_name)
+            full_data_hard_label_acc = self.compute_hard_label_metrics(model, self.images_train, hard_labels=self.labels_train)
+            del model
+
+            print("Caculating syn data kl divergence metrics...")
+            model = self.build_model(self.model_name)
+            syn_data_kl_divergence_acc = self.compute_kl_divergence_metrics(model, images, labels=labels)
+            del model
+
+            print("Caculating random data kl divergence metrics...")
+            model = self.build_model(self.model_name)
             random_images = get_random_images(self.images_train, self.class_indices_train, self.ipc)
-            random_data_kl_divergence_acc = self.compute_random_data_kl_divergence_metrics(model, random_images)
-            full_data_hard_label_acc = self.compute_full_data_hard_label_metrics(model)
+            random_data_kl_divergence_acc = self.compute_kl_divergence_metrics(model, random_images, labels=labels)
+            del model
 
             numerator = 1.00 * (syn_data_kl_divergence_acc - random_data_kl_divergence_acc)
             denominator = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
