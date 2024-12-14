@@ -247,6 +247,5 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
 
 if __name__ == "__main__":
     images = torch.randn(10, 3, 32, 32)
-    obj = DD_Ranking_Objective(images=images, model_name="ConvNet")
-    print(obj.syn_images.shape)
+    obj = DD_Ranking_Objective(dataset="CIFAR10", real_data_path=None, ipc=1, model_name="ConvNet")
     print(obj.compute_metrics())
