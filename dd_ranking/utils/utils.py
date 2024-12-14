@@ -217,28 +217,40 @@ def parse_model_name(model_name):
     return depth, batchnorm
         
 
-def get_convnet(im_size, channel, num_classes, net_width, net_depth, net_act, net_norm, net_pooling):
-    print(f"Creating ConvNet with width={net_width}, depth={net_depth}, act={net_act}, norm={net_norm}, pooling={net_pooling}")
-    return ConvNet(channel=channel, num_classes=num_classes, net_width=net_width, net_depth=net_depth,
-                   net_act=net_act, net_norm=net_norm, net_pooling=net_pooling, im_size=im_size)
+def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, pretrained=False):
+    print(f"Creating {model_name} with depth={net_depth}, norm={net_norm}")
+    model = ConvNet(channel=channel, num_classes=num_classes, net_width=128, net_depth=net_depth,
+                    net_act='relu', net_norm=net_norm, net_pooling='avgpooling', im_size=im_size)
+    if pretrained:
+        pass
+    return model
 
-def get_mlp(im_size, channel, num_classes):
-    print(f"Creating MLP with channel={channel}, num_classes={num_classes}")
-    return MLP(channel=channel, num_classes=num_classes, res=im_size[0])
+def get_mlp(model_name, im_size, channel, num_classes, pretrained=False):
+    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
+    model = MLP(channel=channel, num_classes=num_classes, res=im_size[0])
+    if pretrained:
+        pass
+    return model
 
-def get_lenet(im_size, channel, num_classes):
-    print(f"Creating LeNet with channel={channel}, num_classes={num_classes}")
-    return LeNet(channel=channel, num_classes=num_classes, res=im_size[0])
+def get_lenet(model_name, im_size, channel, num_classes, pretrained=False):
+    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
+    model = LeNet(channel=channel, num_classes=num_classes, res=im_size[0])
+    if pretrained:
+        pass
+    return model
 
-def get_alexnet(im_size, channel, num_classes, use_torchvision=False, pretrained=False):
-    print(f"Creating AlexNet with channel={channel}, num_classes={num_classes}")
+def get_alexnet(model_name, im_size, channel, num_classes, use_torchvision=False, pretrained=False):
+    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         return torchvision.models.alexnet(num_classes=num_classes, pretrained=pretrained)
     else:
-        return AlexNet(channel=channel, num_classes=num_classes, res=im_size[0])
+        if pretrained:
+            pass
+        else:
+            return AlexNet(channel=channel, num_classes=num_classes, res=im_size[0])
 
-def get_vgg(im_size, channel, num_classes, depth=11, batchnorm=False, use_torchvision=False, pretrained=False):
-    print(f"Creating VGG{depth} with channel={channel}, num_classes={num_classes}")
+def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False, use_torchvision=False, pretrained=False):
+    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         if depth == 11:
             if batchnorm:
@@ -261,11 +273,15 @@ def get_vgg(im_size, channel, num_classes, depth=11, batchnorm=False, use_torchv
             else:
                 return torchvision.models.vgg19(num_classes=num_classes, pretrained=pretrained)
     else:
-        return VGG(f'VGG{depth}', channel, num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
+        model = VGG(f'VGG{depth}', channel, num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
+        if pretrained:
+            pass
+        
+        return model
     
 
-def get_resnet(im_size, channel, num_classes, depth=18, batchnorm=False, use_torchvision=False, pretrained=False):
-    print(f"Creating ResNet{depth} with channel={channel}, num_classes={num_classes}")
+def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=False, use_torchvision=False, pretrained=False):
+    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         if depth == 18:
             if batchnorm:
@@ -284,11 +300,15 @@ def get_resnet(im_size, channel, num_classes, depth=18, batchnorm=False, use_tor
                 return torchvision.models.resnet50(num_classes=num_classes, pretrained=pretrained)
     else:
         if depth == 18:
-            return ResNet(BasicBlock, [2,2,2,2], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
+            model = ResNet(BasicBlock, [2,2,2,2], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
         elif depth == 34:
-            return ResNet(BasicBlock, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
+            model = ResNet(BasicBlock, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
         elif depth == 50:
-            return ResNet(Bottleneck, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
+            model = ResNet(Bottleneck, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
+        if pretrained:
+            pass
+        
+        return model
 
 
 def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrained=False):
@@ -300,6 +320,29 @@ def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrai
         raise ValueError(f"Model {model_name} not found")
     return model
 
+
+def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: bool=False, device: str="cuda"):
+    assert model_name is not None, "model name must be provided"
+    depth, batchnorm = parse_model_name(model_name)
+    if model_name.startswith("ConvNet"):
+        return get_convnet(model_name, channel=3, num_classes=num_classes, im_size=im_size, net_depth=depth, 
+                            net_norm="instancenorm" if not batchnorm else "batchnorm", pretrained=pretrained)
+    elif model_name.startswith("AlexNet"):
+        return get_alexnet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained)
+    elif model_name.startswith("ResNet"):
+        return get_resnet(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, 
+                            batchnorm=batchnorm, pretrained=pretrained)
+    elif model_name.startswith("LeNet"):
+        return get_lenet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained)
+    elif model_name.startswith("MLP"):
+        return get_mlp(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained)
+    elif model_name.startswith("VGG"):
+        return get_vgg(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, batchnorm=batchnorm, pretrained=pretrained)
+    else:
+        return get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained)
+    
+    model = model.to(device)
+    return model
 
 ################################################################################ train and validate ################################################################################
 def default_augmentation(images):

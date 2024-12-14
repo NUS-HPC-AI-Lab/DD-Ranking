@@ -8,22 +8,29 @@ from torch import Tensor
 from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from utils import TensorDataset, get_dataset
-from utils import parse_model_name, get_convnet, get_alexnet, get_resnet, get_lenet, get_mlp, get_vgg, get_other_model
-from utils import set_seed, train_one_epoch, validate
+from dd_ranking.utils import get_dataset, build_model
+from dd_ranking.utils import set_seed, train_one_epoch, validate
 
 
 class Augmentation:
-    def __init__(self, dataset: str="CIFAR10", real_data_path: str=None, model_name: str=None, num_classes: int=None, ipc: int=None, device: str=None):
+    def __init__(self, dataset: str, real_data_path: str, model_name: str, ipc: int, device: str="cuda"):
+        
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
-        self.test_loader = DataLoader(dst_test, batch_size=batch_size, shuffle=False)
-
+        
+        self.ipc = ipc
         self.model_name = model_name
         self.num_classes = num_classes
-        self.ipc = ipc
+        self.im_size = im_size
         self.device = device
-    
+
+        # default params for training a model
+        self.batch_size = 256
+        self.num_epochs = 300
+        self.lr = 0.01
+
+        self.test_loader = DataLoader(dst_test, batch_size=self.batch_size, shuffle=False)
+
     def load_real_data(self, dataset, class_map, num_classes):
         images_all = []
         labels_all = []
@@ -36,29 +43,6 @@ class Augmentation:
         for i, label in enumerate(labels_all):
             class_indices[label].append(i)
         return images_all, labels_all, class_indices
-
-    def build_model(self, model_name: str):
-        assert model_name is not None, "model name must be provided"
-        depth, batchnorm = parse_model_name(model_name)
-        if model_name.startswith("ConvNet"):
-            return get_convnet(channel=3, num_classes=self.num_classes, im_size=self.im_size, 
-                               net_width=128, net_depth=depth, net_act="relu", net_norm="instancenorm" if not batchnorm else "batchnorm",
-                               net_pooling="avgpooling")
-        elif model_name.startswith("AlexNet"):
-            return get_alexnet(im_size=self.im_size, channel=3, num_classes=self.num_classes)
-        elif model_name.startswith("ResNet"):
-            return get_resnet(im_size=self.im_size, channel=3, num_classes=self.num_classes, depth=depth, batchnorm=batchnorm)
-        elif model_name.startswith("LeNet"):
-            return get_lenet(im_size=self.im_size, channel=3, num_classes=self.num_classes)
-        elif model_name.startswith("MLP"):
-            return get_mlp(im_size=self.im_size, channel=3, num_classes=self.num_classes)
-        elif model_name.startswith("VGG"):
-            return get_vgg(im_size=self.im_size, channel=3, num_classes=self.num_classes, depth=depth, batchnorm=batchnorm)
-        else:
-            return get_other_model(model_name, num_classes=self.num_classes, im_size=self.im_size)
-        
-        model = model.to(self.device)
-        return model
 
     def apply_augmentation(self, images):
         pass
@@ -137,32 +121,52 @@ class Augmentation:
         aug_metrics = []
         for i in range(self.num_eval):
             set_seed()
-            model = self.build_model(self.model_name)
-            syn_data_default_aug_acc = self.compute_syn_data_default_aug_metrics(model)
-            syn_data_custom_aug_acc = self.compute_syn_data_custom_aug_metrics(model)
+            print(f"{i+1}th Evaluation")
 
+            print("Caculating syn data default augmentation metrics...")
+            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
+            syn_data_default_aug_acc = self.compute_syn_data_default_aug_metrics(model)
+            del model
+
+            print("Caculating syn data custom augmentation metrics...")
+            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
+            syn_data_custom_aug_acc = self.compute_syn_data_custom_aug_metrics(model)
+            del model
+
+            print("Caculating random data custom augmentation metrics...")
+            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             random_images = get_random_images(self.images_train, self.class_indices_train, self.ipc)
             random_data_custom_aug_acc = self.compute_random_data_custom_aug_metrics(model, random_images)
+            del model
+
+            print("Caculating full data default augmentation metrics...")
+            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             full_data_default_aug_acc = self.compute_full_data_default_aug_metrics(model)
+            del model
 
             numerator = 1.00 * (syn_data_custom_aug_acc - random_data_custom_aug_acc)
             denominator = 1.00 * (full_data_default_aug_acc - syn_data_default_aug_acc)
             aug_metrics.append(numerator / denominator)
         aug_metrics_mean = np.mean(aug_metrics)
         aug_metrics_std = np.std(aug_metrics)
+
         return aug_metrics_mean, aug_metrics_std
         
 
 class DSA_Augmentation(Augmentation):
 
-    def __init__(self, func_names: list, params: dict, seed: int=-1, aug_mode: str='M', batch_size: int=256, num_epochs: int=1000, lr: float=0.01):
+    def __init__(self, func_names: list, params: dict, seed: int=-1, aug_mode: str='M'):
         super().__init__()
         
         self.params = params
         self.seed = seed
         self.aug_mode = aug_mode
         self.transform_funcs = create_transform_funcs(func_names)
-    
+        # dsa params for training a model
+        self.batch_size = 256
+        self.num_epochs = 1000
+        self.lr = 0.01
+
     def create_transform_funcs(self, func_names):
         funcs = []
         for func_name in func_names:
@@ -316,15 +320,31 @@ class DSA_Augmentation(Augmentation):
         transformed_images = transformed_images.contiguous()
             
         return transformed_images
+    
+    def compute_metrics(self, images):
+        aug_metrics = super().compute_metrics(images)
+        print(f"DSA Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
+        return aug_metrics
+
         
 
 class ZCA_Whitening_Augmentation(Augmentation):
-    def __init__(self, batch_size: int=256, num_epochs: int=300, lr: float=0.01):
+    def __init__(self):
         super().__init__()
         self.transform = kornia.enhance.ZCAWhitening()
+
+        # zca params for training a model
+        self.batch_size = 256
+        self.num_epochs = 300
+        self.lr = 0.01
         
     def apply_augmentation(self, images):
         return self.transform(images, include_fit=True)
+    
+    def compute_metrics(self, images):
+        aug_metrics = super().compute_metrics(images)
+        print(f"ZCA Whitening Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
+        return aug_metrics
         
         
 class Mixup_Augmentation(Augmentation):
@@ -337,13 +357,23 @@ class Mixup_Augmentation(Augmentation):
             p = params["prob"]
         )
         
+        # mixup params for training a model
+        self.batch_size = 256
+        self.num_epochs = 300
+        self.lr = 0.01
+        
     def apply_augmentation(self, images, seed):
         labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
         return self.transform(images, labels)
+    
+    def compute_metrics(self, images):
+        aug_metrics = super().compute_metrics(images)
+        print(f"Mixup Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
+        return aug_metrics
 
 
 class Cutmix_Augmentation(Augmentation):
-    def __init__(self, params: dict, batch_size: int=256, num_epochs: int=300, lr: float=0.01):
+    def __init__(self, params: dict):
         super().__init__()
         self.transform = kornia.augmentation.RandomCutMixV2(
             num_mix = params["times"],
@@ -354,13 +384,19 @@ class Cutmix_Augmentation(Augmentation):
             p = params["prob"]
         )
         
-        self.batch_size = batch_size
-        self.num_epochs = num_epochs
-        self.lr = lr
+        # cutmix params for training a model
+        self.batch_size = 256
+        self.num_epochs = 300
+        self.lr = 0.01
 
     def apply_augmentation(self, images):
         labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
         return self.transform(images, labels)
+
+    def compute_metrics(self, images):
+        aug_metrics = super().compute_metrics(images)
+        print(f"Cutmix Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
+        return aug_metrics
 
 
 if __name__ == "__main__":
