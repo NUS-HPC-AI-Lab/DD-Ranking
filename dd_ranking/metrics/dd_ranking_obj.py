@@ -17,8 +17,7 @@ from dd_ranking.train import train_one_epoch, validate
 
 class DD_Ranking_Objective:
 
-    def __init__(self, dataset: str="CIFAR10", real_data_path: str=None, num_classes: int=10, 
-                 ipc: int=1, model_name: str=None, use_default_transform: bool=True, num_eval: int=5, 
+    def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, use_default_transform: bool=True, num_eval: int=5, 
                  num_epochs: int=100, lr: float=0.01, batch_size: int=256,
                  custom_transform: transforms.Compose=None, device: str="cuda"):
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path)
