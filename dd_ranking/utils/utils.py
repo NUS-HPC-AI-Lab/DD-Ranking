@@ -10,10 +10,6 @@ from torch import Tensor
 from torchvision import transforms, datasets
 from .networks import MLP, ConvNet, LeNet, AlexNet, VGG, ResNet, BasicBlock, Bottleneck
 from .networks import VGG11, VGG11_Tiny, VGG11BN, ResNet18, ResNet18_Tiny, ResNet18BN, ResNet18BN_Tiny, ResNet18BN_AP, ResNet18_AP
-from torch import Tensor
-from torchvision import transforms, datasets
-from .networks import MLP, ConvNet, LeNet, AlexNet, VGG, ResNet, BasicBlock, Bottleneck
-from .networks import VGG11, VGG11_Tiny, VGG11BN, ResNet18, ResNet18_Tiny, ResNet18BN, ResNet18BN_Tiny, ResNet18BN_AP, ResNet18_AP
 
 
 def set_seed():
@@ -84,8 +80,6 @@ class TensorDataset(torch.utils.data.Dataset):
 
 
 def get_dataset(dataset, data_path, im_size, transform=None):
-    class_map_inv = None
-
     class_map_inv = None
 
     if dataset == 'CIFAR10':
@@ -217,7 +211,6 @@ def get_random_images(images_all, class_indices, n_images_per_class):
 def parse_model_name(model_name):
     try:
         depth = int(model_name.split("-")[1])
-        depth = int(model_name.split("-")[1])
         if "BN" in model_name and len(model_name.split("-")) > 2 and model_name.split("-")[2] == "BN":
             batchnorm = True
         else:
@@ -228,48 +221,37 @@ def parse_model_name(model_name):
         
 
 def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, pretrained=False, model_path=None):
-def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, pretrained=False, model_path=None):
     print(f"Creating {model_name} with depth={net_depth}, norm={net_norm}")
     model = ConvNet(channel=channel, num_classes=num_classes, net_width=128, net_depth=net_depth,
                     net_act='relu', net_norm=net_norm, net_pooling='avgpooling', im_size=im_size)
     if pretrained:
         model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
-        model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
-def get_mlp(model_name, im_size, channel, num_classes, pretrained=False, model_path=None):
 def get_mlp(model_name, im_size, channel, num_classes, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     model = MLP(channel=channel, num_classes=num_classes, res=im_size[0])
     if pretrained:
         model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
-        model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
-def get_lenet(model_name, im_size, channel, num_classes, pretrained=False, model_path=None):
 def get_lenet(model_name, im_size, channel, num_classes, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     model = LeNet(channel=channel, num_classes=num_classes, res=im_size[0])
     if pretrained:
         model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
-        model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
-def get_alexnet(model_name, im_size, channel, num_classes, use_torchvision=False, pretrained=False, model_path=None):
 def get_alexnet(model_name, im_size, channel, num_classes, use_torchvision=False, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         return torchvision.models.alexnet(num_classes=num_classes, pretrained=pretrained)
     else:
         model = AlexNet(channel=channel, num_classes=num_classes, res=im_size[0])
-        model = AlexNet(channel=channel, num_classes=num_classes, res=im_size[0])
         if pretrained:
             model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
         return model
-            model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
-        return model
 
-def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False, use_torchvision=False, pretrained=False, model_path=None):
 def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False, use_torchvision=False, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
@@ -297,12 +279,10 @@ def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False
         model = VGG(f'VGG{depth}', channel, num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
         if pretrained:
             model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
-            model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
         
         return model
     
 
-def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=False, use_torchvision=False, pretrained=False, model_path=None):
 def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=False, use_torchvision=False, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
@@ -330,51 +310,38 @@ def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=Fa
             model = ResNet(Bottleneck, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
         if pretrained:
             model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
-            model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
         
         return model
 
 
-def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrained=False, model_path=None):
 def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrained=False, model_path=None):
     try:
         model = torchvision.models.get_model(model_name, pretrained=pretrained)
     except:
         model = timm.create_model(model_name, pretrained=pretrained)
     finally:
-    finally:
         raise ValueError(f"Model {model_name} not found")
     return model
 
 
-def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: bool=False, model_path: str=None, device: str="cuda"):
 def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: bool=False, model_path: str=None, device: str="cuda"):
     assert model_name is not None, "model name must be provided"
     depth, batchnorm = parse_model_name(model_name)
     if model_name.startswith("ConvNet"):
         model = get_convnet(model_name, channel=3, num_classes=num_classes, im_size=im_size, net_depth=depth, 
                             net_norm="instancenorm" if not batchnorm else "batchnorm", pretrained=pretrained, model_path=model_path)
-        model = get_convnet(model_name, channel=3, num_classes=num_classes, im_size=im_size, net_depth=depth, 
-                            net_norm="instancenorm" if not batchnorm else "batchnorm", pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("AlexNet"):
-        model = get_alexnet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained, model_path=model_path)
         model = get_alexnet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("ResNet"):
         model = get_resnet(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, 
                             batchnorm=batchnorm, pretrained=pretrained, model_path=model_path)
-        model = get_resnet(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, 
-                            batchnorm=batchnorm, pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("LeNet"):
-        model = get_lenet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained, model_path=model_path)
         model = get_lenet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("MLP"):
         model = get_mlp(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained, model_path=model_path)
-        model = get_mlp(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("VGG"):
         model = get_vgg(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, batchnorm=batchnorm, pretrained=pretrained, model_path=model_path)
-        model = get_vgg(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, batchnorm=batchnorm, pretrained=pretrained, model_path=model_path)
     else:
-        model = get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained, model_path=model_path)
         model = get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained, model_path=model_path)
     
     model = model.to(device)
@@ -384,33 +351,26 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
 def get_pretrained_model_path(model_name, dataset, ipc):
     if dataset == 'CIFAR10':
         if ipc <= 10:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}" "ckpt_20.pt")
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}" "ckpt_20.pth")
         elif ipc <= 100:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}" "ckpt_50.pt")
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_50.pth")
         elif ipc <= 1000:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_80.pt")
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_80.pth")
     elif dataset == 'CIFAR100':
         if ipc <= 10:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_20.pt")
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_20.pth")
         elif ipc <= 100:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_50.pt")
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_80.pth")
     elif dataset == 'Tiny':
         if ipc <= 1:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_40.pt")
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_40.pth")
         elif ipc <= 10:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_60.pt")
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_60.pth")
         elif ipc <= 100:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_80.pt")
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_80.pth")
 ################################################################################ train and validate ################################################################################
 def default_augmentation(images):
     # you can also add your own implementation here
-    # img_size = images.shape[2]
-    # transform = transforms.Compose([
-    #     transforms.RandomHorizontalFlip(),
-    #     transforms.RandomVerticalFlip(),
-    #     transforms.RandomRotation(degrees=15)
-    # ])
-    # images = transform(images)
     # img_size = images.shape[2]
     # transform = transforms.Compose([
     #     transforms.RandomHorizontalFlip(),
@@ -427,16 +387,12 @@ def train_one_epoch(
         stu_model,
         loader,
         loss_fn,
-        loss_fn,
         optimizer,
         aug_func=None,
         tea_model=None,
         device='cuda',
-        device='cuda',
         lr_scheduler=None,
         grad_accum_steps=1,
-        log_interval=10,
-        temperature=1.0
         log_interval=10,
         temperature=1.0
 ):
@@ -481,7 +437,6 @@ def train_one_epoch(
             if tea_model is not None:
                 tea_output = tea_model(input)
                 loss = loss_fn(stu_output, tea_output, temperature=temperature)
-                loss = loss_fn(stu_output, tea_output, temperature=temperature)
             else:
                 loss = loss_fn(stu_output, target)
             if accum_steps > 1:
@@ -525,18 +480,8 @@ def train_one_epoch(
                 f'LR: {lr:.3e}  '
                 f'Data: {data_time_m.val:.3f} ({data_time_m.avg:.3f})'
             )
-            print(
-                f'Train: {epoch} [{update_idx:>4d}/{updates_per_epoch} '
-                f'({100. * (update_idx + 1) / updates_per_epoch:>3.0f}%)]  '
-                f'Loss: {loss_now:#.3g} ({loss_avg:#.3g})  '
-                f'Time: {update_time_m.val:.3f}s, {update_sample_count / update_time_m.val:>7.2f}/s  '
-                f'({update_time_m.avg:.3f}s, {update_sample_count / update_time_m.avg:>7.2f}/s)  '
-                f'LR: {lr:.3e}  '
-                f'Data: {data_time_m.val:.3f} ({data_time_m.avg:.3f})'
-            )
 
         if lr_scheduler is not None:
-            lr_scheduler.step(epoch)
             lr_scheduler.step(epoch)
 
         update_sample_count = 0
@@ -550,9 +495,7 @@ def validate(
     model,
     loader,
     aug_func=None,
-    aug_func=None,
     device=torch.device('cuda'),
-    log_interval=10
     log_interval=10
 ):
     batch_time_m = timm.utils.AverageMeter()
@@ -560,9 +503,6 @@ def validate(
     top5_m = timm.utils.AverageMeter()
 
     model.eval()
-
-    if aug_func is None:
-        aug_func = default_augmentation
 
     if aug_func is None:
         aug_func = default_augmentation
@@ -594,9 +534,7 @@ def validate(
             batch_time_m.update(time.time() - end)
             end = time.time()
             if (last_batch or batch_idx % log_interval == 0):
-            if (last_batch or batch_idx % log_interval == 0):
                 print(
-                    f'Test: [{batch_idx:>4d}/{last_idx}]  '
                     f'Test: [{batch_idx:>4d}/{last_idx}]  '
                     f'Time: {batch_time_m.val:.3f} ({batch_time_m.avg:.3f})  '
                     f'Acc@1: {top1_m.val:>7.3f} ({top1_m.avg:>7.3f})  '
