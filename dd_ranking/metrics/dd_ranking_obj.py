@@ -55,10 +55,8 @@ class DD_Ranking_Objective:
 
 
 class Soft_Label_Objective(DD_Ranking_Objective):
-    def __init__(self, soft_labels: Tensor, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.soft_labels = soft_labels
-        self.soft_label_dataset = TensorDataset(self.syn_images.detach().clone(), self.soft_labels.detach().clone())
         self.teacher_model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=True, device=self.device)
         self.teacher_model.eval()
 
@@ -77,29 +75,31 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         train_loader = DataLoader(hard_label_dataset, batch_size=self.batch_size, shuffle=True)
 
         loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
+        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr, weight_decay=1e-4, momentum=0.9)
+        # lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
 
         best_acc1 = 0
         for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
+            train_one_epoch(model, train_loader, loss_fn, optimizer, device=self.device)
             metric = validate(model, self.test_loader, device=self.device)
             if metric['top1'] > best_acc1:
                 best_acc1 = metric['top1']
 
         return best_acc1
         
-    def compute_soft_label_metrics(self, model, images, soft_labels):
+    def compute_soft_label_metrics(self, model, images, soft_labels, syn_lr=None):
+        if syn_lr is None:
+            syn_lr = self.lr
         soft_label_dataset = TensorDataset(images, soft_labels)
         train_loader = DataLoader(soft_label_dataset, batch_size=self.batch_size, shuffle=True)
 
         loss_fn = self.SoftCrossEntropy
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
+        optimizer = torch.optim.SGD(model.parameters(), lr=syn_lr, weight_decay=1e-4, momentum=0.9)
+        # lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
         
         best_acc1 = 0
         for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
+            train_one_epoch(model, train_loader, loss_fn, optimizer, device=self.device)
             metric = validate(model, self.test_loader, device=self.device)
             if metric['top1'] > best_acc1:
                 best_acc1 = metric['top1']
@@ -118,7 +118,7 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         soft_labels = torch.cat(soft_labels, dim=0)
         return soft_labels
     
-    def compute_metrics(self, syn_images, soft_labels):
+    def compute_metrics(self, syn_images, soft_labels, syn_lr):
         obj_metrics = []
         for i in range(self.num_eval):
             set_seed()
@@ -136,7 +136,7 @@ class Soft_Label_Objective(DD_Ranking_Objective):
 
             print("Caculating syn data soft label metrics...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
-            syn_data_soft_label_acc = self.compute_soft_label_metrics(model, syn_images, soft_labels)
+            syn_data_soft_label_acc = self.compute_soft_label_metrics(model, syn_images, soft_labels, syn_lr=syn_lr)
             del model
             
             print("Caculating random data soft label metrics...")
