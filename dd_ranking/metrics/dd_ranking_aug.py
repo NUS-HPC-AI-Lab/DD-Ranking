@@ -402,11 +402,3 @@ class Cutmix_Augmentation(Augmentation):
 if __name__ == "__main__":
     images = torch.randn(10, 3, 32, 32)
     labels = torch.randn(10)
-    
-    
-    
-        
-    
-    
-
-        
