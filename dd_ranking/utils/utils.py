@@ -220,39 +220,39 @@ def parse_model_name(model_name):
     return depth, batchnorm
         
 
-def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, pretrained=False):
+def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, pretrained=False, model_path=None):
     print(f"Creating {model_name} with depth={net_depth}, norm={net_norm}")
     model = ConvNet(channel=channel, num_classes=num_classes, net_width=128, net_depth=net_depth,
                     net_act='relu', net_norm=net_norm, net_pooling='avgpooling', im_size=im_size)
     if pretrained:
-        pass
+        model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
-def get_mlp(model_name, im_size, channel, num_classes, pretrained=False):
+def get_mlp(model_name, im_size, channel, num_classes, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     model = MLP(channel=channel, num_classes=num_classes, res=im_size[0])
     if pretrained:
-        pass
+        model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
-def get_lenet(model_name, im_size, channel, num_classes, pretrained=False):
+def get_lenet(model_name, im_size, channel, num_classes, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     model = LeNet(channel=channel, num_classes=num_classes, res=im_size[0])
     if pretrained:
-        pass
+        model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
-def get_alexnet(model_name, im_size, channel, num_classes, use_torchvision=False, pretrained=False):
+def get_alexnet(model_name, im_size, channel, num_classes, use_torchvision=False, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         return torchvision.models.alexnet(num_classes=num_classes, pretrained=pretrained)
     else:
+        model = AlexNet(channel=channel, num_classes=num_classes, res=im_size[0])
         if pretrained:
-            pass
-        else:
-            return AlexNet(channel=channel, num_classes=num_classes, res=im_size[0])
+            model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
+        return model
 
-def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False, use_torchvision=False, pretrained=False):
+def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False, use_torchvision=False, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         if depth == 11:
@@ -278,12 +278,12 @@ def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False
     else:
         model = VGG(f'VGG{depth}', channel, num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
         if pretrained:
-            pass
+            model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
         
         return model
     
 
-def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=False, use_torchvision=False, pretrained=False):
+def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=False, use_torchvision=False, pretrained=False, model_path=None):
     print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         if depth == 18:
@@ -309,12 +309,12 @@ def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=Fa
         elif depth == 50:
             model = ResNet(Bottleneck, [3,4,6,3], channel=channel, num_classes=num_classes, norm='batchnorm' if batchnorm else 'instancenorm', res=im_size[0])
         if pretrained:
-            pass
+            model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
         
         return model
 
 
-def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrained=False):
+def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrained=False, model_path=None):
     try:
         model = torchvision.models.get_model(model_name, pretrained=pretrained)
     except:
@@ -324,39 +324,60 @@ def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrai
     return model
 
 
-def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: bool=False, device: str="cuda"):
+def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: bool=False, model_path: str=None, device: str="cuda"):
     assert model_name is not None, "model name must be provided"
     depth, batchnorm = parse_model_name(model_name)
     if model_name.startswith("ConvNet"):
         model = get_convnet(model_name, channel=3, num_classes=num_classes, im_size=im_size, net_depth=depth, 
-                            net_norm="instancenorm" if not batchnorm else "batchnorm", pretrained=pretrained)
+                            net_norm="instancenorm" if not batchnorm else "batchnorm", pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("AlexNet"):
-        model = get_alexnet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained)
+        model = get_alexnet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("ResNet"):
         model = get_resnet(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, 
-                            batchnorm=batchnorm, pretrained=pretrained)
+                            batchnorm=batchnorm, pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("LeNet"):
-        model = get_lenet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained)
+        model = get_lenet(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("MLP"):
-        model = get_mlp(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained)
+        model = get_mlp(model_name, im_size=im_size, channel=3, num_classes=num_classes, pretrained=pretrained, model_path=model_path)
     elif model_name.startswith("VGG"):
-        model = get_vgg(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, batchnorm=batchnorm, pretrained=pretrained)
+        model = get_vgg(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, batchnorm=batchnorm, pretrained=pretrained, model_path=model_path)
     else:
-        model = get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained)
+        model = get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained, model_path=model_path)
     
     model = model.to(device)
     return model
 
+
+def get_pretrained_model_path(model_name, dataset, ipc):
+    if dataset == 'CIFAR10':
+        if ipc <= 10:
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}_20.pth")
+        elif ipc <= 100:
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}_50.pth")
+        elif ipc <= 1000:
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}_80.pth")
+    elif dataset == 'CIFAR100':
+        if ipc <= 10:
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}_20.pth")
+        elif ipc <= 100:
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}_80.pth")
+    elif dataset == 'Tiny':
+        if ipc <= 1:
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}_40.pth")
+        elif ipc <= 10:
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}_60.pth")
+        elif ipc <= 100:
+            return os.path.join("./teacher_models", "{dataset}", "{model_name}_80.pth")
 ################################################################################ train and validate ################################################################################
 def default_augmentation(images):
     # you can also add your own implementation here
-    img_size = images.shape[2]
-    transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomRotation(degrees=15)
-    ])
-    images = transform(images)
+    # img_size = images.shape[2]
+    # transform = transforms.Compose([
+    #     transforms.RandomHorizontalFlip(),
+    #     transforms.RandomVerticalFlip(),
+    #     transforms.RandomRotation(degrees=15)
+    # ])
+    # images = transform(images)
     return images
 
 
@@ -372,7 +393,8 @@ def train_one_epoch(
         device='cuda',
         lr_scheduler=None,
         grad_accum_steps=1,
-        log_interval=10
+        log_interval=10,
+        temperature=1.0
 ):
 
     second_order = hasattr(optimizer, 'is_second_order') and optimizer.is_second_order
@@ -414,7 +436,7 @@ def train_one_epoch(
             stu_output = stu_model(input)
             if tea_model is not None:
                 tea_output = tea_model(input)
-                loss = loss_fn(stu_output, tea_output)
+                loss = loss_fn(stu_output, tea_output, temperature=temperature)
             else:
                 loss = loss_fn(stu_output, target)
             if accum_steps > 1:
