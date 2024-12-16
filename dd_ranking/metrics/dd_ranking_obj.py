@@ -24,12 +24,8 @@ from dd_ranking.utils.utils import train_one_epoch, validate
 class DD_Ranking_Objective:
 
     def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, 
-                 use_default_transform: bool=True, num_eval: int=5, im_size: tuple=(32, 32),
-    def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, 
-                 use_default_transform: bool=True, num_eval: int=5, im_size: tuple=(32, 32),
-                 num_epochs: int=100, lr: float=0.01, batch_size: int=256,
-                 custom_transform: transforms.Compose=None, device: str="cuda"):
-        channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path, im_size, custom_transform)
+                 num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=100, lr: float=0.01, batch_size: int=256, device: str="cuda"):
+
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path, im_size, custom_transform)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
         self.test_loader = DataLoader(dst_test, batch_size=batch_size, shuffle=False)
@@ -40,7 +36,6 @@ class DD_Ranking_Objective:
         self.ipc = ipc
 
         # training info
-        self.model_name = model_name
         self.model_name = model_name
         self.num_eval = num_eval
         self.batch_size = batch_size
@@ -55,7 +50,6 @@ class DD_Ranking_Objective:
         for i, (image, label) in enumerate(dataset):
             images_all.append(torch.unsqueeze(image, 0))
             labels_all.append(class_map[label])
-            labels_all.append(class_map[label])
         images_all = torch.cat(images_all, dim=0)
         labels_all = torch.tensor(labels_all)
         for i, label in enumerate(labels_all):
@@ -68,11 +62,6 @@ class DD_Ranking_Objective:
 
 
 class Soft_Label_Objective(DD_Ranking_Objective):
-    def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, device: str="cuda", *args, **kwargs):
-        super().__init__(dataset=dataset, real_data_path=real_data_path, ipc=ipc, model_name=model_name, device=device, *args, **kwargs)
-
-        pretrained_model_path = get_pretrained_model_path(model_name, dataset, ipc)
-        self.teacher_model = build_model(model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=True, device=self.device, model_path=pretrained_model_path)
     def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, device: str="cuda", *args, **kwargs):
         super().__init__(dataset=dataset, real_data_path=real_data_path, ipc=ipc, model_name=model_name, device=device, *args, **kwargs)
 
@@ -168,7 +157,6 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         for i in range(self.num_eval):
             set_seed()
             print(f"############### {i+1}th Evaluation ###############")
-            print(f"############### {i+1}th Evaluation ###############")
 
             print("Caculating syn data hard label metrics...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
@@ -196,11 +184,6 @@ class Soft_Label_Objective(DD_Ranking_Objective):
             print("full_data_hard_label_acc: ", full_data_hard_label_acc)
             print("syn_data_hard_label_acc: ", syn_data_hard_label_acc)
 
-            print("syn_data_soft_label_acc: ", syn_data_soft_label_acc)
-            print("random_data_soft_label_acc: ", random_data_soft_label_acc)
-            print("full_data_hard_label_acc: ", full_data_hard_label_acc)
-            print("syn_data_hard_label_acc: ", syn_data_hard_label_acc)
-
             numerator = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
             denominator = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
             obj_metrics.append(numerator / denominator)
@@ -216,15 +199,7 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
                  tea_model_name: str, temperature: float=1.0, *args, **kwargs):
         super().__init__(dataset=dataset, real_data_path=real_data_path, ipc=ipc, model_name=stu_model_name, *args, **kwargs)
         self.tea_model_name = tea_model_name
-    def __init__(self, dataset: str, real_data_path: str, ipc: int, stu_model_name: str, 
-                 tea_model_name: str, temperature: float=1.0, *args, **kwargs):
-        super().__init__(dataset=dataset, real_data_path=real_data_path, ipc=ipc, model_name=stu_model_name, *args, **kwargs)
-        self.tea_model_name = tea_model_name
         self.temperature = temperature
-
-        pretrained_model_path = get_pretrained_model_path(tea_model_name, dataset, ipc)
-        self.teacher_model = build_model(tea_model_name, num_classes=self.num_classes, im_size=self.im_size, 
-                                         pretrained=True, device=self.device, model_path=pretrained_model_path)
 
         pretrained_model_path = get_pretrained_model_path(tea_model_name, dataset, ipc)
         self.teacher_model = build_model(tea_model_name, num_classes=self.num_classes, im_size=self.im_size, 
@@ -235,12 +210,8 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         stu_probs = F.log_softmax(stu_outputs / temperature, dim=1)
         tea_probs = F.log_softmax(tea_outputs / temperature, dim=1)
         loss = F.kl_div(stu_probs, tea_probs, reduction='batchmean') * (temperature ** 2)
-    def KLDivLoss(stu_outputs, tea_outputs, temperature=1.0):
-        stu_probs = F.log_softmax(stu_outputs / temperature, dim=1)
-        tea_probs = F.log_softmax(tea_outputs / temperature, dim=1)
-        loss = F.kl_div(stu_probs, tea_probs, reduction='batchmean') * (temperature ** 2)
         return loss
-
+    
     def hyper_param_search_for_hard_label(self, model, images, hard_labels=None):
         lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
         best_acc = 0
@@ -309,7 +280,6 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         for i in range(self.num_eval):
             set_seed()
             print(f"############### {i+1}th Evaluation ###############")
-            print(f"############### {i+1}th Evaluation ###############")
 
             print("Caculating syn data hard label metrics...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
@@ -328,15 +298,9 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
 
             print("Caculating random data kl divergence metrics...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
-            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             random_images = get_random_images(self.images_train, self.class_indices_train, self.ipc)
             random_data_kl_divergence_acc = self.hyper_param_search_for_kl_divergence(model, random_images, labels=labels)
             del model
-            
-            print("syn_data_kl_divergence_acc: ", syn_data_kl_divergence_acc)
-            print("random_data_kl_divergence_acc: ", random_data_kl_divergence_acc)
-            print("full_data_hard_label_acc: ", full_data_hard_label_acc)
-            print("syn_data_hard_label_acc: ", syn_data_hard_label_acc)
             
             print("syn_data_kl_divergence_acc: ", syn_data_kl_divergence_acc)
             print("random_data_kl_divergence_acc: ", random_data_kl_divergence_acc)
@@ -349,7 +313,6 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         obj_metrics_mean = np.mean(obj_metrics)
         obj_metrics_std = np.std(obj_metrics)
 
-        print(f"KL Divergence Objective Metrics Mean: {obj_metrics_mean:.2f}  Std: {obj_metrics_std:.2f}")
         print(f"KL Divergence Objective Metrics Mean: {obj_metrics_mean:.2f}  Std: {obj_metrics_std:.2f}")
         return obj_metrics_mean, obj_metrics_std
 
