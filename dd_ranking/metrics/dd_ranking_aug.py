@@ -8,8 +8,8 @@ from torch import Tensor
 from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from dd_ranking.utils import get_dataset, build_model
-from dd_ranking.utils import set_seed, train_one_epoch, validate
+from dd_ranking.utils.utils import get_dataset, build_model
+from dd_ranking.utils.utils import set_seed, train_one_epoch, validate
 
 
 class Augmentation:
@@ -402,11 +402,3 @@ class Cutmix_Augmentation(Augmentation):
 if __name__ == "__main__":
     images = torch.randn(10, 3, 32, 32)
     labels = torch.randn(10)
-    
-    
-    
-        
-    
-    
-
-        
