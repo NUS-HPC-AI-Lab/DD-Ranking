@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import time
@@ -79,7 +80,7 @@ class TensorDataset(torch.utils.data.Dataset):
         return len(self.images)
 
 
-def get_dataset(dataset, data_path, im_size, transform=None):
+def get_dataset(dataset, data_path, im_size):
     class_map_inv = None
 
     if dataset == 'CIFAR10':
@@ -88,14 +89,13 @@ def get_dataset(dataset, data_path, im_size, transform=None):
         num_classes = 10
         mean = [0.4914, 0.4822, 0.4465]
         std = [0.2023, 0.1994, 0.2010]
-        if not transform:
-            transform = transforms.Compose(
-                [
-                    transforms.RandomCrop(32, padding=4),
-                    transforms.RandomHorizontalFlip(),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=mean, std=std),
-                ])
+
+        transform = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std),
+        ])
 
         dst_train = datasets.CIFAR10(data_path, train=True, download=True, transform=transform)
         dst_test = datasets.CIFAR10(data_path, train=False, download=True, transform=transform)
@@ -108,14 +108,12 @@ def get_dataset(dataset, data_path, im_size, transform=None):
         mean = [0.4914, 0.4822, 0.4465]
         std = [0.2023, 0.1994, 0.2010]
 
-        if not transform:
-            transform = transforms.Compose(
-                [
-                    transforms.RandomCrop(32, padding=4),
-                    transforms.RandomHorizontalFlip(),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=mean, std=std),
-                ])
+        transform = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std),
+        ])
 
         dst_train = datasets.CIFAR100(data_path, train=True, download=True, transform=transform)  # no augmentation
         dst_test = datasets.CIFAR100(data_path, train=False, download=True, transform=transform)
@@ -127,14 +125,12 @@ def get_dataset(dataset, data_path, im_size, transform=None):
         num_classes = 200
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-        if not transform:
-            transform = transforms.Compose(
-                [
-                    transforms.RandomCrop(64, padding=4),
-                    transforms.RandomHorizontalFlip(),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=mean, std=std),
-                ])
+        transform = transforms.Compose([
+            transforms.RandomCrop(64, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std),
+        ])
 
         dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform)  # no augmentation
         dst_test = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform)
@@ -150,11 +146,12 @@ def get_dataset(dataset, data_path, im_size, transform=None):
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
 
-        if not transform:
-            transform = transforms.Compose([transforms.ToTensor(),
-                                            transforms.Normalize(mean=mean, std=std),
-                                            transforms.Resize(im_size),
-                                            transforms.CenterCrop(im_size)])
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std),
+            transforms.Resize(im_size),
+            transforms.CenterCrop(im_size)
+        ])
 
         dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform)
         dst_train_dict = {c: torch.utils.data.Subset(dst_train, np.squeeze(
@@ -181,11 +178,12 @@ def get_dataset(dataset, data_path, im_size, transform=None):
         num_classes = 1000
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-        if not transform:
-            transform = transforms.Compose([transforms.ToTensor(),
-                                            transforms.Normalize(mean=mean, std=std),
-                                            transforms.Resize(im_size),
-                                            transforms.CenterCrop(im_size)])
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std),
+            transforms.Resize(im_size),
+            transforms.CenterCrop(im_size)
+        ])
 
         dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform)
         dst_test = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform)
@@ -351,23 +349,23 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
 def get_pretrained_model_path(model_name, dataset, ipc):
     if dataset == 'CIFAR10':
         if ipc <= 10:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}" "ckpt_20.pth")
+            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_20.pt")
         elif ipc <= 100:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_50.pth")
+            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_50.pt")
         elif ipc <= 1000:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_80.pth")
+            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
     elif dataset == 'CIFAR100':
         if ipc <= 10:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_20.pth")
+            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_20.pt")
         elif ipc <= 100:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_80.pth")
+            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
     elif dataset == 'Tiny':
         if ipc <= 1:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_40.pth")
+            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_40.pt")
         elif ipc <= 10:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_60.pth")
+            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_60.pt")
         elif ipc <= 100:
-            return os.path.join("./teacher_models", "{dataset}", "{model_name}", "ckpt_80.pth")
+            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
 ################################################################################ train and validate ################################################################################
 def default_augmentation(images):
     # you can also add your own implementation here

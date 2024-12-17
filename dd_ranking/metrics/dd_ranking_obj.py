@@ -15,7 +15,7 @@ from dd_ranking.utils.utils import TensorDataset, get_random_images, get_dataset
 from dd_ranking.utils.utils import set_seed
 from dd_ranking.utils.utils import train_one_epoch, validate
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
-from dd_ranking.utils.utils import build_model
+from dd_ranking.utils.utils import build_model, get_pretrained_model_path
 from dd_ranking.utils.utils import TensorDataset, get_random_images, get_dataset
 from dd_ranking.utils.utils import set_seed
 from dd_ranking.utils.utils import train_one_epoch, validate
@@ -26,7 +26,7 @@ class DD_Ranking_Objective:
     def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, 
                  num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=100, lr: float=0.01, batch_size: int=256, device: str="cuda"):
 
-        channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path, im_size, custom_transform)
+        channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path, im_size)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
         self.test_loader = DataLoader(dst_test, batch_size=batch_size, shuffle=False)
 
@@ -151,7 +151,7 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         soft_labels = torch.cat(soft_labels, dim=0)
         return soft_labels
     
-    def compute_metrics(self, syn_images, syn_lr, soft_labels):
+    def compute_metrics(self, syn_images, syn_lr, soft_labels=None):
 
         obj_metrics = []
         for i in range(self.num_eval):
@@ -170,7 +170,10 @@ class Soft_Label_Objective(DD_Ranking_Objective):
 
             print("Caculating syn data soft label metrics...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
-            syn_data_soft_label_acc = self.compute_soft_label_metrics(model, syn_images, lr=syn_lr, soft_labels=soft_labels)
+            if syn_lr:
+                syn_data_soft_label_acc = self.compute_soft_label_metrics(model, syn_images, lr=syn_lr, soft_labels=soft_labels)
+            else:
+                syn_data_soft_label_acc = self.hyper_param_search_for_soft_label(model, syn_images, soft_labels=soft_labels)
             del model
             
             print("Caculating random data soft label metrics...")

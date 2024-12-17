@@ -11,8 +11,8 @@ syn_images = torch.load("./dc/images.pt", map_location='cpu')
 # syn_lr = torch.load("./datm/lr_best.pt", map_location='cpu')
 
 device = "cuda:3"
-convd3_sl_obj = Soft_Label_Objective(dataset="CIFAR10", real_data_path="../../DATASET", ipc=10, model_name="ConvNet-3", lr=0.01, device=device)
-print(convd3_sl_obj.compute_metrics(syn_images))
+convd3_sl_obj = Soft_Label_Objective(dataset="CIFAR10", real_data_path="../DATASET", ipc=10, model_name="ConvNet-3", lr=0.01, device=device)
+print(convd3_sl_obj.compute_metrics(syn_images, 0.01))
 
-convd3_kl_obj = KL_Divergence_Objective(dataset="CIFAR10", real_data_path="../../DATASET", ipc=10, model_name="ConvNet-3", lr=0.01, device=device)
-print(convd3_kl_obj.compute_metrics(syn_images))
+convd3_kl_obj = KL_Divergence_Objective(dataset="CIFAR10", real_data_path="../DATASET", ipc=10, model_name="ConvNet-3", lr=0.01, device=device)
+print(convd3_kl_obj.compute_metrics(syn_images, 0.01))
