@@ -194,15 +194,16 @@ def get_dataset(dataset, data_path, im_size):
     return channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv
 
 
-def get_random_images(images_all, class_indices, n_images_per_class):
+def get_random_images(images_all, labels_all, class_indices, n_images_per_class):
     all_selected_indices = []
     num_classes = len(class_indices)
     for c in range(num_classes):
         idx_shuffle = np.random.permutation(class_indices[c])[:n_images_per_class]
         all_selected_indices.extend(idx_shuffle)
     selected_images = images_all[all_selected_indices]
+    selected_labels = labels_all[all_selected_indices]
     assert len(selected_images) == num_classes * n_images_per_class
-    return selected_images
+    return selected_images, selected_labels
 
 ################################################################################ model utils ################################################################################
 
@@ -349,11 +350,11 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
 def get_pretrained_model_path(model_name, dataset, ipc):
     if dataset == 'CIFAR10':
         if ipc <= 10:
-            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_20.pt")
+            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_20.pt")
         elif ipc <= 100:
-            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_50.pt")
+            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_50.pt")
         elif ipc <= 1000:
-            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
+            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
     elif dataset == 'CIFAR100':
         if ipc <= 10:
             return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_20.pt")
