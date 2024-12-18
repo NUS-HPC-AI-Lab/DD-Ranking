@@ -77,7 +77,7 @@ class Augmentation:
     
     def compute_custom_aug_metrics(self, model, images, lr, labels=None):
         if not labels:
-            labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
+            labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
         train_dataset = TensorDataset(images, labels)
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
@@ -96,7 +96,7 @@ class Augmentation:
     
     def compute_no_aug_metrics(self, model, images, lr, labels=None):
         if not labels:
-            labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
+            labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
         train_dataset = TensorDataset(images, labels)
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
