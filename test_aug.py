@@ -1,6 +1,6 @@
 import os
 import torch
-from dd_ranking import DD_Ranking_Objective, Soft_Label_Objective, KL_Divergence_Objective
+from dd_ranking import Augmentation, DSA_Augmentation, ZCA_Whitening_Augmentation, Mixup_Augmentation, Cutmix_Augmentation
 
 # syn_images = torch.load("./datm/cifar10/ipc10/images_best.pt", map_location='cpu')
 # syn_labels = torch.load("./datm/cifar10/ipc10/labels_best.pt", map_location='cpu')

@@ -91,8 +91,6 @@ def get_dataset(dataset, data_path, im_size):
         std = [0.2023, 0.1994, 0.2010]
 
         transform = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std),
         ])
@@ -109,8 +107,6 @@ def get_dataset(dataset, data_path, im_size):
         std = [0.2023, 0.1994, 0.2010]
 
         transform = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std),
         ])
@@ -126,8 +122,6 @@ def get_dataset(dataset, data_path, im_size):
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
         transform = transforms.Compose([
-            transforms.RandomCrop(64, padding=4),
-            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std),
         ])
@@ -350,14 +344,14 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
 def get_pretrained_model_path(model_name, dataset, ipc):
     if dataset == 'CIFAR10':
         if ipc <= 10:
-            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_20.pt")
+            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_40.pt")
         elif ipc <= 100:
-            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_50.pt")
+            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_60.pt")
         elif ipc <= 1000:
             return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
     elif dataset == 'CIFAR100':
         if ipc <= 10:
-            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_20.pt")
+            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_40.pt")
         elif ipc <= 100:
             return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
     elif dataset == 'Tiny':
@@ -382,18 +376,18 @@ def default_augmentation(images):
 
 # modified from pytorch-image-models/train.py
 def train_one_epoch(
-        epoch,
-        stu_model,
-        loader,
-        loss_fn,
-        optimizer,
-        aug_func=None,
-        tea_model=None,
-        device='cuda',
-        lr_scheduler=None,
-        grad_accum_steps=1,
-        log_interval=10,
-        temperature=1.0
+    epoch,
+    stu_model,
+    loader,
+    loss_fn,
+    optimizer,
+    aug_func=None,
+    tea_model=None,
+    lr_scheduler=None,
+    grad_accum_steps=1,
+    log_interval=10,
+    temperature=1.0,
+    device='cuda',
 ):
 
     second_order = hasattr(optimizer, 'is_second_order') and optimizer.is_second_order
@@ -416,7 +410,6 @@ def train_one_epoch(
         aug_func = default_augmentation
 
     data_start_time = update_start_time = time.time()
-    optimizer.zero_grad()
     update_sample_count = 0
     for batch_idx, (input, target) in enumerate(loader):
         last_batch = batch_idx == last_batch_idx
@@ -443,10 +436,11 @@ def train_one_epoch(
             return loss
 
         def _backward(_loss):
-            _loss.backward(create_graph=second_order)
+            _loss.backward()
             if need_update:
                 optimizer.step()
         
+        optimizer.zero_grad()
         loss = _forward()
         _backward(loss)
 
@@ -458,8 +452,7 @@ def train_one_epoch(
             continue
 
         num_updates += 1
-        optimizer.zero_grad()
-
+        
         time_now = time.time()
         update_time_m.update(time.time() - update_start_time)
         update_start_time = time_now
@@ -487,7 +480,7 @@ def train_one_epoch(
         data_start_time = time.time()
 
     loss_avg = losses_m.avg
-    return OrderedDict([('loss', loss_avg)])
+    return loss_avg
 
 
 def validate(
@@ -543,3 +536,66 @@ def validate(
     metrics = OrderedDict([('top1', top1_m.avg), ('top5', top5_m.avg)])
 
     return metrics
+
+
+def train_one_epoch_dc(epoch, model, dataloader, loss_fn, optimizer, lr_scheduler=None, device='cuda'):
+    loss_avg, acc_avg, num_exp = 0, 0, 0
+    model = model.to(device)
+    loss_fn = loss_fn.to(device)
+
+    model.train()
+
+    for i_batch, datum in enumerate(dataloader):
+        img = datum[0].float().to(device)
+        lab = datum[1].long().to(device)
+        n_b = lab.shape[0]
+
+        output = model(img)
+        loss = loss_fn(output, lab)
+        acc = np.sum(np.equal(np.argmax(output.cpu().data.numpy(), axis=-1), lab.cpu().data.numpy()))
+
+        loss_avg += loss.item() * n_b
+        acc_avg += acc
+        num_exp += n_b
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if lr_scheduler is not None:
+            lr_scheduler.step(epoch)
+
+    loss_avg /= num_exp
+    acc_avg /= num_exp
+    print(f'Epoch {epoch}\tTrain Loss: {loss_avg:>7.3f}\tTrain Acc: {acc_avg:>7.3f}')
+
+    return loss_avg, acc_avg
+
+def validate_dc(
+    stu_model,
+    loader,
+    loss_fn,
+    device='cuda'
+):
+    loss_avg, acc_avg, num_exp = 0, 0, 0
+    stu_model = stu_model.to(device)
+
+    stu_model.eval()
+
+    for i_batch, datum in enumerate(loader):
+        img = datum[0].float().to(device)
+        lab = datum[1].long().to(device)
+        n_b = lab.shape[0]
+
+        output = stu_model(img)
+        loss = loss_fn(output, lab)
+        acc = np.sum(np.equal(np.argmax(output.cpu().data.numpy(), axis=-1), lab.cpu().data.numpy()))
+
+        loss_avg += loss.item()*n_b
+        acc_avg += acc
+        num_exp += n_b
+
+    loss_avg /= num_exp
+    acc_avg /= num_exp
+    print(f'Test Loss: {loss_avg:>7.3f}\tTest Acc: {acc_avg:>7.3f}')
+    return loss_avg, acc_avg

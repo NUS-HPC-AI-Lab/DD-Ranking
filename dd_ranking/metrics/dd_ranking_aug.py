@@ -46,103 +46,95 @@ class Augmentation:
 
     def apply_augmentation(self, images):
         pass
+
+    def hyper_param_search_for_no_aug(self, images, labels):
+        lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
+
+        best_acc = 0
+        best_lr = 0
+        for lr in lr_list:
+            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
+            acc = self.compute_no_aug_metrics(model, images, lr, labels=labels)
+            if acc > best_acc:
+                best_acc = acc
+                best_lr = lr
+            del model
+        return best_acc, best_lr
+
+    def hyper_param_search_for_custom_aug(self, images, labels):
+        lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
+
+        best_acc = 0
+        best_lr = 0
+        for lr in lr_list:
+            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
+            acc = self.compute_custom_aug_metrics(model, images, lr, labels=labels)
+            if acc > best_acc:
+                best_acc = acc
+                best_lr = lr
+            del model
+        return best_acc, best_lr
     
-    def compute_syn_data_custom_aug_metrics(self, model, images):
-        hard_labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
-        hard_label_dataset = TensorDataset(images, hard_labels)
-        train_loader = DataLoader(hard_label_dataset, batch_size=self.batch_size, shuffle=True)
+    def compute_custom_aug_metrics(self, model, images, lr, labels=None):
+        if not labels:
+            labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
+        train_dataset = TensorDataset(images, labels)
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
         loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating syn data custom augmentation metrics...")
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=0.0005, momentum=0.9)
+        lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2, gamma=0.1)
+
         best_acc1 = 0
         for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, aug_func=self.apply_augmentation, device=self.device)
+            train_one_epoch(epoch,model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, aug_func=self.apply_augmentation, device=self.device)
             metric = validate(model, self.test_loader, aug_func=self.apply_augmentation, device=self.device)
             if metric['top1'] > best_acc1:
                 best_acc1 = metric['top1']
 
         return best_acc1
     
-    def compute_syn_data_default_aug_metrics(self, model, images):
-        hard_labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
-        hard_label_dataset = TensorDataset(images, hard_labels)
-        train_loader = DataLoader(hard_label_dataset, batch_size=self.batch_size, shuffle=True)
+    def compute_no_aug_metrics(self, model, images, lr, labels=None):
+        if not labels:
+            labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
+        train_dataset = TensorDataset(images, labels)
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
         loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating syn data default augmentation metrics...")
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=0.0005, momentum=0.9)
+        lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2, gamma=0.1)
+
         best_acc1 = 0
         for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
+            train_one_epoch(epoch, model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
             metric = validate(model, self.test_loader, device=self.device)
             if metric['top1'] > best_acc1:
                 best_acc1 = metric['top1']
 
         return best_acc1
 
-    def compute_random_data_custom_aug_metrics(self, model, random_images):
-        random_dataset = TensorDataset(random_images, self.soft_labels.detach().clone())
-        train_loader = DataLoader(random_dataset, batch_size=self.batch_size, shuffle=True)
-        
-        loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating random data custom augmentation metrics...")
-        best_acc1 = 0
-        for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, aug_func=self.apply_augmentation, device=self.device)
-            metric = validate(model, self.test_loader, aug_func=self.apply_augmentation, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
-        
-        return best_acc1
-
-    def compute_full_data_default_aug_metrics(self, model):
-        full_dataset = TensorDataset(self.images_train, self.labels_train)
-        train_loader = DataLoader(full_dataset, batch_size=self.batch_size, shuffle=True)
-
-        loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr)
-        lr_scheduler = CosineAnnealingLR(optimizer, T_max=self.num_epochs * len(train_loader))
-        print("Caculating full data default augmentation metrics...")
-        best_acc1 = 0
-        for epoch in range(self.num_epochs):
-            train_one_epoch(model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
-
-        return best_acc1
-
-    def compute_metrics(self, images):
+    def compute_metrics(self, images, labels=None):
         aug_metrics = []
         for i in range(self.num_eval):
             set_seed()
             print(f"{i+1}th Evaluation")
 
-            print("Caculating syn data default augmentation metrics...")
-            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
-            syn_data_default_aug_acc = self.compute_syn_data_default_aug_metrics(model)
-            del model
+            print("Caculating syn data no augmentation metrics...")
+            syn_data_default_aug_acc, best_lr = self.hyper_param_search_for_no_aug(images, labels=labels)
+            print(f"Syn data no augmentation acc: {syn_data_default_aug_acc * 100:.2f}%")
 
             print("Caculating syn data custom augmentation metrics...")
-            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
-            syn_data_custom_aug_acc = self.compute_syn_data_custom_aug_metrics(model)
-            del model
+            syn_data_custom_aug_acc, best_lr = self.hyper_param_search_for_custom_aug(images, labels=labels)
+            print(f"Syn data custom augmentation acc: {syn_data_custom_aug_acc * 100:.2f}%")
 
             print("Caculating random data custom augmentation metrics...")
-            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
-            random_images = get_random_images(self.images_train, self.class_indices_train, self.ipc)
-            random_data_custom_aug_acc = self.compute_random_data_custom_aug_metrics(model, random_images)
-            del model
+            random_images, random_labels = get_random_images(self.images_train, self.class_indices_train, self.ipc)
+            random_data_custom_aug_acc, best_lr = self.hyper_param_search_for_custom_aug(random_images, labels=random_labels)
+            print(f"Random data custom augmentation acc: {random_data_custom_aug_acc * 100:.2f}%")
 
-            print("Caculating full data default augmentation metrics...")
-            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
-            full_data_default_aug_acc = self.compute_full_data_default_aug_metrics(model)
-            del model
+            print("Caculating full data no augmentation metrics...")
+            full_data_default_aug_acc, best_lr = self.compute_no_aug_metrics(self.images_train, 0.01, self.labels_train)
+            print(f"Full data no augmentation acc: {full_data_default_aug_acc * 100:.2f}%")
 
             numerator = 1.00 * (syn_data_custom_aug_acc - random_data_custom_aug_acc)
             denominator = 1.00 * (full_data_default_aug_acc - syn_data_default_aug_acc)
@@ -165,7 +157,6 @@ class DSA_Augmentation(Augmentation):
         # dsa params for training a model
         self.batch_size = 256
         self.num_epochs = 1000
-        self.lr = 0.01
 
     def create_transform_funcs(self, func_names):
         funcs = []
