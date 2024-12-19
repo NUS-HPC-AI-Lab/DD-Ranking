@@ -10,12 +10,12 @@ from torch import Tensor
 from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
-from dd_ranking.utils.utils import get_dataset, build_model
+from dd_ranking.utils.utils import get_dataset, get_random_images, build_model
 from dd_ranking.utils.utils import set_seed, train_one_epoch, validate
 
 
 class Augmentation:
-    def __init__(self, dataset: str, real_data_path: str, model_name: str, ipc: int, im_size: tuple=(32, 32), device: str="cuda"):
+    def __init__(self, dataset: str, real_data_path: str, model_name: str, ipc: int, im_size: tuple=(32, 32), soft_label_mode: str='N', device: str="cuda"):
         
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path, im_size)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
@@ -25,13 +25,14 @@ class Augmentation:
         self.num_classes = num_classes
         self.im_size = im_size
         self.device = device
+        self.soft_label_mode = soft_label_mode
 
         # default params for training a model
         self.num_eval = 5
         self.test_interval = 10
         self.batch_size = 256
         self.num_epochs = 300
-        self.lr = 0.01
+        self.default_lr = 0.01
 
         self.test_loader = DataLoader(dst_test, batch_size=self.batch_size, shuffle=False)
 
@@ -81,9 +82,7 @@ class Augmentation:
             del model
         return best_acc, best_lr
     
-    def compute_custom_aug_metrics(self, model, images, lr, labels=None):
-        if not labels:
-            labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
+    def compute_custom_aug_metrics(self, model, images, lr, labels):
         train_dataset = TensorDataset(images, labels)
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
@@ -93,17 +92,29 @@ class Augmentation:
 
         best_acc1 = 0
         for epoch in tqdm(range(self.num_epochs)):
-            train_one_epoch(epoch,model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, aug_func=self.apply_augmentation, device=self.device)
+            train_one_epoch(
+                epoch=epoch, 
+                stu_model=model, 
+                loader=train_loader, 
+                loss_fn=loss_fn, 
+                optimizer=optimizer, 
+                lr_scheduler=lr_scheduler, 
+                aug_func=self.apply_augmentation, 
+                device=self.device,
+                soft_label_mode=self.soft_label_mode
+            )
             if epoch % self.test_interval == 0:
-                metric = validate(model, self.test_loader, aug_func=self.apply_augmentation, device=self.device)
+                metric = validate(
+                    model=model, 
+                    loader=self.test_loader,
+                    device=self.device
+                )
                 if metric['top1'] > best_acc1:
                     best_acc1 = metric['top1']
 
         return best_acc1
     
-    def compute_no_aug_metrics(self, model, images, lr, labels=None):
-        if not labels:
-            labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
+    def compute_no_aug_metrics(self, model, images, lr, labels):
         train_dataset = TensorDataset(images, labels)
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
@@ -113,40 +124,94 @@ class Augmentation:
 
         best_acc1 = 0
         for epoch in tqdm(range(self.num_epochs)):
-            train_one_epoch(epoch, model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
+            train_one_epoch(
+                epoch=epoch, 
+                stu_model=model, 
+                loader=train_loader, 
+                loss_fn=loss_fn, 
+                optimizer=optimizer, 
+                lr_scheduler=lr_scheduler, 
+                device=self.device,
+                soft_label_mode=self.soft_label_mode
+            )
             if epoch % self.test_interval == 0:
-                metric = validate(model, self.test_loader, device=self.device)
+                metric = validate(
+                    model=model, 
+                    loader=self.test_loader, 
+                    device=self.device
+                )
                 if metric['top1'] > best_acc1:
                     best_acc1 = metric['top1']
 
         return best_acc1
 
     def compute_metrics(self, images, labels=None, syn_lr=None):
+        if not labels:
+            labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
+        
         aug_metrics = []
         for i in range(self.num_eval):
             set_seed()
             print(f"{i+1}th Evaluation")
 
             print("Caculating syn data no augmentation metrics...")
-            syn_data_default_aug_acc, best_lr = self.hyper_param_search_for_no_aug(images, labels=labels)
+            syn_data_default_aug_acc, best_lr = self.hyper_param_search_for_no_aug(
+                images=images, 
+                labels=labels
+            )
             print(f"Syn data no augmentation acc: {syn_data_default_aug_acc:.2f}%")
 
             print("Caculating syn data custom augmentation metrics...")
             if syn_lr:
-                model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
-                syn_data_custom_aug_acc = self.compute_custom_aug_metrics(model, images, lr=syn_lr, labels=labels)
+                model = build_model(
+                    model_name=self.model_name, 
+                    num_classes=self.num_classes, 
+                    im_size=self.im_size, 
+                    pretrained=False, 
+                    device=self.device
+                )
+                syn_data_custom_aug_acc = self.compute_custom_aug_metrics(
+                    model=model, 
+                    images=images, 
+                    lr=syn_lr, 
+                    labels=labels
+                )
                 del model
             else:
-                syn_data_custom_aug_acc, best_lr = self.hyper_param_search_for_custom_aug(images, labels=labels)
+                syn_data_custom_aug_acc, best_lr = self.hyper_param_search_for_custom_aug(
+                    images=images, 
+                    labels=labels
+                )
             print(f"Syn data custom augmentation acc: {syn_data_custom_aug_acc:.2f}%")
 
             print("Caculating random data custom augmentation metrics...")
-            random_images, random_labels = get_random_images(self.images_train, self.class_indices_train, self.ipc)
-            random_data_custom_aug_acc, best_lr = self.hyper_param_search_for_custom_aug(random_images, labels=random_labels)
+            random_images, random_labels = get_random_images(
+                images_all=self.images_train, 
+                labels_all=self.labels_train, 
+                class_indices=self.class_indices_train, 
+                n_images_per_class=self.ipc
+            )
+            random_data_custom_aug_acc, best_lr = self.hyper_param_search_for_custom_aug(
+                images=random_images, 
+                labels=random_labels
+            )
             print(f"Random data custom augmentation acc: {random_data_custom_aug_acc:.2f}%")
 
             print("Caculating full data no augmentation metrics...")
-            full_data_default_aug_acc, best_lr = self.compute_no_aug_metrics(self.images_train, 0.01, self.labels_train)
+            model = build_model(
+                model_name=self.model_name, 
+                num_classes=self.num_classes, 
+                im_size=self.im_size, 
+                pretrained=False, 
+                device=self.device
+            )
+            full_data_default_aug_acc, best_lr = self.compute_no_aug_metrics(
+                model=model, 
+                images=self.images_train, 
+                lr=self.default_lr, 
+                labels=self.labels_train
+            )
+            del model
             print(f"Full data no augmentation acc: {full_data_default_aug_acc:.2f}%")
 
             numerator = 1.00 * (syn_data_custom_aug_acc - random_data_custom_aug_acc)
@@ -167,8 +232,8 @@ class DSA_Augmentation(Augmentation):
         self.seed = seed
         self.aug_mode = aug_mode
         self.transform_funcs = self.create_transform_funcs(func_names)
+
         # dsa params for training a model
-        self.batch_size = 256
         self.num_epochs = 1000
 
     def create_transform_funcs(self, func_names):
@@ -333,11 +398,6 @@ class ZCA_Whitening_Augmentation(Augmentation):
         super().__init__(*args, **kwargs)
         self.transform = kornia.enhance.ZCAWhitening()
 
-        # zca params for training a model
-        self.batch_size = 256
-        self.num_epochs = 300
-        self.lr = 0.01
-        
     def apply_augmentation(self, images):
         return self.transform(images, include_fit=True)
     
@@ -356,11 +416,6 @@ class Mixup_Augmentation(Augmentation):
             keepdim = params["keepdim"],
             p = params["prob"]
         )
-        
-        # mixup params for training a model
-        self.batch_size = 256
-        self.num_epochs = 300
-        self.lr = 0.01
         
     def apply_augmentation(self, images, seed):
         labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
@@ -383,11 +438,6 @@ class Cutmix_Augmentation(Augmentation):
             keepdim = params["keep_dim"],
             p = params["prob"]
         )
-        
-        # cutmix params for training a model
-        self.batch_size = 256
-        self.num_epochs = 300
-        self.lr = 0.01
 
     def apply_augmentation(self, images):
         labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)

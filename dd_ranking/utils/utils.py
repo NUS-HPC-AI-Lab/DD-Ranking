@@ -381,13 +381,14 @@ def train_one_epoch(
     loader,
     loss_fn,
     optimizer,
+    soft_label_mode='S',
     aug_func=None,
     tea_model=None,
     lr_scheduler=None,
     grad_accum_steps=1,
     logging=False,
     log_interval=10,
-    temperature=1.0,
+    temperature=1.2,
     device='cuda',
 ):
 
@@ -427,7 +428,7 @@ def train_one_epoch(
 
         def _forward():
             stu_output = stu_model(input)
-            if tea_model is not None:
+            if soft_label_mode == 'M':
                 tea_output = tea_model(input)
                 loss = loss_fn(stu_output, tea_output, temperature=temperature)
             else:
