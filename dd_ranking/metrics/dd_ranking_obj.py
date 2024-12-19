@@ -16,7 +16,7 @@ from dd_ranking.utils.utils import set_seed
 from dd_ranking.utils.utils import train_one_epoch, train_one_epoch_dc, validate, validate_dc
 
 
-class Soft_Label_Objective:
+class Soft_Label_Objective_Metrics:
 
     def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, soft_label_mode: str='S',
                  num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, batch_size: int=256, device: str="cuda"):
@@ -63,7 +63,7 @@ class Soft_Label_Objective:
         pass
 
 
-class SCE_Objective(Soft_Label_Objective):
+class SCE_Objective_Metrics(Soft_Label_Objective_Metrics):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -279,7 +279,7 @@ class SCE_Objective(Soft_Label_Objective):
         return obj_metrics_mean, obj_metrics_std
 
 
-class KL_Objective(Soft_Label_Objective):
+class KL_Objective_Metrics(Soft_Label_Objective_Metrics):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -407,7 +407,7 @@ class KL_Objective(Soft_Label_Objective):
         
         return best_acc1
     
-    def compute_metrics(self, images, soft_labels=None, hard_labels=None, syn_lr=None):
+    def compute_metrics(self, images, soft_labels=None, hard_labels=None):
         if soft_labels is None:
             soft_labels = self.generate_soft_labels(syn_images)
         if hard_labels is None:
@@ -443,23 +443,10 @@ class KL_Objective(Soft_Label_Objective):
             print(f"Full data hard label acc: {full_data_hard_label_acc:.2f}%")
 
             print("Caculating syn data kl divergence metrics...")
-            if syn_lr:
-                model = build_model(
-                    model_name=self.model_name, 
-                    num_classes=self.num_classes, 
-                    im_size=self.im_size, 
-                    pretrained=False, 
-                    device=self.device
-                )
-                syn_data_kl_divergence_acc = self.compute_kl_divergence_metrics(
-                    model=model, 
-                    images=images, 
-                    lr=syn_lr, 
-                    soft_labels=hard_labels
-                )
-                del model
-            else:
-                syn_data_kl_divergence_acc, best_lr = self.hyper_param_search_for_kl_divergence(images, soft_labels=soft_labels)
+            syn_data_kl_divergence_acc, best_lr = self.hyper_param_search_for_kl_divergence(
+                images=images, 
+                soft_labels=soft_labels
+            )
             print(f"Syn data kl divergence acc: {syn_data_kl_divergence_acc:.2f}%")
 
             print("Caculating random data kl divergence metrics...")
@@ -484,9 +471,3 @@ class KL_Objective(Soft_Label_Objective):
 
         print(f"KL Divergence Objective Metrics Mean: {obj_metrics_mean:.2f}  Std: {obj_metrics_std:.2f}")
         return obj_metrics_mean, obj_metrics_std
-
-
-if __name__ == "__main__":
-    images = torch.randn(10, 3, 32, 32)
-    obj = DD_Ranking_Objective(dataset="CIFAR10", real_data_path=None, ipc=1, model_name="ConvNet")
-    print(obj.compute_metrics())

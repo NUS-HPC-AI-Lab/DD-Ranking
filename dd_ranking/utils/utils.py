@@ -362,7 +362,7 @@ def get_pretrained_model_path(model_name, dataset, ipc):
         elif ipc <= 100:
             return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
 ################################################################################ train and validate ################################################################################
-def default_augmentation(images):
+def default_augmentation(images, labels):
     # you can also add your own implementation here
     # img_size = images.shape[2]
     # transform = transforms.Compose([
@@ -420,7 +420,7 @@ def train_one_epoch(
         if batch_idx >= last_batch_idx_to_accum:
             accum_steps = last_accum_steps
 
-        input = aug_func(input)
+        input = aug_func(input, target)
         input, target = input.to(device), target.to(device)
 
         # multiply by accum steps to get equivalent for full update
@@ -508,7 +508,7 @@ def validate(
     with torch.no_grad():
         for batch_idx, (input, target) in enumerate(loader):
             last_batch = batch_idx == last_idx
-            input = aug_func(input)
+            input = aug_func(input, target)
             input = input.to(device)
             target = target.to(device)
 

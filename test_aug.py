@@ -1,6 +1,6 @@
 import os
 import torch
-from dd_ranking import Augmentation, DSA_Augmentation, ZCA_Whitening_Augmentation, Mixup_Augmentation, Cutmix_Augmentation
+from dd_ranking.metrics import DSA_Augmentation_Metrics, ZCA_Whitening_Augmentation_Metrics, Mixup_Augmentation_Metrics, Cutmix_Augmentation_Metrics
 
 # syn_images = torch.load("./datm/cifar10/ipc10/images_best.pt", map_location='cpu')
 # syn_labels = torch.load("./datm/cifar10/ipc10/labels_best.pt", map_location='cpu')
@@ -29,7 +29,7 @@ params = {
     "ratio_crop_pad": 0.125,
     "ratio_cutout": 0.5,
 }
-convd3_sl_obj = DSA_Augmentation(dataset=dataset, real_data_path=data_dir, ipc=ipc, model_name=model_name, device=device, 
+convd3_sl_obj = DSA_Augmentation_Metrics(dataset=dataset, real_data_path=data_dir, ipc=ipc, model_name=model_name, device=device, 
                                  func_names=func_names, params=params, aug_mode="S")
-print(convd3_sl_obj.compute_metrics(syn_images, syn_lr=syn_lr))
+print(convd3_sl_obj.compute_metrics(syn_images))
 

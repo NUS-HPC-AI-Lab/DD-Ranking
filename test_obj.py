@@ -18,7 +18,7 @@ soft_labels = torch.load(os.path.join(root, f"DD-Ranking/{method_name}/{dataset}
 syn_lr = torch.load(os.path.join(root, f"DD-Ranking/{method_name}/{dataset}/ipc{ipc}/lr.pt"), map_location='cpu')
 
 convd3_sl_obj = SCE_Objective(dataset=dataset, real_data_path=data_dir, ipc=ipc, model_name=model_name, device=device)
-print(convd3_sl_obj.compute_metrics(syn_images, soft_labels=soft_labels, syn_lr=syn_lr))
+print(convd3_sl_obj.compute_metrics(syn_images, soft_labels=soft_labels))
 
-convd3_kl_obj = KL_Objective(dataset=dataset, real_data_path=data_dir, ipc=ipc, stu_model_name=model_name, tea_model_name=model_name, device=device)
+convd3_kl_obj = KL_Objective(dataset=dataset, real_data_path=data_dir, ipc=ipc, model_name=model_name, device=device)
 print(convd3_kl_obj.compute_metrics(syn_images, soft_labels=soft_labels))
