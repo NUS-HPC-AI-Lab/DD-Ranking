@@ -385,6 +385,7 @@ def train_one_epoch(
     tea_model=None,
     lr_scheduler=None,
     grad_accum_steps=1,
+    logging=False,
     log_interval=10,
     temperature=1.0,
     device='cuda',
@@ -463,15 +464,16 @@ def train_one_epoch(
 
             loss_avg, loss_now = losses_m.avg, losses_m.val
 
-            print(
-                f'Train: {epoch} [{update_idx:>4d}/{updates_per_epoch} '
-                f'({100. * (update_idx + 1) / updates_per_epoch:>3.0f}%)]  '
-                f'Loss: {loss_now:#.3g} ({loss_avg:#.3g})  '
-                f'Time: {update_time_m.val:.3f}s, {update_sample_count / update_time_m.val:>7.2f}/s  '
-                f'({update_time_m.avg:.3f}s, {update_sample_count / update_time_m.avg:>7.2f}/s)  '
-                f'LR: {lr:.3e}  '
-                f'Data: {data_time_m.val:.3f} ({data_time_m.avg:.3f})'
-            )
+            if logging:
+                print(
+                    f'Train: {epoch} [{update_idx:>4d}/{updates_per_epoch} '
+                    f'({100. * (update_idx + 1) / updates_per_epoch:>3.0f}%)]  '
+                    f'Loss: {loss_now:#.3g} ({loss_avg:#.3g})  '
+                    f'Time: {update_time_m.val:.3f}s, {update_sample_count / update_time_m.val:>7.2f}/s  '
+                    f'({update_time_m.avg:.3f}s, {update_sample_count / update_time_m.avg:>7.2f}/s)  '
+                    f'LR: {lr:.3e}  '
+                    f'Data: {data_time_m.val:.3f} ({data_time_m.avg:.3f})'
+                )
 
         if lr_scheduler is not None:
             lr_scheduler.step(epoch)
@@ -488,6 +490,7 @@ def validate(
     loader,
     aug_func=None,
     device=torch.device('cuda'),
+    logging=False,
     log_interval=10
 ):
     batch_time_m = timm.utils.AverageMeter()
@@ -525,7 +528,7 @@ def validate(
 
             batch_time_m.update(time.time() - end)
             end = time.time()
-            if (last_batch or batch_idx % log_interval == 0):
+            if logging and (last_batch or batch_idx % log_interval == 0):
                 print(
                     f'Test: [{batch_idx:>4d}/{last_idx}]  '
                     f'Time: {batch_time_m.val:.3f} ({batch_time_m.avg:.3f})  '

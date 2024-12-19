@@ -3,19 +3,21 @@ import torch
 import random
 import kornia
 import numpy as np
+import torch.nn.functional as F
+from tqdm import tqdm
 from typing import Dict
 from torch import Tensor
 from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from dd_ranking.utils.utils import get_dataset, build_model
 from dd_ranking.utils.utils import set_seed, train_one_epoch, validate
 
 
 class Augmentation:
-    def __init__(self, dataset: str, real_data_path: str, model_name: str, ipc: int, device: str="cuda"):
+    def __init__(self, dataset: str, real_data_path: str, model_name: str, ipc: int, im_size: tuple=(32, 32), device: str="cuda"):
         
-        channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path)
+        channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path, im_size)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
         
         self.ipc = ipc
@@ -25,6 +27,8 @@ class Augmentation:
         self.device = device
 
         # default params for training a model
+        self.num_eval = 5
+        self.test_interval = 10
         self.batch_size = 256
         self.num_epochs = 300
         self.lr = 0.01
@@ -37,7 +41,7 @@ class Augmentation:
         class_indices = [[] for c in range(num_classes)]
         for i, (image, label) in enumerate(dataset):
             images_all.append(torch.unsqueeze(image, 0))
-            labels_all.append(class_map[label].item())
+            labels_all.append(class_map[label])
         images_all = torch.cat(images_all, dim=0)
         labels_all = torch.tensor(labels_all)
         for i, label in enumerate(labels_all):
@@ -53,6 +57,7 @@ class Augmentation:
         best_acc = 0
         best_lr = 0
         for lr in lr_list:
+            print(f"Searching lr:{lr} for no augmentation...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             acc = self.compute_no_aug_metrics(model, images, lr, labels=labels)
             if acc > best_acc:
@@ -67,6 +72,7 @@ class Augmentation:
         best_acc = 0
         best_lr = 0
         for lr in lr_list:
+            print(f"Searching lr:{lr} for custom augmentation...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             acc = self.compute_custom_aug_metrics(model, images, lr, labels=labels)
             if acc > best_acc:
@@ -86,11 +92,12 @@ class Augmentation:
         lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2, gamma=0.1)
 
         best_acc1 = 0
-        for epoch in range(self.num_epochs):
+        for epoch in tqdm(range(self.num_epochs)):
             train_one_epoch(epoch,model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, aug_func=self.apply_augmentation, device=self.device)
-            metric = validate(model, self.test_loader, aug_func=self.apply_augmentation, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
+            if epoch % self.test_interval == 0:
+                metric = validate(model, self.test_loader, aug_func=self.apply_augmentation, device=self.device)
+                if metric['top1'] > best_acc1:
+                    best_acc1 = metric['top1']
 
         return best_acc1
     
@@ -105,15 +112,16 @@ class Augmentation:
         lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2, gamma=0.1)
 
         best_acc1 = 0
-        for epoch in range(self.num_epochs):
+        for epoch in tqdm(range(self.num_epochs)):
             train_one_epoch(epoch, model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
+            if epoch % self.test_interval == 0:
+                metric = validate(model, self.test_loader, device=self.device)
+                if metric['top1'] > best_acc1:
+                    best_acc1 = metric['top1']
 
         return best_acc1
 
-    def compute_metrics(self, images, labels=None):
+    def compute_metrics(self, images, labels=None, syn_lr=None):
         aug_metrics = []
         for i in range(self.num_eval):
             set_seed()
@@ -121,20 +129,25 @@ class Augmentation:
 
             print("Caculating syn data no augmentation metrics...")
             syn_data_default_aug_acc, best_lr = self.hyper_param_search_for_no_aug(images, labels=labels)
-            print(f"Syn data no augmentation acc: {syn_data_default_aug_acc * 100:.2f}%")
+            print(f"Syn data no augmentation acc: {syn_data_default_aug_acc:.2f}%")
 
             print("Caculating syn data custom augmentation metrics...")
-            syn_data_custom_aug_acc, best_lr = self.hyper_param_search_for_custom_aug(images, labels=labels)
-            print(f"Syn data custom augmentation acc: {syn_data_custom_aug_acc * 100:.2f}%")
+            if syn_lr:
+                model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
+                syn_data_custom_aug_acc = self.compute_custom_aug_metrics(model, images, lr=syn_lr, labels=labels)
+                del model
+            else:
+                syn_data_custom_aug_acc, best_lr = self.hyper_param_search_for_custom_aug(images, labels=labels)
+            print(f"Syn data custom augmentation acc: {syn_data_custom_aug_acc:.2f}%")
 
             print("Caculating random data custom augmentation metrics...")
             random_images, random_labels = get_random_images(self.images_train, self.class_indices_train, self.ipc)
             random_data_custom_aug_acc, best_lr = self.hyper_param_search_for_custom_aug(random_images, labels=random_labels)
-            print(f"Random data custom augmentation acc: {random_data_custom_aug_acc * 100:.2f}%")
+            print(f"Random data custom augmentation acc: {random_data_custom_aug_acc:.2f}%")
 
             print("Caculating full data no augmentation metrics...")
             full_data_default_aug_acc, best_lr = self.compute_no_aug_metrics(self.images_train, 0.01, self.labels_train)
-            print(f"Full data no augmentation acc: {full_data_default_aug_acc * 100:.2f}%")
+            print(f"Full data no augmentation acc: {full_data_default_aug_acc:.2f}%")
 
             numerator = 1.00 * (syn_data_custom_aug_acc - random_data_custom_aug_acc)
             denominator = 1.00 * (full_data_default_aug_acc - syn_data_default_aug_acc)
@@ -147,13 +160,13 @@ class Augmentation:
 
 class DSA_Augmentation(Augmentation):
 
-    def __init__(self, func_names: list, params: dict, seed: int=-1, aug_mode: str='M'):
-        super().__init__()
+    def __init__(self, func_names: list, params: dict, seed: int=-1, aug_mode: str='M', *args, **kwargs):
+        super().__init__(*args, **kwargs)
         
         self.params = params
         self.seed = seed
         self.aug_mode = aug_mode
-        self.transform_funcs = create_transform_funcs(func_names)
+        self.transform_funcs = self.create_transform_funcs(func_names)
         # dsa params for training a model
         self.batch_size = 256
         self.num_epochs = 1000
@@ -293,35 +306,31 @@ class DSA_Augmentation(Augmentation):
         else: 
             self.params["siamese"] = True
             
-        self.params["latestseed"] = seed
+        self.params["latestseed"] = self.seed
         
         transformed_images = images
         if self.aug_mode == 'M': # original
-            for p in self.strategy.split('_'):
-                for f in self.transform_funcs[p]:
-                    transformed_images = f(transformed_images, self.params)
+            for f in self.transform_funcs:
+                transformed_images = f(transformed_images)
                 
         elif self.aug_mode == 'S':
-            pbties = self.strategy.split('_')
             self.set_seed_DiffAug()
-            p = pbties[torch.randint(0, len(pbties), size=(1,)).item()]
-            for f in self.transform_funcs[p]:
-                transformed_images = f(transformed_images, self.params)
+            p = self.transform_funcs[torch.randint(0, len(self.transform_funcs), size=(1,)).item()]
+            transformed_images = p(transformed_images)
                 
         transformed_images = transformed_images.contiguous()
             
         return transformed_images
     
-    def compute_metrics(self, images):
-        aug_metrics = super().compute_metrics(images)
+    def compute_metrics(self, images, labels=None, syn_lr=None):
+        aug_metrics = super().compute_metrics(images, labels=labels, syn_lr=syn_lr)
         print(f"DSA Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
         return aug_metrics
 
-        
 
 class ZCA_Whitening_Augmentation(Augmentation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.transform = kornia.enhance.ZCAWhitening()
 
         # zca params for training a model
@@ -332,15 +341,15 @@ class ZCA_Whitening_Augmentation(Augmentation):
     def apply_augmentation(self, images):
         return self.transform(images, include_fit=True)
     
-    def compute_metrics(self, images):
-        aug_metrics = super().compute_metrics(images)
+    def compute_metrics(self, images, labels=None, syn_lr=None):
+        aug_metrics = super().compute_metrics(images, labels=labels, syn_lr=syn_lr)
         print(f"ZCA Whitening Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
         return aug_metrics
         
         
 class Mixup_Augmentation(Augmentation):
-    def __init__(self, params: dict, batch_size: int=256, num_epochs: int=300, lr: float=0.01):
-        super().__init__()
+    def __init__(self, params: dict, batch_size: int=256, num_epochs: int=300, lr: float=0.01, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.transform = kornia.augmentation.RandomMixUpV2(
             lambda_val = params["lambda_range"],
             same_on_batch = params["same_on_batch"],
@@ -357,15 +366,15 @@ class Mixup_Augmentation(Augmentation):
         labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
         return self.transform(images, labels)
     
-    def compute_metrics(self, images):
-        aug_metrics = super().compute_metrics(images)
+    def compute_metrics(self, images, labels=None, syn_lr=None):
+        aug_metrics = super().compute_metrics(images, labels=labels, syn_lr=syn_lr)
         print(f"Mixup Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
         return aug_metrics
 
 
 class Cutmix_Augmentation(Augmentation):
-    def __init__(self, params: dict):
-        super().__init__()
+    def __init__(self, params: dict, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.transform = kornia.augmentation.RandomCutMixV2(
             num_mix = params["times"],
             cut_size = params["size"],
@@ -384,8 +393,8 @@ class Cutmix_Augmentation(Augmentation):
         labels = torch.tensor([np.ones(self.ipc) * i for i in range(self.num_classes)], dtype=torch.long, requires_grad=False).view(-1)
         return self.transform(images, labels)
 
-    def compute_metrics(self, images):
-        aug_metrics = super().compute_metrics(images)
+    def compute_metrics(self, images, labels=None, syn_lr=None):
+        aug_metrics = super().compute_metrics(images, labels=labels, syn_lr=syn_lr)
         print(f"Cutmix Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
         return aug_metrics
 

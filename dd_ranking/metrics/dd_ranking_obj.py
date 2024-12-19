@@ -6,6 +6,7 @@ import numpy as np
 import random
 from typing import List
 from torch import Tensor
+from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
@@ -30,11 +31,12 @@ class DD_Ranking_Objective:
         self.ipc = ipc
 
         # training info
-        self.model_name = model_name
         self.num_eval = num_eval
+        self.model_name = model_name
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.default_lr = 0.01
+        self.test_interval = 10
         self.device = device
     
     def load_real_data(self, dataset, class_map, num_classes):
@@ -76,6 +78,7 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         best_acc = 0
         best_lr = 0
         for lr in lr_list:
+            print(f"Searching lr:{lr} for hard label...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             acc = self.compute_hard_label_metrics(model, images, lr, hard_labels=hard_labels)
             if acc > best_acc:
@@ -90,6 +93,7 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         best_acc = 0
         best_lr = 0
         for lr in lr_list:
+            print(f"Searching lr:{lr} for soft label...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             acc = self.compute_soft_label_metrics(model, images, lr, soft_labels=soft_labels)
             if acc > best_acc:
@@ -109,11 +113,12 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2 + 1, gamma=0.1)
 
         best_acc1 = 0
-        for epoch in range(self.num_epochs):
+        for epoch in tqdm(range(self.num_epochs)):
             train_one_epoch(epoch, model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
+            if epoch % self.test_interval == 0:
+                metric = validate(model, self.test_loader, device=self.device)
+                if metric['top1'] > best_acc1:
+                    best_acc1 = metric['top1']
 
         return best_acc1
         
@@ -128,11 +133,12 @@ class Soft_Label_Objective(DD_Ranking_Objective):
         lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2 + 1, gamma=0.1)
         
         best_acc1 = 0
-        for epoch in range(self.num_epochs):
+        for epoch in tqdm(range(self.num_epochs)):
             train_one_epoch(epoch, model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
+            if epoch % self.test_interval == 0:
+                metric = validate(model, self.test_loader, device=self.device)
+                if metric['top1'] > best_acc1:
+                    best_acc1 = metric['top1']
         
         return best_acc1
 
@@ -157,13 +163,13 @@ class Soft_Label_Objective(DD_Ranking_Objective):
 
             print("Caculating syn data hard label metrics...")
             syn_data_hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(syn_images, hard_labels=hard_labels)
-            print("syn_data_hard_label_acc: ", syn_data_hard_label_acc)
+            print(f"Syn data hard label acc: {syn_data_hard_label_acc * 100:.2f}%")
 
             print("Caculating full data hard label metrics...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             full_data_hard_label_acc = self.compute_hard_label_metrics(model, self.images_train, lr=self.default_lr, hard_labels=self.labels_train)
             del model
-            print("full_data_hard_label_acc: ", full_data_hard_label_acc)
+            print(f"Full data hard label acc: {full_data_hard_label_acc * 100:.2f}%")
 
             print("Caculating syn data soft label metrics...")
             if syn_lr:
@@ -173,12 +179,12 @@ class Soft_Label_Objective(DD_Ranking_Objective):
             else:
                 syn_data_soft_label_acc, best_lr = self.hyper_param_search_for_soft_label(syn_images, soft_labels=soft_labels)
             
-            print("syn_data_soft_label_acc: ", syn_data_soft_label_acc)
+            print(f"Syn data soft label acc: {syn_data_soft_label_acc * 100:.2f}%")
 
             print("Caculating random data soft label metrics...")
             random_images, random_labels = get_random_images(self.images_train, self.labels_train, self.class_indices_train, self.ipc)
             random_data_soft_label_acc, best_lr = self.hyper_param_search_for_soft_label(random_images, soft_labels=None)
-            print("random_data_soft_label_acc: ", random_data_soft_label_acc)
+            print(f"Random data soft label acc: {random_data_soft_label_acc * 100:.2f}%")
 
             numerator = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
             denominator = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
@@ -215,6 +221,7 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         best_acc = 0
         best_lr = 0
         for lr in lr_list:
+            print(f"Searching {lr} for hard label...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             acc = self.compute_hard_label_metrics(model, images, lr, hard_labels=hard_labels)
             if acc > best_acc:
@@ -228,6 +235,7 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         best_acc = 0
         best_lr = 0
         for lr in lr_list:
+            print(f"Searching {lr} for kl divergence...")
             model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
             acc = self.compute_kl_divergence_metrics(model, images, lr, labels=labels)
             if acc > best_acc:
@@ -247,14 +255,15 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2 + 1, gamma=0.1)
 
         best_acc1 = 0
-        for epoch in range(self.num_epochs):
+        for epoch in tqdm(range(self.num_epochs)):
             train_one_epoch(epoch, model, train_loader, loss_fn, optimizer, lr_scheduler=lr_scheduler, device=self.device, temperature=self.temperature)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
+            if epoch % self.test_interval == 0:
+                metric = validate(model, self.test_loader, device=self.device)
+                if metric['top1'] > best_acc1:
+                    best_acc1 = metric['top1']
 
         return best_acc1
-        
+
     def compute_kl_divergence_metrics(self, model, images, lr, labels=None):
         if labels is None:
             labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
@@ -266,11 +275,12 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
         lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2 + 1, gamma=0.1)
 
         best_acc1 = 0
-        for epoch in range(self.num_epochs):
+        for epoch in tqdm(range(self.num_epochs)):
             train_one_epoch(epoch, model, train_loader, loss_fn, optimizer, tea_model=self.teacher_model, lr_scheduler=lr_scheduler, device=self.device, temperature=self.temperature)
-            metric = validate(model, self.test_loader, device=self.device)
-            if metric['top1'] > best_acc1:
-                best_acc1 = metric['top1']
+            if epoch % self.test_interval == 0:
+                metric = validate(model, self.test_loader, device=self.device)
+                if metric['top1'] > best_acc1:
+                    best_acc1 = metric['top1']
         
         return best_acc1
     
@@ -281,15 +291,15 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
             set_seed()
             print(f"########################### {i+1}th Evaluation ###########################")
 
-            # print("Caculating syn data hard label metrics...")
-            # syn_data_hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(images, hard_labels=hard_labels)
-            # print("syn_data_hard_label_acc: ", syn_data_hard_label_acc)
+            print("Caculating syn data hard label metrics...")
+            syn_data_hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(images, hard_labels=hard_labels)
+            print(f"Syn data hard label acc: {syn_data_hard_label_acc * 100:.2f}%")
 
-            # print("Caculating full data hard label metrics...")
-            # model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
-            # full_data_hard_label_acc = self.compute_hard_label_metrics(model, self.images_train, lr=self.default_lr, hard_labels=self.labels_train)
-            # del model
-            # print("full_data_hard_label_acc: ", full_data_hard_label_acc)
+            print("Caculating full data hard label metrics...")
+            model = build_model(self.model_name, num_classes=self.num_classes, im_size=self.im_size, pretrained=False, device=self.device)
+            full_data_hard_label_acc = self.compute_hard_label_metrics(model, self.images_train, lr=self.default_lr, hard_labels=self.labels_train)
+            del model
+            print(f"Full data hard label acc: {full_data_hard_label_acc * 100:.2f}%")
 
             print("Caculating syn data kl divergence metrics...")
             if syn_lr:
@@ -298,12 +308,12 @@ class KL_Divergence_Objective(DD_Ranking_Objective):
                 del model
             else:
                 syn_data_kl_divergence_acc, best_lr = self.hyper_param_search_for_kl_divergence(images, labels=hard_labels)
-            print("syn_data_kl_divergence_acc: ", syn_data_kl_divergence_acc)
+            print(f"Syn data kl divergence acc: {syn_data_kl_divergence_acc * 100:.2f}%")
 
             print("Caculating random data kl divergence metrics...")
             random_images, random_labels = get_random_images(self.images_train, self.labels_train, self.class_indices_train, self.ipc)
             random_data_kl_divergence_acc, best_lr = self.hyper_param_search_for_kl_divergence(random_images, labels=random_labels)
-            print("random_data_kl_divergence_acc: ", random_data_kl_divergence_acc)
+            print(f"Random data kl divergence acc: {random_data_kl_divergence_acc * 100:.2f}%")
 
             numerator = 1.00 * (syn_data_kl_divergence_acc - random_data_kl_divergence_acc)
             denominator = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
