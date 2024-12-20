@@ -11,9 +11,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from dd_ranking.utils import build_model, get_pretrained_model_path
-from dd_ranking.utils import TensorDataset, get_random_images, get_dataset
-from dd_ranking.utils import set_seed, save_results
-from dd_ranking.utils import train_one_epoch, train_one_epoch_dc, validate, validate_dc
+from dd_ranking.utils import TensorDataset, get_random_images, get_dataset, save_results
+from dd_ranking.utils import set_seed, train_one_epoch, train_one_epoch_dc, validate, validate_dc
 from dd_ranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
 
 

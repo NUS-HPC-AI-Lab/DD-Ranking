@@ -10,7 +10,7 @@ from torch import Tensor
 from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
-from dd_ranking.utils import get_dataset, get_random_images, build_model
+from dd_ranking.utils import get_dataset, get_random_images, build_model, save_results
 from dd_ranking.utils import set_seed, train_one_epoch, validate
 from dd_ranking.aug import DSA_Augmentation, Mixup_Augmentation, Cutmix_Augmentation, ZCA_Whitening_Augmentation
 
@@ -215,6 +215,13 @@ class Augmentation_Metrics:
             hard_recs.append(hard_rec)
             aug_imps.append(aug_imp)
         
+        results_to_save = {
+            "hard_recs": hard_recs,
+            "aug_imps": aug_imps,
+            "aug_metrics": aug_metrics
+        }
+        save_results(results_to_save, self.save_path)
+
         hard_recs_mean = np.mean(hard_recs)
         hard_recs_std = np.std(hard_recs)
         aug_imps_mean = np.mean(aug_imps)
@@ -245,8 +252,8 @@ class DSA_Augmentation_Metrics(Augmentation_Metrics):
         # dsa params for training a model
         self.num_epochs = 1000
         
-    def transform(self, images, labels):
-        return self.aug_func(images, labels)
+    def transform(self, images):
+        return self.aug_func(images)
     
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
@@ -261,8 +268,8 @@ class ZCA_Whitening_Augmentation_Metrics(Augmentation_Metrics):
         super().__init__(*args, **kwargs)
         self.aug_func = ZCA_Whitening_Augmentation()
 
-    def transform(self, images, labels):
-        return self.aug_func(images, labels)
+    def transform(self, images):
+        return self.aug_func(images)
     
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
@@ -277,8 +284,8 @@ class Mixup_Augmentation_Metrics(Augmentation_Metrics):
         super().__init__(*args, **kwargs)
         self.aug_func = Mixup_Augmentation(self.device)
         
-    def transform(self, images, labels):
-        return self.aug_func(images, labels)
+    def transform(self, images):
+        return self.aug_func(images)
     
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
