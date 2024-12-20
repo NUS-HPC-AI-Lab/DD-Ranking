@@ -99,7 +99,7 @@ def get_dataset(dataset, data_path, im_size):
         dst_test = datasets.CIFAR100(data_path, train=False, download=True, transform=transform)
         class_map = {x: x for x in range(num_classes)}
 
-    elif dataset == 'Tiny':
+    elif dataset == 'TinyImageNet':
         channel = 3
         im_size = (64, 64) if not im_size else im_size
         num_classes = 200
