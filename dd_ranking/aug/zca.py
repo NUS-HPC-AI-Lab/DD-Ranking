@@ -6,5 +6,5 @@ class ZCA_Whitening_Augmentation:
         super().__init__(*args, **kwargs)
         self.transform = kornia.enhance.ZCAWhitening()
 
-    def __call__(self, images, labels):
+    def __call__(self, images):
         return self.transform(images, include_fit=True)

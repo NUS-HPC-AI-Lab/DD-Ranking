@@ -35,34 +35,13 @@ class Config:
 
     imageyellow = [309, 986, 954, 951, 987, 779, 599, 291, 72, 11]
 
-    in1k_cifar10 = [404, 136, 130, 283, 354, 252, 31, 339, 628, 864]
-
-    birds_hard = [14, 19, 91, 15, 13, 95, 10, 16, 20, 12]
-
-    birds_easy = [130, 140, 83, 142, 134, 139, 88, 90, 144, 21]
-
-    cars_hard = [802, 660, 829, 627, 609, 575, 573, 867, 734, 408]
-
-    cars_easy = [581, 535, 717, 817, 511, 436, 656, 757, 661, 751]
-
-    dogs_hard = [239, 238, 247, 195, 151, 266, 157, 181, 154, 217]
-
-    dogs_easy = [193, 180, 227, 167, 246, 248, 224, 177, 269, 252]
-
     dict = {
-        "imagenette": imagenette,
-        "imagewoof": imagewoof,
-        "imagefruit": imagefruit,
-        "imageyellow": imageyellow,
-        "imagemeow": imagemeow,
-        "imagesquawk": imagesquawk,
-        'in1k_cifar10': in1k_cifar10,
-        "birds_hard": birds_hard,
-        'cars_easy': cars_easy,
-        'dogs_easy': dogs_easy,
-        'birds_easy': birds_easy,
-        'dogs_hard': dogs_hard,
-        'cars_hard': cars_hard
+        "ImageNette": imagenette,
+        "ImageWoof": imagewoof,
+        "ImageFruit": imagefruit,
+        "ImageYellow": imageyellow,
+        "ImageMeow": imagemeow,
+        "ImageSquawk": imagesquawk
     }
 
 config = Config()
@@ -99,7 +78,7 @@ def get_dataset(dataset, data_path, im_size):
         dst_test = datasets.CIFAR10(data_path, train=False, download=True, transform=transform)
         class_map = {x: x for x in range(num_classes)}
 
-    elif dataset.startswith('CIFAR100'):
+    elif dataset == 'CIFAR100':
         channel = 3
         im_size = (32, 32) if not im_size else im_size
         num_classes = 100
@@ -130,12 +109,12 @@ def get_dataset(dataset, data_path, im_size):
         dst_test = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform)
         class_map = {x: x for x in range(num_classes)}
 
-    elif dataset == 'ImageNet':
+    elif dataset in ['ImageNette', 'ImageWoof', 'ImageMeow', 'ImageSquawk', 'ImageFruit', 'ImageYellow']:
         channel = 3
         im_size = (128, 128) if not im_size else im_size
         num_classes = 10
 
-        config.img_net_classes = config.dict[subset]
+        config.img_net_classes = config.dict[dataset]
 
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
@@ -148,17 +127,9 @@ def get_dataset(dataset, data_path, im_size):
         ])
 
         dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform)
-        dst_train_dict = {c: torch.utils.data.Subset(dst_train, np.squeeze(
-            np.argwhere(np.equal(dst_train.targets, config.img_net_classes[c])))) for c in
-                          range(len(config.img_net_classes))}
-        dst_train = torch.utils.data.Subset(dst_train,
-                                            np.squeeze(np.argwhere(np.isin(dst_train.targets, config.img_net_classes))))
-        loader_train_dict = {
-            c: torch.utils.data.DataLoader(dst_train_dict[c], batch_size=batch_size, shuffle=True, num_workers=16) for c in
-            range(len(config.img_net_classes))}
+        dst_train = torch.utils.data.Subset(dst_train, np.squeeze(np.argwhere(np.isin(dst_train.targets, config.img_net_classes))))
         dst_test = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform)
-        dst_test = torch.utils.data.Subset(dst_test,
-                                        np.squeeze(np.argwhere(np.isin(dst_test.targets, config.img_net_classes))))
+        dst_test = torch.utils.data.Subset(dst_test, np.squeeze(np.argwhere(np.isin(dst_test.targets, config.img_net_classes))))
         for c in range(len(config.img_net_classes)):
             dst_test.dataset.targets[dst_test.dataset.targets == config.img_net_classes[c]] = c
             dst_train.dataset.targets[dst_train.dataset.targets == config.img_net_classes[c]] = c
@@ -362,7 +333,7 @@ def get_pretrained_model_path(model_name, dataset, ipc):
         elif ipc <= 100:
             return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
 ################################################################################ train and validate ################################################################################
-def default_augmentation(images, labels):
+def default_augmentation(images):
     # you can also add your own implementation here
     # img_size = images.shape[2]
     # transform = transforms.Compose([
@@ -420,7 +391,7 @@ def train_one_epoch(
         if batch_idx >= last_batch_idx_to_accum:
             accum_steps = last_accum_steps
 
-        input = aug_func(input, target)
+        input = aug_func(input)
         input, target = input.to(device), target.to(device)
 
         # multiply by accum steps to get equivalent for full update
@@ -508,7 +479,7 @@ def validate(
     with torch.no_grad():
         for batch_idx, (input, target) in enumerate(loader):
             last_batch = batch_idx == last_idx
-            input = aug_func(input, target)
+            input = aug_func(input)
             input = input.to(device)
             target = target.to(device)
 

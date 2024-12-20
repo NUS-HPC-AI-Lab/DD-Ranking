@@ -245,9 +245,9 @@ class ZCA_Whitening_Augmentation_Metrics(Augmentation_Metrics):
         
         
 class Mixup_Augmentation_Metrics(Augmentation_Metrics):
-    def __init__(self, params: dict, batch_size: int=256, num_epochs: int=300, lr: float=0.01, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.aug_func = Mixup_Augmentation(params)
+        self.aug_func = Mixup_Augmentation(self.device)
         
     def transform(self, images, labels):
         return self.aug_func(images, labels)
@@ -259,12 +259,12 @@ class Mixup_Augmentation_Metrics(Augmentation_Metrics):
 
 
 class Cutmix_Augmentation_Metrics(Augmentation_Metrics):
-    def __init__(self, params: dict, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.aug_func = Cutmix_Augmentation(params)
+        self.aug_func = Cutmix_Augmentation(self.device)
 
-    def transform(self, images, labels):
-        return self.aug_func(images, labels)
+    def transform(self, images):
+        return self.aug_func(images)
 
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)

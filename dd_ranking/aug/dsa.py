@@ -136,7 +136,7 @@ class DSA_Augmentation:
         x = x * mask.unsqueeze(1)
         return x
         
-    def __call__(self, images, labels):
+    def __call__(self, images):
         
         if not self.transform_funcs:
             return images
