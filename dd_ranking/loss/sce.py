@@ -10,5 +10,6 @@ class SoftCrossEntropyLoss(nn.Module):
     def forward(self, stu_outputs, tea_outputs):
         input_log_likelihood = -F.log_softmax(stu_outputs, dim=1)
         target_log_likelihood = F.softmax(tea_outputs, dim=1)
+        batch_size = stu_outputs.size(0)
         loss = torch.sum(torch.mul(input_log_likelihood, target_log_likelihood)) / batch_size
         return loss

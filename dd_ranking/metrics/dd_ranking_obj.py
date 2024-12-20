@@ -10,10 +10,11 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
-from dd_ranking.utils.utils import build_model, get_pretrained_model_path
-from dd_ranking.utils.utils import TensorDataset, get_random_images, get_dataset
-from dd_ranking.utils.utils import set_seed
-from dd_ranking.utils.utils import train_one_epoch, train_one_epoch_dc, validate, validate_dc
+from dd_ranking.utils import build_model, get_pretrained_model_path
+from dd_ranking.utils import TensorDataset, get_random_images, get_dataset
+from dd_ranking.utils import set_seed
+from dd_ranking.utils import train_one_epoch, train_one_epoch_dc, validate, validate_dc
+from dd_ranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
 
 
 class Soft_Label_Objective_Metrics:
@@ -163,7 +164,7 @@ class SCE_Objective_Metrics(Soft_Label_Objective_Metrics):
         soft_label_dataset = TensorDataset(images, soft_labels)
         train_loader = DataLoader(soft_label_dataset, batch_size=self.batch_size, shuffle=True)
 
-        loss_fn = self.SoftCrossEntropy
+        loss_fn = SoftCrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)
         lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2 + 1, gamma=0.1)
         
@@ -291,6 +292,16 @@ class KL_Objective_Metrics(Soft_Label_Objective_Metrics):
         loss = kl(stu_probs, tea_probs) * (temperature ** 2)
         return loss
     
+    def generate_soft_labels(self, images):
+        batches = torch.split(images, self.batch_size)
+        soft_labels = []
+        with torch.no_grad():
+            for image_batch in batches:
+                image_batch = image_batch.to(self.device)
+                soft_labels.append(self.teacher_model(image_batch).detach().cpu())
+        soft_labels = torch.cat(soft_labels, dim=0)
+        return soft_labels
+    
     def hyper_param_search_for_hard_label(self, images, hard_labels):
         lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
 
@@ -379,7 +390,7 @@ class KL_Objective_Metrics(Soft_Label_Objective_Metrics):
         soft_label_dataset = TensorDataset(images, soft_labels)
         train_loader = DataLoader(soft_label_dataset, batch_size=self.batch_size, shuffle=True)
 
-        loss_fn = self.KLDivLoss
+        loss_fn = KLDivergenceLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)
         lr_scheduler = StepLR(optimizer, step_size=self.num_epochs // 2 + 1, gamma=0.1)
 

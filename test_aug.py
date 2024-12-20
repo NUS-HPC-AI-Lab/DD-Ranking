@@ -29,6 +29,7 @@ params = {
     "ratio_crop_pad": 0.125,
     "ratio_cutout": 0.5,
 }
+
 convd3_sl_obj = DSA_Augmentation_Metrics(dataset=dataset, real_data_path=data_dir, ipc=ipc, model_name=model_name, device=device, 
                                  func_names=func_names, params=params, aug_mode="S")
 print(convd3_sl_obj.compute_metrics(syn_images))
