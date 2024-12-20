@@ -12,7 +12,7 @@ from torchvision import transforms, datasets
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from dd_ranking.utils import build_model, get_pretrained_model_path
 from dd_ranking.utils import TensorDataset, get_random_images, get_dataset
-from dd_ranking.utils import set_seed
+from dd_ranking.utils import set_seed, save_results
 from dd_ranking.utils import train_one_epoch, train_one_epoch_dc, validate, validate_dc
 from dd_ranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
 
@@ -20,7 +20,7 @@ from dd_ranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
 class Soft_Label_Objective_Metrics:
 
     def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, soft_label_mode: str='S',
-                 num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, batch_size: int=256, device: str="cuda"):
+                 num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, batch_size: int=256, save_path: str=None, device: str="cuda"):
 
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path, im_size)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
@@ -40,6 +40,12 @@ class Soft_Label_Objective_Metrics:
         self.default_lr = 0.01
         self.test_interval = 10
         self.device = device
+
+        if not save_path:
+            save_path = f"./results/{dataset}/{model_name}/ipc{ipc}/obj_scores.csv"
+        if not os.path.exists(os.path.dirname(save_path)):
+            os.makedirs(os.path.dirname(save_path))
+        self.save_path = save_path
 
         # teacher model
         pretrained_model_path = get_pretrained_model_path(model_name, dataset, ipc)
@@ -209,6 +215,8 @@ class SCE_Objective_Metrics(Soft_Label_Objective_Metrics):
             hard_labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
 
         obj_metrics = []
+        hard_recs = []
+        soft_imps = []
         for i in range(self.num_eval):
             set_seed()
             print(f"########################### {i+1}th Evaluation ###########################")
@@ -270,14 +278,38 @@ class SCE_Objective_Metrics(Soft_Label_Objective_Metrics):
             )
             print(f"Random data soft label acc: {random_data_soft_label_acc:.2f}%")
 
-            numerator = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
-            denominator = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
-            obj_metrics.append(numerator / denominator)
+            hard_rec = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
+            soft_imp = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
+
+            hard_recs.append(hard_rec)
+            soft_imps.append(soft_imp)
+            obj_metrics.append(soft_imp / hard_rec)
+        
+        results_to_save = {
+            "hard_recs": hard_recs,
+            "soft_imps": soft_imps,
+            "obj_metrics": obj_metrics
+        }
+        save_results(results_to_save, self.save_path)
+
+        hard_recs_mean = np.mean(hard_recs)
+        hard_recs_std = np.std(hard_recs)
+        soft_imps_mean = np.mean(soft_imps)
+        soft_imps_std = np.std(soft_imps)
         obj_metrics_mean = np.mean(obj_metrics)
         obj_metrics_std = np.std(obj_metrics)
 
+        print(f"SCE Hard Recovery Mean: {hard_recs_mean:.2f}%  Std: {hard_recs_std:.2f}")
+        print(f"SCE Soft Improvement Mean: {soft_imps_mean:.2f}%  Std: {soft_imps_std:.2f}")
         print(f"SCE Objective Metrics Mean: {obj_metrics_mean:.2f}%  Std: {obj_metrics_std:.2f}")
-        return obj_metrics_mean, obj_metrics_std
+        return {
+            "hard_recs_mean": hard_recs_mean,
+            "hard_recs_std": hard_recs_std,
+            "soft_imps_mean": soft_imps_mean,
+            "soft_imps_std": soft_imps_std,
+            "obj_metrics_mean": obj_metrics_mean,
+            "obj_metrics_std": obj_metrics_std
+        }
 
 
 class KL_Objective_Metrics(Soft_Label_Objective_Metrics):
@@ -424,6 +456,8 @@ class KL_Objective_Metrics(Soft_Label_Objective_Metrics):
         if hard_labels is None:
             hard_labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
 
+        hard_recs = []
+        soft_imps = []
         obj_metrics = []
         for i in range(self.num_eval):
             set_seed()
@@ -474,11 +508,35 @@ class KL_Objective_Metrics(Soft_Label_Objective_Metrics):
             )
             print(f"Random data kl divergence acc: {random_data_kl_divergence_acc:.2f}%")
 
-            numerator = 1.00 * (syn_data_kl_divergence_acc - random_data_kl_divergence_acc)
-            denominator = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
-            obj_metrics.append(numerator / denominator)
+            hard_rec = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
+            soft_imp = 1.00 * (syn_data_kl_divergence_acc - random_data_kl_divergence_acc)
+            obj_metrics.append(soft_imp / hard_rec)
+
+            hard_recs.append(hard_rec)
+            soft_imps.append(soft_imp)
+
+        results_to_save = {
+            "hard_recs": hard_recs,
+            "soft_imps": soft_imps,
+            "obj_metrics": obj_metrics
+        }
+        save_results(results_to_save, self.save_path)
+
+        hard_recs_mean = np.mean(hard_recs)
+        hard_recs_std = np.std(hard_recs)
+        soft_imps_mean = np.mean(soft_imps)
+        soft_imps_std = np.std(soft_imps)
         obj_metrics_mean = np.mean(obj_metrics)
         obj_metrics_std = np.std(obj_metrics)
 
+        print(f"KL Divergence Hard Recovery Mean: {hard_recs_mean:.2f}  Std: {hard_recs_std:.2f}")
+        print(f"KL Divergence Soft Improvement Mean: {soft_imps_mean:.2f}  Std: {soft_imps_std:.2f}")
         print(f"KL Divergence Objective Metrics Mean: {obj_metrics_mean:.2f}  Std: {obj_metrics_std:.2f}")
-        return obj_metrics_mean, obj_metrics_std
+        return {
+            "hard_recs_mean": hard_recs_mean,
+            "hard_recs_std": hard_recs_std,
+            "soft_imps_mean": soft_imps_mean,
+            "soft_imps_std": soft_imps_std,
+            "obj_metrics_mean": obj_metrics_mean,
+            "obj_metrics_std": obj_metrics_std
+        }

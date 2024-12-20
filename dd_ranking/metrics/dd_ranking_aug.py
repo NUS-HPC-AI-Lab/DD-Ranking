@@ -16,7 +16,8 @@ from dd_ranking.aug import DSA_Augmentation, Mixup_Augmentation, Cutmix_Augmenta
 
 
 class Augmentation_Metrics:
-    def __init__(self, dataset: str, real_data_path: str, model_name: str, ipc: int, im_size: tuple=(32, 32), soft_label_mode: str='N', device: str="cuda"):
+    def __init__(self, dataset: str, real_data_path: str, model_name: str, ipc: int, 
+                 im_size: tuple=(32, 32), soft_label_mode: str='N', save_path: str=None, device: str="cuda"):
         
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path, im_size)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
@@ -27,6 +28,12 @@ class Augmentation_Metrics:
         self.im_size = im_size
         self.device = device
         self.soft_label_mode = soft_label_mode
+
+        if not save_path:
+            save_path = f"./results/{dataset}/{model_name}/ipc{ipc}/aug_scores.csv"
+        if not os.path.exists(os.path.dirname(save_path)):
+            os.makedirs(os.path.dirname(save_path))
+        self.save_path = save_path
 
         # default params for training a model
         self.num_eval = 5
@@ -150,6 +157,8 @@ class Augmentation_Metrics:
         if not labels:
             labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
         
+        hard_recs = []
+        aug_imps = []
         aug_metrics = []
         for i in range(self.num_eval):
             set_seed()
@@ -199,13 +208,28 @@ class Augmentation_Metrics:
             del model
             print(f"Full data no augmentation acc: {full_data_default_aug_acc:.2f}%")
 
-            numerator = 1.00 * (syn_data_custom_aug_acc - random_data_custom_aug_acc)
-            denominator = 1.00 * (full_data_default_aug_acc - syn_data_default_aug_acc)
-            aug_metrics.append(numerator / denominator)
+            hard_rec = 1.00 * (full_data_default_aug_acc - syn_data_default_aug_acc)
+            aug_imp = 1.00 * (syn_data_custom_aug_acc - random_data_custom_aug_acc)
+            aug_metrics.append(aug_imp / hard_rec)
+
+            hard_recs.append(hard_rec)
+            aug_imps.append(aug_imp)
+        
+        hard_recs_mean = np.mean(hard_recs)
+        hard_recs_std = np.std(hard_recs)
+        aug_imps_mean = np.mean(aug_imps)
+        aug_imps_std = np.std(aug_imps)
         aug_metrics_mean = np.mean(aug_metrics)
         aug_metrics_std = np.std(aug_metrics)
 
-        return aug_metrics_mean, aug_metrics_std
+        return {
+            "hard_recs_mean": hard_recs_mean,
+            "hard_recs_std": hard_recs_std,
+            "aug_imps_mean": aug_imps_mean,
+            "aug_imps_std": aug_imps_std,
+            "aug_metrics_mean": aug_metrics_mean,
+            "aug_metrics_std": aug_metrics_std
+        }
         
 
 class DSA_Augmentation_Metrics(Augmentation_Metrics):
@@ -226,7 +250,9 @@ class DSA_Augmentation_Metrics(Augmentation_Metrics):
     
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
-        print(f"DSA Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
+        print(f"DSA Hard Recovery Mean: {aug_metrics['hard_recs_mean']:.2f}%  Std: {aug_metrics['hard_recs_std']:.2f}%")
+        print(f"DSA Augmentation Improvement Mean: {aug_metrics['aug_imps_mean']:.2f}%  Std: {aug_metrics['aug_imps_std']:.2f}%")
+        print(f"DSA Augmentation Metrics Mean: {aug_metrics['aug_metrics_mean']:.2f}%  Std: {aug_metrics['aug_metrics_std']:.2f}%")
         return aug_metrics
 
 
@@ -240,9 +266,11 @@ class ZCA_Whitening_Augmentation_Metrics(Augmentation_Metrics):
     
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
-        print(f"ZCA Whitening Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
+        print(f"ZCA Whitening Hard Recovery Mean: {aug_metrics['hard_recs_mean']:.2f}%  Std: {aug_metrics['hard_recs_std']:.2f}%")
+        print(f"ZCA Whitening Augmentation Improvement Mean: {aug_metrics['aug_imps_mean']:.2f}%  Std: {aug_metrics['aug_imps_std']:.2f}%")
+        print(f"ZCA Whitening Augmentation Metrics Mean: {aug_metrics['aug_metrics_mean']:.2f}%  Std: {aug_metrics['aug_metrics_std']:.2f}%")
         return aug_metrics
-        
+
         
 class Mixup_Augmentation_Metrics(Augmentation_Metrics):
     def __init__(self, *args, **kwargs):
@@ -254,7 +282,9 @@ class Mixup_Augmentation_Metrics(Augmentation_Metrics):
     
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
-        print(f"Mixup Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
+        print(f"Mixup Hard Recovery Mean: {aug_metrics['hard_recs_mean']:.2f}%  Std: {aug_metrics['hard_recs_std']:.2f}%")
+        print(f"Mixup Augmentation Improvement Mean: {aug_metrics['aug_imps_mean']:.2f}%  Std: {aug_metrics['aug_imps_std']:.2f}%")
+        print(f"Mixup Augmentation Metrics Mean: {aug_metrics['aug_metrics_mean']:.2f}%  Std: {aug_metrics['aug_metrics_std']:.2f}%")
         return aug_metrics
 
 
@@ -268,5 +298,7 @@ class Cutmix_Augmentation_Metrics(Augmentation_Metrics):
 
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
-        print(f"Cutmix Augmentation Metrics Mean: {aug_metrics[0] * 100:.2f}%  Std: {aug_metrics[1] * 100:.2f}%")
+        print(f"Cutmix Hard Recovery Mean: {aug_metrics['hard_recs_mean']:.2f}%  Std: {aug_metrics['hard_recs_std']:.2f}%")
+        print(f"Cutmix Augmentation Improvement Mean: {aug_metrics['aug_imps_mean']:.2f}%  Std: {aug_metrics['aug_imps_std']:.2f}%")
+        print(f"Cutmix Augmentation Metrics Mean: {aug_metrics['aug_metrics_mean']:.2f}%  Std: {aug_metrics['aug_metrics_std']:.2f}%")
         return aug_metrics

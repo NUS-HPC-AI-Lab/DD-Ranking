@@ -35,7 +35,8 @@ class Unified_Evaluator:
         num_eval: int=5,
         im_size: tuple=(32, 32), 
         num_epochs: int=300, 
-        batch_size: int=256, 
+        batch_size: int=256,
+        save_path: str=None,
         device: str="cuda"
     ):
 
@@ -53,6 +54,12 @@ class Unified_Evaluator:
         self.num_epochs = num_epochs
         self.batch_size = batch_size
         self.device = device
+
+        if not save_path:
+            save_path = f"./results/{dataset}/{model_name}/ipc{ipc}/eval_scores.csv"
+        if not os.path.exists(os.path.dirname(save_path)):
+            os.makedirs(os.path.dirname(save_path))
+        self.save_path = save_path
 
         pretrained_model_path = get_pretrained_model_path(model_name, dataset, ipc)
         self.teacher_model = build_model(
@@ -173,6 +180,11 @@ class Unified_Evaluator:
                 syn_data_acc, best_lr = self.hyper_param_search(syn_loader)
             accs.append(syn_data_acc)
         
+        results_to_save = {
+            "accs": accs
+        }
+        save_results(results_to_save, self.save_path)
+
         accs_mean = np.mean(accs)
         accs_std = np.std(accs)
         return accs_mean, accs_std
