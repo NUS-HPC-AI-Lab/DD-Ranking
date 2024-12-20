@@ -75,22 +75,6 @@ class Unified_Evaluator:
             self.aug_func = Mixup_Augmentation(params)
         elif aug_name == 'Cutmix':
             self.aug_func = Cutmix_Augmentation(params)
-    
-    @staticmethod
-    def SoftCrossEntropyLoss(inputs, target):
-        input_log_likelihood = -F.log_softmax(inputs, dim=1)
-        target_log_likelihood = F.softmax(target, dim=1)
-        batch_size = inputs.shape[0]
-        loss = torch.sum(torch.mul(input_log_likelihood, target_log_likelihood)) / batch_size
-        return loss
-    
-    @staticmethod
-    def KLDivLoss(stu_outputs, tea_outputs, temperature=1.0):
-        kl = torch.nn.KLDivLoss(reduction='batchmean')
-        stu_probs = F.log_softmax(stu_outputs / temperature, dim=1)
-        tea_probs = F.softmax(tea_outputs / temperature, dim=1)
-        loss = kl(stu_probs, tea_probs) * (temperature ** 2)
-        return loss
 
     def generate_soft_labels(self, images):
         batches = torch.split(images, self.batch_size)
