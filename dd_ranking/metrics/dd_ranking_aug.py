@@ -245,8 +245,8 @@ class DSA_Augmentation_Metrics(Augmentation_Metrics):
         # dsa params for training a model
         self.num_epochs = 1000
         
-    def transform(self, images, labels):
-        return self.aug_func(images, labels)
+    def transform(self, images):
+        return self.aug_func(images)
     
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
@@ -261,8 +261,8 @@ class ZCA_Whitening_Augmentation_Metrics(Augmentation_Metrics):
         super().__init__(*args, **kwargs)
         self.aug_func = ZCA_Whitening_Augmentation()
 
-    def transform(self, images, labels):
-        return self.aug_func(images, labels)
+    def transform(self, images):
+        return self.aug_func(images)
     
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
@@ -277,8 +277,8 @@ class Mixup_Augmentation_Metrics(Augmentation_Metrics):
         super().__init__(*args, **kwargs)
         self.aug_func = Mixup_Augmentation(self.device)
         
-    def transform(self, images, labels):
-        return self.aug_func(images, labels)
+    def transform(self, images):
+        return self.aug_func(images)
     
     def compute_metrics(self, images, labels=None):
         aug_metrics = super().compute_metrics(images, labels=labels)
