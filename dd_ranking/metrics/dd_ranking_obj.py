@@ -29,15 +29,6 @@ class Soft_Label_Objective_Metrics:
 
         self.soft_label_mode = soft_label_mode
         self.soft_label_criterion = soft_label_criterion
-        
-        if data_aug_func == 'dsa':
-            self.aug_func = DSA_Augmentation(aug_params)
-        elif data_aug_func == 'zca':
-            self.aug_func = ZCA_Whitening_Augmentation(aug_params)
-        elif data_aug_func == 'mixup':
-            self.aug_func = Mixup_Augmentation(aug_params)
-        elif data_aug_func == 'cutmix':
-            self.aug_func = Cutmix_Augmentation(aug_params)
 
         # data info
         self.im_size = im_size
@@ -52,6 +43,18 @@ class Soft_Label_Objective_Metrics:
         self.default_lr = 0.01
         self.test_interval = 10
         self.device = device
+
+        if data_aug_func == 'dsa':
+            self.aug_func = DSA_Augmentation(aug_params)
+            self.num_epochs = 1000
+        elif data_aug_func == 'zca':
+            self.aug_func = ZCA_Whitening_Augmentation(aug_params)
+        elif data_aug_func == 'mixup':
+            self.aug_func = Mixup_Augmentation(aug_params)
+        elif data_aug_func == 'cutmix':
+            self.aug_func = Cutmix_Augmentation(aug_params)
+        else:
+            self.aug_func = None
 
         if not save_path:
             save_path = f"./results/{dataset}/{model_name}/ipc{ipc}/obj_scores.csv"
@@ -323,15 +326,6 @@ class Hard_Label_Objective_Metrics:
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
         self.test_loader = DataLoader(dst_test, batch_size=batch_size, shuffle=False)
 
-        if data_aug_func == 'dsa':
-            self.aug_func = DSA_Augmentation(aug_params)
-        elif data_aug_func == 'zca':
-            self.aug_func = ZCA_Whitening_Augmentation(aug_params)
-        elif data_aug_func == 'mixup':
-            self.aug_func = Mixup_Augmentation(aug_params)
-        elif data_aug_func == 'cutmix':
-            self.aug_func = Cutmix_Augmentation(aug_params)
-
         # data info
         self.im_size = im_size
         self.num_classes = num_classes
@@ -345,6 +339,18 @@ class Hard_Label_Objective_Metrics:
         self.default_lr = 0.01
         self.test_interval = 10
         self.device = device
+
+        if data_aug_func == 'dsa':
+            self.aug_func = DSA_Augmentation(aug_params)
+            self.num_epochs = 1000
+        elif data_aug_func == 'zca':
+            self.aug_func = ZCA_Whitening_Augmentation(aug_params)
+        elif data_aug_func == 'mixup':
+            self.aug_func = Mixup_Augmentation(aug_params)
+        elif data_aug_func == 'cutmix':
+            self.aug_func = Cutmix_Augmentation(aug_params)
+        else:
+            self.aug_func = None
 
         if not save_path:
             save_path = f"./results/{dataset}/{model_name}/ipc{ipc}/obj_scores.csv"
@@ -410,7 +416,6 @@ class Hard_Label_Objective_Metrics:
                 optimizer=optimizer,
                 aug_func=self.aug_func,
                 lr_scheduler=lr_scheduler, 
-                tea_model=self.teacher_model, 
                 device=self.device
             )
             if epoch % self.test_interval == 0:

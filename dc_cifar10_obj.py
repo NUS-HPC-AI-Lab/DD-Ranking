@@ -19,9 +19,11 @@ for ipc in [1, 10, 50]:
     convd3_hard_obj = Hard_Label_Objective_Metrics(
         dataset=dataset, 
         real_data_path=data_dir, 
-        ipc=ipc, 
+        ipc=ipc,
         model_name=model_name,
         im_size=im_size,
+        data_aug_func=None,
+        aug_params=None,
         device=device,
         save_path=save_path_hard
     )

@@ -22,6 +22,8 @@ for ipc in [1, 10, 50]:
         ipc=ipc, 
         model_name=model_name,
         im_size=im_size,
+        data_aug_func=None,
+        aug_params=None,
         device=device,
         save_path=save_path_hard
     )
