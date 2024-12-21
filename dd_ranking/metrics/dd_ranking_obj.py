@@ -20,7 +20,7 @@ class Soft_Label_Objective_Metrics:
 
     def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, 
                  soft_label_criterion: str, data_aug_func: str, aug_params: dict, soft_label_mode: str='S',
-                 optimizer: str='SGD', lr_scheduler: str='StepLR', temperature: float=1.0, weight_decay: float=0.0005, 
+                 optimizer: str='sgd', lr_scheduler: str='step', temperature: float=1.0, weight_decay: float=0.0005, 
                  momentum: float=0.9, num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False,
                  batch_size: int=256, save_path: str=None, device: str="cuda"):
 
@@ -341,10 +341,13 @@ class Soft_Label_Objective_Metrics:
 class Hard_Label_Objective_Metrics:
 
     def __init__(self, dataset: str, real_data_path: str, ipc: int, model_name: str, data_aug_func: str, aug_params: dict,
-                 optimizer: str='SGD', lr_scheduler: str='StepLR', weight_decay: float=0.0005, momentum: float=0.9,
+                 optimizer: str='SGD', lr_scheduler: str='StepLR', weight_decay: float=0.0005, momentum: float=0.9, use_zca: bool=False,
                  num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, batch_size: int=256, save_path: str=None, device: str="cuda"):
 
-        channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, real_data_path, im_size)
+        channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, 
+                                                                                                   real_data_path, 
+                                                                                                   im_size, 
+                                                                                                   use_zca)
         self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
         self.test_loader = DataLoader(dst_test, batch_size=batch_size, shuffle=False)
 
