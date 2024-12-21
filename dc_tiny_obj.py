@@ -4,24 +4,14 @@ from dd_ranking.metrics import Hard_Label_Objective_Metrics
 
 
 root = "/home/wangkai/"
-device = "cuda:1"
+device = "cuda:6"
 method_name = "DC"
 dataset = "TinyImageNet"
 im_size = (64, 64)
 data_dir = os.path.join(root, "datasets/tiny-imagenet-200")
 model_name = "ConvNet-4"
-dsa_params = {
-    "prob_flip": 0.5,
-    "ratio_rotate": 15.0,
-    "saturation": 2.0,
-    "brightness": 1.0,
-    "contrast": 0.5,
-    "ratio_scale": 1.2,
-    "ratio_crop_pad": 0.125,
-    "ratio_cutout": 0.5,
-}
 
-for ipc in [1, 10, 50]:
+for ipc in [1, 10]:
     print(f"Evaluating {method_name} on {dataset} with ipc{ipc}")
     syn_images = torch.load(os.path.join(root, f"DD-Ranking/{method_name}/{dataset}/IPC{ipc}/images.pt"), map_location='cpu')
 
@@ -31,8 +21,8 @@ for ipc in [1, 10, 50]:
         real_data_path=data_dir,
         ipc=ipc, 
         model_name=model_name,
-        data_aug_func='dsa',
-        aug_params=dsa_params,
+        data_aug_func=None,
+        aug_params=None,
         im_size=im_size,
         device=device,
         save_path=save_path_hard
