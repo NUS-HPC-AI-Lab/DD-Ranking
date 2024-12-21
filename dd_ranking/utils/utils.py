@@ -348,19 +348,19 @@ def default_augmentation(images):
     return images
 
 def get_optimizer(optimizer_name, model, lr, weight_decay=0.0005, momentum=0.9):
-    if optimizer_name == 'SGD':
+    if optimizer_name == 'sgd':
         return SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
-    elif optimizer_name == 'Adam':
+    elif optimizer_name == 'adam':
         return Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-    elif optimizer_name == 'AdamW':
+    elif optimizer_name == 'adamw':
         return AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     else:
         raise NotImplementedError(f"Optimizer {optimizer_name} not implemented")
 
 def get_lr_scheduler(lr_scheduler_name, optimizer, num_epochs):
-    if lr_scheduler_name == 'StepLR':
+    if lr_scheduler_name == 'step':
         return StepLR(optimizer, step_size=num_epochs // 2 + 1, gamma=0.1)
-    elif lr_scheduler_name == 'CosineAnnealingLR':
+    elif lr_scheduler_name == 'cosine':
         return CosineAnnealingLR(optimizer, T_max=num_epochs)
     else:
         raise NotImplementedError(f"LR Scheduler {lr_scheduler_name} not implemented")
