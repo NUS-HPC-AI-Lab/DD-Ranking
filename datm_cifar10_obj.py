@@ -4,7 +4,7 @@ from dd_ranking.metrics import Soft_Label_Objective_Metrics
 
 
 root = "/home/wangkai/"
-device = "cuda:3"
+device = "cuda:4"
 method_name = "DATM"
 dataset = "CIFAR10"
 im_size = (32, 32)
@@ -34,6 +34,10 @@ for ipc in [10, 50]:
         ipc=ipc,
         soft_label_criterion='sce',
         soft_label_mode='S',
+        optimizer='SGD',
+        lr_scheduler='StepLR',
+        weight_decay=0.0005,
+        momentum=0.9,
         model_name=model_name,
         data_aug_func='dsa',
         aug_params=dsa_params,
