@@ -304,9 +304,9 @@ class Soft_Label_Objective_Metrics:
         obj_metrics_mean = np.mean(obj_metrics)
         obj_metrics_std = np.std(obj_metrics)
 
-        print(f"SCE Hard Recovery Mean: {hard_recs_mean:.2f}%  Std: {hard_recs_std:.2f}")
-        print(f"SCE Soft Improvement Mean: {soft_imps_mean:.2f}%  Std: {soft_imps_std:.2f}")
-        print(f"SCE Objective Metrics Mean: {obj_metrics_mean:.2f}  Std: {obj_metrics_std:.2f}")
+        print(f"Hard Recovery Mean: {hard_recs_mean:.2f}%  Std: {hard_recs_std:.2f}")
+        print(f"Soft Improvement Mean: {soft_imps_mean:.2f}%  Std: {soft_imps_std:.2f}")
+        print(f"Objective Metrics Mean: {obj_metrics_mean:.2f}  Std: {obj_metrics_std:.2f}")
         return {
             "hard_recs_mean": hard_recs_mean,
             "hard_recs_std": hard_recs_std,
@@ -481,7 +481,7 @@ class Hard_Label_Objective_Metrics:
             del model
             print(f"Full data hard label acc: {full_data_hard_label_acc:.2f}%")
 
-            print("Caculating random data soft label metrics...")
+            print("Caculating random data hard label metrics...")
             random_images, random_data_hard_labels = get_random_images(self.images_train, self.labels_train, self.class_indices_train, self.ipc)
             random_data_hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(
                 images=random_images, 
