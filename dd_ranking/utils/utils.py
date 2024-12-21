@@ -12,6 +12,8 @@ from torch import Tensor
 from torchvision import transforms, datasets
 from .networks import MLP, ConvNet, LeNet, AlexNet, VGG, ResNet, BasicBlock, Bottleneck
 from .networks import VGG11, VGG11_Tiny, VGG11BN, ResNet18, ResNet18_Tiny, ResNet18BN, ResNet18BN_Tiny, ResNet18BN_AP, ResNet18_AP
+from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR
+from torch.optim import SGD, Adam, AdamW
 
 
 def set_seed():
@@ -344,6 +346,24 @@ def get_pretrained_model_path(model_name, dataset, ipc):
 
 def default_augmentation(images):    
     return images
+
+def get_optimizer(optimizer_name, model, lr, weight_decay=0.0005, momentum=0.9):
+    if optimizer_name == 'SGD':
+        return SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+    elif optimizer_name == 'Adam':
+        return Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    elif optimizer_name == 'AdamW':
+        return AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    else:
+        raise NotImplementedError(f"Optimizer {optimizer_name} not implemented")
+
+def get_lr_scheduler(lr_scheduler_name, optimizer, num_epochs):
+    if lr_scheduler_name == 'StepLR':
+        return StepLR(optimizer, step_size=num_epochs // 2 + 1, gamma=0.1)
+    elif lr_scheduler_name == 'CosineAnnealingLR':
+        return CosineAnnealingLR(optimizer, T_max=num_epochs)
+    else:
+        raise NotImplementedError(f"LR Scheduler {lr_scheduler_name} not implemented")
 
 # modified from pytorch-image-models/train.py
 def train_one_epoch(
