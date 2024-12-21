@@ -318,37 +318,32 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
 
 
 def get_pretrained_model_path(model_name, dataset, ipc):
-    if dataset == 'CIFAR10':
-        if ipc <= 10:
-            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_40.pt")
-        elif ipc <= 100:
-            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_60.pt")
-        elif ipc <= 1000:
-            return os.path.join(f"/home/wangkai/DD-Ranking/teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
-    elif dataset == 'CIFAR100':
-        if ipc <= 10:
-            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_40.pt")
-        elif ipc <= 100:
-            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
-    elif dataset == 'Tiny':
-        if ipc <= 1:
-            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_40.pt")
-        elif ipc <= 10:
-            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_60.pt")
-        elif ipc <= 100:
-            return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
+    # if dataset == 'CIFAR10':
+        # if ipc <= 10:
+        #     return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_40.pt")
+        # elif ipc <= 100:
+        #     return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_60.pt")
+        # elif ipc <= 1000:
+        #     return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
+        # return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_100.pt")
+    # elif dataset == 'CIFAR100':
+        # if ipc <= 10:
+        #     return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_40.pt")
+        # elif ipc <= 100:
+        #     return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
+        # return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_100.pt")
+    # elif dataset == 'TinyImageNet':
+        # if ipc <= 1:
+        #     return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_40.pt")
+        # elif ipc <= 10:
+        #     return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_60.pt")
+        # elif ipc <= 100:
+        #     return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_80.pt")
+    return os.path.join(f"./teacher_models/{dataset}", f"{model_name}", "ckpt_100.pt")
 ################################################################################ train and validate ################################################################################
-def default_augmentation(images):
-    # you can also add your own implementation here
-    # img_size = images.shape[2]
-    # transform = transforms.Compose([
-    #     transforms.RandomHorizontalFlip(),
-    #     transforms.RandomVerticalFlip(),
-    #     transforms.RandomRotation(degrees=15)
-    # ])
-    # images = transform(images)
-    return images
 
+def default_augmentation(images):    
+    return images
 
 # modified from pytorch-image-models/train.py
 def train_one_epoch(
