@@ -218,7 +218,7 @@ class Soft_Label_Objective_Metrics:
         return soft_labels
     
     def compute_metrics(self, syn_images, soft_labels, syn_lr=None):
-
+        hard_labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
         obj_metrics = []
         hard_recs = []
         soft_imps = []
