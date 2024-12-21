@@ -5,11 +5,13 @@ import torch.nn.functional as F
 
 class DSA_Augmentation:
 
-    def __init__(self, func_names: list, params: dict, seed: int=-1, aug_mode: str='M'):        
+    def __init__(self, params: dict, seed: int=-1, aug_mode: str='S'):        
         self.params = params
         self.seed = seed
         self.aug_mode = aug_mode
-        self.transform_funcs = self.create_transform_funcs(func_names)
+
+        default_funcs = ['scale', 'rotate', 'flip', 'brightness', 'saturation', 'contrast', 'crop', 'cutout']
+        self.transform_funcs = self.create_transform_funcs(default_funcs)
 
     def create_transform_funcs(self, func_names):
         funcs = []

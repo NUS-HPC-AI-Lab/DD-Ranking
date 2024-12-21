@@ -4,7 +4,7 @@ import kornia
 
 
 class Mixup_Augmentation:
-    def __init__(self, device: str="cuda"):
+    def __init__(self, params: dict):
         # self.transform = kornia.augmentation.RandomMixUpV2(
         #     lambda_val = params["lambda_range"],
         #     same_on_batch = params["same_on_batch"],
@@ -12,11 +12,10 @@ class Mixup_Augmentation:
         #     p = params["prob"]
         # )
 
-        self.mixup_p = 0.8
-        self.device = device
+        self.mixup_p = params["mixup_p"]
 
     def mixup(self, images):
-        rand_index = torch.randperm(images.size()[0]).to(self.device)
+        rand_index = torch.randperm(images.size()[0]).to(images.device)
         lam = np.random.beta(self.mixup_p, self.mixup_p)
 
         mixed_images = lam * images + (1 - lam) * images[rand_index]
