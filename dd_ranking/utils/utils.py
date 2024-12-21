@@ -6,6 +6,7 @@ import timm
 import numpy as np
 import pandas as pd
 import random
+import kornia as K
 from tqdm import tqdm
 from collections import OrderedDict
 from torch import Tensor
@@ -66,7 +67,7 @@ class TensorDataset(torch.utils.data.Dataset):
         return len(self.images)
 
 
-def get_dataset(dataset, data_path, im_size):
+def get_dataset(dataset, data_path, im_size, use_zca):
     class_map_inv = None
 
     if dataset == 'CIFAR10':
@@ -163,6 +164,30 @@ def get_dataset(dataset, data_path, im_size):
         class_map = {x: i for i, x in enumerate(range(num_classes))}
         class_map_inv = {i: x for i, x in enumerate(range(num_classes))}
     
+    if use_zca:
+        images, labels = [], []
+        for i in range(len(dst_train)):
+            im, lab = dst_train[i]
+            images.append(im)
+            labels.append(lab)
+        images = torch.stack(images, dim=0)
+        labels = torch.tensor(labels, dtype=torch.long)
+        zca = K.enhance.ZCAWhitening(eps=0.1, compute_inv=True)
+        zca.fit(images)
+        zca_images = zca(images)
+        dst_train = TensorDataset(zca_images, labels)
+
+        images, labels = [], []
+        for i in range(len(dst_test)):
+            im, lab = dst_test[i]
+            images.append(im)
+            labels.append(lab)
+        images = torch.stack(images, dim=0)
+        labels = torch.tensor(labels, dtype=torch.long)
+
+        zca_images = zca(images)
+        dst_test = TensorDataset(zca_images, labels)
+
     return channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv
 
 
