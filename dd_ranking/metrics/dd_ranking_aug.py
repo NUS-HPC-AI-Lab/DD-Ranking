@@ -162,7 +162,7 @@ class Augmentation_Metrics:
         aug_metrics = []
         for i in range(self.num_eval):
             set_seed()
-            print(f"{i+1}th Evaluation")
+            print(f"####################### {i+1}th Evaluation #######################")
 
             print("Caculating syn data no augmentation metrics...")
             syn_data_default_aug_acc, best_lr = self.hyper_param_search_for_no_aug(

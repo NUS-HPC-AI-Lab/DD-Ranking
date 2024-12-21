@@ -300,7 +300,7 @@ class SCE_Objective_Metrics(Soft_Label_Objective_Metrics):
 
         print(f"SCE Hard Recovery Mean: {hard_recs_mean:.2f}%  Std: {hard_recs_std:.2f}")
         print(f"SCE Soft Improvement Mean: {soft_imps_mean:.2f}%  Std: {soft_imps_std:.2f}")
-        print(f"SCE Objective Metrics Mean: {obj_metrics_mean:.2f}%  Std: {obj_metrics_std:.2f}")
+        print(f"SCE Objective Metrics Mean: {obj_metrics_mean:.2f}  Std: {obj_metrics_std:.2f}")
         return {
             "hard_recs_mean": hard_recs_mean,
             "hard_recs_std": hard_recs_std,
@@ -451,7 +451,7 @@ class KL_Objective_Metrics(Soft_Label_Objective_Metrics):
     
     def compute_metrics(self, images, soft_labels=None, hard_labels=None):
         if soft_labels is None:
-            soft_labels = self.generate_soft_labels(syn_images)
+            soft_labels = self.generate_soft_labels(images)
         if hard_labels is None:
             hard_labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
 
