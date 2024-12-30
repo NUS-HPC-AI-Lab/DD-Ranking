@@ -1,0 +1,14 @@
+CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7 python generate_soft_label.py \
+    -a resnet18 \
+    -b 1024 \
+    -j 8 \
+    --epochs 300 \
+    --fkd-seed 42 \
+    --input-size 224 \
+    --min-scale-crops 0.08 \
+    --max-scale-crops 1 \
+    --use-fp16 \
+    --fkd-path imagenet_ipc10_label18 \
+    --mode 'fkd_save' \
+    --mix-type 'cutmix' \
+    --data ../data/distilled_data/imagenet_ipc10_s0.7_g8.0_kmexpand1 \

@@ -1,0 +1,13 @@
+CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7 python train_FKD.py \
+    --batch-size 1024 \
+    --model resnet18 \
+    --cos \
+    -j 8 --gradient-accumulation-steps 2 \
+    -T 20 \
+    --mix-type 'cutmix' \
+    --wandb-api-key xxx \
+    --output-dir ./save/final_rn18_fkd/imagenet_ipc10_label18_train18 \
+    --train-dir ../data/distilled_data/imagenet_ipc10_s0.7_g8.0_kmexpand1 \
+    --val-dir ../data/imagenet/val \
+    --fkd-path ../matching/imagenet_ipc10_label18 \
+    --wandb-project imagenet_ipc10_label18  \
