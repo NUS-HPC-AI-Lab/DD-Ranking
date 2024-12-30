@@ -94,21 +94,6 @@ def get_dataset(dataset, data_path):
     #     #     images_val[:, c] = (images_val[:, c] - mean[c]) / std[c]
 
     #     # dst_test = TensorDataset(images_val, labels_val)  # no augmentation
-    #     channel = 3
-    #     im_size = (64, 64)
-    #     num_classes = 200
-    #     mean = [0.4802, 0.4481, 0.3975]
-    #     std = [0.2770, 0.2691, 0.2821]
-        
-    #     num_label = 200
-    #     normalize = transforms.Normalize((0.4802, 0.4481, 0.3975), (0.2770, 0.2691, 0.2821))
-    #     transform_train = transforms.Compose(
-    #         [transforms.RandomResizedCrop(64), transforms.RandomHorizontalFlip(), transforms.ToTensor(),
-    #      normalize, ])
-    #     transform_test = transforms.Compose([transforms.Resize(64), transforms.ToTensor(), normalize, ])
-    #     dst_train = datasets.ImageFolder(root=os.path.join(data_path, 'train'), transform=transform_train)
-    #     dst_test = datasets.ImageFolder(root=os.path.join(data_path, 'val'), transform=transform_test)
-    #     class_names = []
     
     elif dataset == 'TinyImageNet':
         channel = 3
@@ -118,8 +103,6 @@ def get_dataset(dataset, data_path):
         std = [0.229, 0.224, 0.225]
         transform =transforms.Compose(
             [
-                transforms.RandomCrop(64, padding=4),
-                transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std),
             ])
@@ -396,74 +379,6 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args):
 
     return net, acc_train, acc_test
 
-def train_teacher(net, train_loader, test_loader, args):
-    net = net.to(args.device)
-    lr = float(args.lr_net)
-    Epoch = int(args.epoch_eval_train)
-    lr_schedule = [Epoch//2+1]
-    optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)
-    criterion = nn.CrossEntropyLoss().to(args.device)
-
-    start = time.time()
-    for ep in range(Epoch+1):
-        loss_train, acc_train = epoch('train', train_loader, net, optimizer, criterion, args, aug = True)
-        if ep in lr_schedule:
-            lr *= 0.1
-            optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)
-
-    time_train = time.time() - start
-    loss_test, acc_test = epoch('test', test_loader, net, optimizer, criterion, args, aug = False)
-    print('train loss = %.6f train acc = %.4f, test acc = %.4f' % (loss_train, acc_train, acc_test))
-
-    return net, acc_train, acc_test
-
-def get_centroids(net, train_loader, args):
-    pointer = torch.zeros([args.nclass])
-    # logits = (torch.ones([100, 500, 100])*(-10000)).cuda()
-    logits = (torch.ones([args.nclass, (50000 // args.nclass), 512])*(-10000)).cuda()
-    # net.eval()
-    for batch_idx, (image, target) in enumerate(train_loader):
-        image, target = image.cuda(), target.cuda()
-        logit = net(image).detach()
-        Classes, pointer_INC =  target.cpu().unique(return_counts=True)
-        logit = logit
-        for idx, Class in enumerate(Classes):
-            logits[Class, int(pointer[Class]):int(pointer[Class]) + pointer_INC[idx]] = logit[target.cpu() == Class]
-            pointer[Class] += pointer_INC[idx]
-            Prob = F.softmax(logits, 2)
-    Centroids = torch.mean(Prob, 1)
-    LogCentroids = Centroids.log()[:,None,:].expand(-1, args.ipc, -1)
-    return LogCentroids
-
-
-def get_CMI(net, centroids, images_syn, labels_syn, args):
-    # print(centroids.shape)
-    centroids = centroids.to(args.device)
-    net = net.to(args.device)
-    images_syn = images_syn.to(args.device)
-    labels_syn = labels_syn.to(args.device)
-
-    dst_syn = TensorDataset(images_syn, labels_syn)
-    syn_loader = torch.utils.data.DataLoader(dst_syn, batch_size=args.batch_train, shuffle=True, num_workers=0)
-    
-    pointer = torch.zeros([args.nclass])
-    # logits = (torch.ones([100, 500, 100])*(-10000)).cuda()
-    logits = (torch.ones([args.nclass, args.ipc, args.nclass])*(-10000)).cuda()
-    net.eval()
-    for batch_idx, (image, target) in enumerate(syn_loader):
-        image, target = image.cuda(), target.cuda()
-        logit = net(image)
-        Classes, pointer_INC =  target.cpu().unique(return_counts=True)
-        logit = logit
-        for idx, Class in enumerate(Classes):
-            logits[Class, int(pointer[Class]):int(pointer[Class]) + pointer_INC[idx]] = logit[target.cpu() == Class]
-            pointer[Class] += pointer_INC[idx]
-    # print(logits)        
-    CMI = F.kl_div(centroids.reshape(-1, args.nclass), F.log_softmax(logits, 2).reshape(-1, args.nclass), \
-                reduction="batchmean", log_target=True)
-    # print(CMI)
-    return CMI
-
 
 def augment(images, dc_aug_param, device):
     # This can be sped up in the future.
@@ -572,15 +487,6 @@ def get_eval_pool(eval_mode, model, model_eval):
     else:
         model_eval_pool = [model_eval]
     return model_eval_pool
-
-def get_premodel(model_path="../IID/DM+ours/CIFAR10_pre_dict_res18_40_"):
-    index = 0
-    # index = random.randint(0, 6)
-    model_path = model_path + str(index)
-    model_list=os.listdir(model_path)
-    n=len(model_list)
-    idx=random.randint(0, n-1)
-    return model_path+'/'+model_list[idx]
 
 
 class ParamDiffAug():

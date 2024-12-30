@@ -11,7 +11,6 @@ from utils import get_loops, get_dataset, get_centroids, get_CMI, get_premodel, 
 import torch.nn.functional as F
 from models import ConvNet
 import torchvision.models as thmodels
-from tsne import vis_tsne, vis_tsne_syn
 import random
 
 

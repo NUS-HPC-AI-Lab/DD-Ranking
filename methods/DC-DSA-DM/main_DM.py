@@ -9,9 +9,7 @@ from torchvision.utils import save_image
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from utils import get_loops, get_dataset, get_network, get_eval_pool, evaluate_synset, get_daparam, match_loss, get_time, TensorDataset, epoch, DiffAugment, ParamDiffAug
 import torch.nn.functional as F
-from models import ConvNet
 import torchvision.models as thmodels
-from tsne import vis_tsne, vis_tsne_syn
 
 
 def main():
