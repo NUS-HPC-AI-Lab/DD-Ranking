@@ -1,5 +1,10 @@
 GPU=$0
 
+CUDA_VISIBLE_DEVICES=${GPU} python ./cifar_fkd/squeeze_cifar10.py \
+    --epochs 200 \
+    --output-dir ./save/cifar10/resnet18_E200 \
+
+
 CUDA_VISIBLE_DEVICES=${GPU} python ./distillation/gen_prototype.py \
     --batch_size 10 \
     --data_dir ../../../datasets/CIFAR10 \
