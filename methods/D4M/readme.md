@@ -1,6 +1,6 @@
-# D4M
+# D$^4$M
 
-We provide all the commands to reproduce the D4M results. For instructions on how to setup the code and details, please see [instructions](instructions.md). Due to the lack of evaluation code for the low-resolution dataset, we have chosen to use the relevant code from SRe2L for the evaluation.
+We provide all the commands to reproduce the D$^4$M results. For instructions on how to setup the code and details, please see [instructions](instructions.md). Due to the lack of evaluation code for the low-resolution dataset, we have chosen to use the relevant code from SRe$^2$L for the evaluation.
 
 # CIFAR10
 For CIFAR10, we provide the code to train a teacher model.
@@ -26,5 +26,5 @@ For TinyImageNet, You can find the training code and checkpoints at [TinyImageNe
 bash ./scripts/eval_tiny_imagenet.sh
 ``````
 
-The original evaluation code can be found in [instructions](instructions.md).
+More details and the original commands can be found in [instructions](instructions.md).
 
