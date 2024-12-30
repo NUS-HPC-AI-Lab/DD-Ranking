@@ -9,7 +9,8 @@ Here are the included methods
 | DC | [DC instructions](DC-DSA-DM/instructions.md) | [DC command](DC-DSA-DM/readme.md) |
 | DSA| [DSA instructions](DC-DSA-DM/instructions.md) | [DSA command](DC-DSA-DM/readme.md) |
 | DM | [DM instructions](DC-DSA-DM/instructions.md) | [DM command](DC-DSA-DM/readme.md) |
-| MTT | [MTT instructions](tm/instructions.md) | [MTT command](tm/readme.md) |
+| MTT | [MTT instructions](MTT/instructions.md) | [MTT command](MTT/readme.md) |
+| DATM | [DATM instructions](DATM/instructions.md) | [DATM command](DATM/readme.md) |
 | SRe$^2$L | [SRe$^2$L instructions](SRe2L/instructions.md) | [SRe$^2$L command](SRe2L/readme.md) |
 | D$^4$M | [D$^4$M instructions](D4M/instructions.md) | [D$^4$M command](D4M/readme.md) |
 
