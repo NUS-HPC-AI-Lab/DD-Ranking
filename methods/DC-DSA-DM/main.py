@@ -7,9 +7,8 @@ import torch
 import torch.nn as nn
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
-from utils import get_loops, get_dataset, get_centroids, get_CMI, get_premodel, get_network, get_eval_pool, evaluate_synset, get_daparam, match_loss, get_time, TensorDataset, epoch, DiffAugment, ParamDiffAug
+from utils import get_loops, get_dataset,  get_network, get_eval_pool, evaluate_synset, get_daparam, match_loss, get_time, TensorDataset, epoch, DiffAugment, ParamDiffAug
 import torch.nn.functional as F
-from models import ConvNet
 import torchvision.models as thmodels
 import random
 
