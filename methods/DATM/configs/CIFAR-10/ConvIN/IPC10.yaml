@@ -33,6 +33,4 @@ expansion_end_epoch: 1000
 lr_lr: 0.00001
 zca: True
 
-sub: True
-# sub: False
 

@@ -132,7 +132,7 @@ if __name__ == '__main__':
                         help='whether to use differentiable Siamese augmentation.')
     parser.add_argument('--dsa_strategy', type=str, default='color_crop_cutout_flip_scale_rotate',
                         help='differentiable Siamese augmentation strategy')
-    parser.add_argument('--data_path', type=str, default='../../datasets/CIFAR10', help='dataset path')
+    parser.add_argument('--data_path', type=str, default='../../../datasets/CIFAR10', help='dataset path')
     parser.add_argument('--buffer_path', type=str, default='../buffers', help='buffer path')
     parser.add_argument('--train_epochs', type=int, default=50)
     parser.add_argument('--zca', action='store_true')

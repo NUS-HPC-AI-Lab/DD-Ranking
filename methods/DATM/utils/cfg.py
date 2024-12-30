@@ -134,5 +134,3 @@ CFG.Initialize_Label_With_Another_Model = False
 CFG.Initialize_Label_Model = ""
 CFG.Initialize_Label_Model_Dir = ""
 CFG.Label_Model_Timestamp = -1
-
-CFG.sub = False
