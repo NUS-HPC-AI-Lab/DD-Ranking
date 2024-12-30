@@ -1,6 +1,6 @@
-# DC
+# DC-DSA-DM
 
-We provide all the commands to reproduce the D4M results. For instructions on how to setup the code, please see [instructions](instructions.md). 
+We provide all the commands to reproduce the results of DC, DSA and DM. For instructions on how to setup the code, please see [instructions](instructions.md). 
 
 # DC
 ```
