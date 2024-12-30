@@ -52,3 +52,5 @@ python distill.py --dataset=Tiny --ipc=10 --syn_steps=20 --expert_epochs=2 --max
 ```
 python distill.py --dataset=Tiny --ipc=50 --syn_steps=20 --expert_epochs=2 --max_start_epoch=40 --lr_img=10000 --lr_lr=1e-04 --lr_teacher=0.01 --batch_syn=300 
 ```
+
+More details and the original commands can be found in [instructions](instructions.md).
