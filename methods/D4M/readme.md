@@ -21,7 +21,7 @@ With the pre-trained teacher, we can evaluate the distilled datasets.
 bash ./scripts/eval_cifar100.sh
 ``````
 # TinyImageNet
-For TinyImageNet, You can find the training code and checkpoints at [TinyImageNet repo](https://github.com/zeyuanyin/tiny-imagenet). With the pre-trained teacher, we can evaluate the distilled datasets.
+For TinyImageNet, you can find the training code and checkpoints at [TinyImageNet repo](https://github.com/zeyuanyin/tiny-imagenet). With the pre-trained teacher, we can evaluate the distilled datasets.
 ``````bash
 bash ./scripts/eval_tiny_imagenet.sh
 ``````
