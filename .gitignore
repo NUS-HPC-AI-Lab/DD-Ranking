@@ -9,3 +9,6 @@ build/
 *.pyc
 *.txt
 *.DS_Store
+*.pt
+*.pth
+*.zip
