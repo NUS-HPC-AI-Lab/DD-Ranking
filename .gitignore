@@ -8,3 +8,4 @@ PKG-INFO
 build/
 *.pyc
 *.txt
+*.DS_Store
