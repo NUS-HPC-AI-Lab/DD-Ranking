@@ -1,0 +1,35 @@
+# real data
+dataset: CIFAR100
+real_data_path: ./dataset/
+
+# synthetic data
+ipc: 10
+im_size: [32, 32]
+
+# agent model
+model_name: ConvNet-3
+use_torchvision: false
+
+# data augmentation
+data_aug_func: null
+aug_params: null
+
+custom_train_trans: null
+custom_val_trans: null
+use_zca: false
+
+# training specifics
+optimizer: sgd
+lr_scheduler: step
+weight_decay: 0.0005
+momentum: 0.9
+num_eval: 5
+num_epochs: 1000
+syn_batch_size: 256
+real_batch_size: 256
+default_lr: 0.01
+num_workers: 4
+device: cuda
+
+# save path
+save_path: ./results/cifar10/ipc1/dc.csv

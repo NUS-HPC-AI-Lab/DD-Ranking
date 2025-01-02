@@ -1,0 +1,56 @@
+# real data
+dataset: CIFAR100
+real_data_path: ./dataset/
+
+# synthetic data
+ipc: 50
+im_size: [32, 32]
+
+# agent model
+model_name: ConvNet-3
+stu_use_torchvision: false
+tea_use_torchvision: false
+teacher_dir: ./teacher_models
+
+# syntheticdata augmentation
+data_aug_func: cutmix
+aug_params:
+    beta: 1.0
+use_zca: false
+
+custom_train_trans: 
+  - name: RandomResizedCrop
+    args:
+      size: 32
+      scale: (0.08, 1.0)
+  - name: RandomHorizontalFlip
+    args:
+      p: 0.5
+  - name: ToTensor
+  - name: Normalize
+    args:
+      mean: [0.4914, 0.4822, 0.4465]
+      std: [0.2023, 0.1994, 0.2010]
+
+custom_val_trans: null
+use_aug_for_hard: false
+
+# soft label settings
+soft_label_mode: M
+soft_label_criterion: kl
+temperature: 20.0
+
+# training specifics
+optimizer: adamw
+lr_scheduler: cosine
+weight_decay: 0.01
+num_eval: 5
+num_epochs: 500
+default_lr: 0.001
+num_workers: 4
+device: cuda
+syn_batch_size: 100
+real_batch_size: 256
+
+# save path
+save_path: ./results/cifar100/ipc50/d4m.csv
