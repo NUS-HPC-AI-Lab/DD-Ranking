@@ -22,7 +22,7 @@ custom_train_trans:
   - name: RandomResizedCrop
     args:
       size: 224
-      scale: (0.08, 1.0)
+      scale: [0.08, 1.0]
   - name: RandomHorizontalFlip
     args:
       p: 0.5
