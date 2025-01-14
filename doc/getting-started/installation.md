@@ -3,7 +3,7 @@
 From pip
 
 ```bash
-pip install dd_ranking
+pip install ddranking
 ```
 
 From source

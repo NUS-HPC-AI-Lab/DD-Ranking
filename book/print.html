@@ -207,9 +207,11 @@ Recently, Deng et al., pointed out that "a label is worth a thousand images". Th
 <li>\(\text{syn-any}\): Synthetic dataset with personalized evaluation methods (hard or soft labels);</li>
 <li>\(\text{rdm-any}\): Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.</li>
 </ul>
-<!-- To rank different methods, we combine the above two metrics as DD-Ranking Score:
-
-\\[\text{DD-Ranking Score} = \frac{\text{IOR}}{\text{HLR}} = \frac{(\text{Acc.} \text{syn-any}-\text{Acc.} \text{rdm-any})}{(\text{Acc.} \text{full-hard}-\text{Acc.} \text{syn-hard})}\\] -->
+<p>DD-Ranking uses a weight sum of \(\text{IOR}\) and \(-\text{HLR}\) to rank different methods:
+\[\alpha = w \text{IOR} - (1-w) \text{HLR}, \quad w \in [0, 1]\]</p>
+<p>Formally, the <strong>DD-Ranking Score (DDRS)</strong> is defined as:
+\[\text{DDRS} = \frac{e^{\alpha} - e^{-1}}{e - e^{-1}} \]</p>
+<p>By default, we set \(w = 0.5\) on the leaderboard, meaning that both \(\text{IOR}\) and \(\text{HLR}\) are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="contributing"><a class="header" href="#contributing">Contributing</a></h1>
 <p>Welcome! We are glad that you by willing to contribute to the field of dataset distillation.</p>
 <ul>
@@ -228,7 +230,7 @@ Recently, Deng et al., pointed out that "a label is worth a thousand images". Th
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <p>From pip</p>
-<pre><code class="language-bash">pip install dd_ranking
+<pre><code class="language-bash">pip install ddranking
 </code></pre>
 <p>From source</p>
 <pre><code class="language-bash">python setup.py install
@@ -236,11 +238,11 @@ Recently, Deng et al., pointed out that "a label is worth a thousand images". Th
 <div style="break-before: page; page-break-before: always;"></div><h2 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h2>
 <p>Below is a step-by-step guide on how to use our <code>dd_ranking</code>. This demo is based on soft labels (source code can be found in <code>demo_soft.py</code>). You can find hard label demo in <code>demo_hard.py</code>.</p>
 <p><strong>Step1</strong>: Intialize a soft-label metric evaluator object. Config files are recommended for users to specify hyper-parameters. Sample config files are provided <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/tree/main/configs">here</a>.</p>
-<pre><code class="language-python">from dd_ranking.metrics import SoftLabelEvaluator
-from dd_ranking.config import Config
+<pre><code class="language-python">from ddranking.metrics import SoftLabelEvaluator
+from ddranking.config import Config
 
 &gt;&gt;&gt; config = Config.from_file("./configs/Demo_Soft_Label.yaml")
-&gt;&gt;&gt; soft_obj = SoftLabelEvaluator(config)
+&gt;&gt;&gt; soft_label_metric_calc = SoftLabelEvaluator(config)
 </code></pre>
 <details>
 <summary>You can also pass keyword arguments.</summary>
@@ -263,7 +265,7 @@ dsa_params = {                          # Specify your data augmentation paramet
     "ratio_crop_pad": 0.125,
     "ratio_cutout": 0.5
 }
-save_path = f"./results/{dataset}/{model_name}/IPC{ipc}/dm_hard_scores.csv"
+save_path = f"./results/{dataset}/{model_name}/IPC{ipc}/datm_ranking_scores.csv"
 
 """ We only list arguments that usually need specifying"""
 soft_label_metric_calc = SoftLabelEvaluator(
@@ -291,8 +293,10 @@ soft_label_metric_calc = SoftLabelEvaluator(
 &gt;&gt;&gt; soft_labels = torch.load('/your/path/to/syn/labels.pt')
 &gt;&gt;&gt; syn_lr = torch.load('/your/path/to/syn/lr.pt')
 </code></pre>
-<p><strong>Step 3:</strong> Compute the xxx metric.</p>
+<p><strong>Step 3:</strong> Compute the metric.</p>
 <pre><code class="language-python">&gt;&gt;&gt; metric = soft_label_metric_calc.compute_metrics(image_tensor=syn_images, soft_labels=soft_labels, syn_lr=syn_lr)
+# alternatively, you can specify the image folder path to compute the metric
+&gt;&gt;&gt; metric = soft_label_metric_calc.compute_metrics(image_path='./your/path/to/syn/images', soft_labels=soft_labels, syn_lr=syn_lr)
 </code></pre>
 <p>The following results will be returned to you:</p>
 <ul>
@@ -404,7 +408,7 @@ device: str = "cuda"
 # compute the metrics
 &gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, hard_labels=hard_labels)
 # alternatively, you can provide the image path
-&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image.png', hard_labels=hard_labels)
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', hard_labels=hard_labels)
 </code></pre>
 <p>with keyword arguments:</p>
 <pre><code class="language-python">&gt;&gt;&gt; evaluator = HardLabelEvaluator(
@@ -434,7 +438,7 @@ device: str = "cuda"
 # compute the metrics
 &gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, hard_labels=hard_labels)
 # alternatively, you can provide the image path
-&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image.png', hard_labels=hard_labels)
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', hard_labels=hard_labels)
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="softlabelevaluator"><a class="header" href="#softlabelevaluator">SoftLabelEvaluator</a></h2>
 <div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
@@ -546,7 +550,7 @@ This method computes the HLR, IOR, and DD-Ranking scores for the given image and
 # compute metrics
 &gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, soft_labels=soft_labels)
 # alternatively, provide image path
-&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image.jpg', soft_labels=soft_labels) 
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', soft_labels=soft_labels) 
 </code></pre>
 <p>with keyword arguments:</p>
 <pre><code class="language-python">&gt;&gt;&gt; evaluator = SoftLabelEvaluator(
@@ -573,7 +577,7 @@ This method computes the HLR, IOR, and DD-Ranking scores for the given image and
 # compute metrics
 &gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, soft_labels=soft_labels)
 # alternatively, provide image path
-&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image.jpg', soft_labels=soft_labels) 
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', soft_labels=soft_labels) 
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="generalevaluator"><a class="header" href="#generalevaluator">GeneralEvaluator</a></h2>
 <div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
@@ -1064,22 +1068,6 @@ evaluator = SoftLabelEvaluator(config)
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

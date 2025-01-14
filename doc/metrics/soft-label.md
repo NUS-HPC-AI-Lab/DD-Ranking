@@ -119,7 +119,7 @@ with config file:
 # compute metrics
 >>> evaluator.compute_metrics(image_tensor=image_tensor, soft_labels=soft_labels)
 # alternatively, provide image path
->>> evaluator.compute_metrics(image_path='path/to/image.jpg', soft_labels=soft_labels) 
+>>> evaluator.compute_metrics(image_path='path/to/image/folder/', soft_labels=soft_labels) 
 ```
 
 with keyword arguments:
@@ -148,5 +148,5 @@ with keyword arguments:
 # compute metrics
 >>> evaluator.compute_metrics(image_tensor=image_tensor, soft_labels=soft_labels)
 # alternatively, provide image path
->>> evaluator.compute_metrics(image_path='path/to/image.jpg', soft_labels=soft_labels) 
+>>> evaluator.compute_metrics(image_path='path/to/image/folder/', soft_labels=soft_labels) 
 ```

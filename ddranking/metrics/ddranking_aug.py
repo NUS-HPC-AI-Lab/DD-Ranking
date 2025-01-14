@@ -10,9 +10,9 @@ from torch import Tensor
 from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
-from dd_ranking.utils import get_dataset, get_random_images, build_model, save_results
-from dd_ranking.utils import set_seed, train_one_epoch, validate
-from dd_ranking.aug import DSA_Augmentation, Mixup_Augmentation, Cutmix_Augmentation, ZCA_Whitening_Augmentation
+from ddranking.utils import get_dataset, get_random_images, build_model, save_results
+from ddranking.utils import set_seed, train_one_epoch, validate
+from ddranking.aug import DSA_Augmentation, Mixup_Augmentation, Cutmix_Augmentation, ZCA_Whitening_Augmentation
 
 
 class Augmentation_Metrics:

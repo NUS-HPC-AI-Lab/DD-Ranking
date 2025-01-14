@@ -9,12 +9,12 @@ from torch import Tensor
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
-from dd_ranking.utils import build_model, get_pretrained_model_path
-from dd_ranking.utils import TensorDataset, get_random_images, get_dataset, save_results
-from dd_ranking.utils import set_seed, train_one_epoch, validate, get_optimizer, get_lr_scheduler
-from dd_ranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
-from dd_ranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
-from dd_ranking.config import Config
+from ddranking.utils import build_model, get_pretrained_model_path
+from ddranking.utils import TensorDataset, get_random_images, get_dataset, save_results
+from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, get_lr_scheduler
+from ddranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
+from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
+from ddranking.config import Config
 
 
 class SoftLabelEvaluator:
@@ -23,9 +23,9 @@ class SoftLabelEvaluator:
                  soft_label_criterion: str='kl', data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, soft_label_mode: str='S',
                  optimizer: str='sgd', lr_scheduler: str='step', temperature: float=1.0, weight_decay: float=0.0005, 
                  momentum: float=0.9, num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False,
-                 real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None, use_aug_for_hard: bool=False,
-                 stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', 
-                 custom_train_trans: transforms.Compose=None, custom_val_trans: transforms.Compose=None, device: str="cuda"):
+                 real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None, stu_use_torchvision: bool=False, 
+                 tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', custom_train_trans: transforms.Compose=None, 
+                 custom_val_trans: transforms.Compose=None, device: str="cuda"):
 
         if config is not None:
             self.config = config
@@ -45,12 +45,14 @@ class SoftLabelEvaluator:
             num_eval = self.config.get('num_eval')
             im_size = self.config.get('im_size')
             num_epochs = self.config.get('num_epochs')
+            use_zca = self.config.get('use_zca')
             real_batch_size = self.config.get('real_batch_size')
             syn_batch_size = self.config.get('syn_batch_size')
             default_lr = self.config.get('default_lr')
             save_path = self.config.get('save_path')
             num_workers = self.config.get('num_workers')
-            use_torchvision = self.config.get('use_torchvision')
+            stu_use_torchvision = self.config.get('stu_use_torchvision')
+            tea_use_torchvision = self.config.get('tea_use_torchvision')
             custom_train_trans = self.config.get('custom_train_trans')
             custom_val_trans = self.config.get('custom_val_trans')
             teacher_dir = self.config.get('teacher_dir')
@@ -100,7 +102,6 @@ class SoftLabelEvaluator:
             self.aug_func = Cutmix(aug_params)
         else:
             self.aug_func = None
-        self.use_aug_for_hard = use_aug_for_hard
 
         if not save_path:
             save_path = f"./results/{dataset}/{model_name}/ipc{ipc}/obj_scores.csv"
@@ -367,7 +368,7 @@ class SoftLabelEvaluator:
             else:
                 random_data_soft_labels = None
             random_data_soft_label_acc, best_lr = self.hyper_param_search_for_soft_label(
-                image_tensor=image_tensor,
+                image_tensor=random_images,
                 image_path=None,
                 soft_labels=random_data_soft_labels
             )

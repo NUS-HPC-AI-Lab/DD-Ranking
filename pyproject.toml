@@ -7,7 +7,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dd_ranking"
+name = "ddranking"
 version = "0.1.0"
 description = "DD-Ranking: Rethinking the Evaluation of Dataset Distillation"
 readme = "README.md"

@@ -1,8 +1,8 @@
 import os
 import torch
 import warnings
-from dd_ranking.metrics import SoftLabelEvaluator
-from dd_ranking.config import Config
+from ddranking.metrics import SoftLabelEvaluator
+from ddranking.config import Config
 warnings.filterwarnings("ignore")
 
 

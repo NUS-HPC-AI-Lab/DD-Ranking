@@ -206,9 +206,11 @@ Recently, Deng et al., pointed out that "a label is worth a thousand images". Th
 <li>\(\text{syn-any}\): Synthetic dataset with personalized evaluation methods (hard or soft labels);</li>
 <li>\(\text{rdm-any}\): Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.</li>
 </ul>
-<!-- To rank different methods, we combine the above two metrics as DD-Ranking Score:
-
-\\[\text{DD-Ranking Score} = \frac{\text{IOR}}{\text{HLR}} = \frac{(\text{Acc.} \text{syn-any}-\text{Acc.} \text{rdm-any})}{(\text{Acc.} \text{full-hard}-\text{Acc.} \text{syn-hard})}\\] -->
+<p>DD-Ranking uses a weight sum of \(\text{IOR}\) and \(-\text{HLR}\) to rank different methods:
+\[\alpha = w \text{IOR} - (1-w) \text{HLR}, \quad w \in [0, 1]\]</p>
+<p>Formally, the <strong>DD-Ranking Score (DDRS)</strong> is defined as:
+\[\text{DDRS} = \frac{e^{\alpha} - e^{-1}}{e - e^{-1}} \]</p>
+<p>By default, we set \(w = 0.5\) on the leaderboard, meaning that both \(\text{IOR}\) and \(\text{HLR}\) are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.</p>
 
                     </main>
 
@@ -233,22 +235,6 @@ Recently, Deng et al., pointed out that "a label is worth a thousand images". Th
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

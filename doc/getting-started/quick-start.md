@@ -5,11 +5,11 @@ Below is a step-by-step guide on how to use our `dd_ranking`. This demo is based
 **Step1**: Intialize a soft-label metric evaluator object. Config files are recommended for users to specify hyper-parameters. Sample config files are provided [here](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/tree/main/configs).
 
 ```python
-from dd_ranking.metrics import SoftLabelEvaluator
-from dd_ranking.config import Config
+from ddranking.metrics import SoftLabelEvaluator
+from ddranking.config import Config
 
 >>> config = Config.from_file("./configs/Demo_Soft_Label.yaml")
->>> soft_obj = SoftLabelEvaluator(config)
+>>> soft_label_metric_calc = SoftLabelEvaluator(config)
 ```
 
 <details>
@@ -35,7 +35,7 @@ dsa_params = {                          # Specify your data augmentation paramet
     "ratio_crop_pad": 0.125,
     "ratio_cutout": 0.5
 }
-save_path = f"./results/{dataset}/{model_name}/IPC{ipc}/dm_hard_scores.csv"
+save_path = f"./results/{dataset}/{model_name}/IPC{ipc}/datm_ranking_scores.csv"
 
 """ We only list arguments that usually need specifying"""
 soft_label_metric_calc = SoftLabelEvaluator(
@@ -68,10 +68,12 @@ For detailed explanation for hyper-parameters, please refer to our <a href="">do
 >>> syn_lr = torch.load('/your/path/to/syn/lr.pt')
 ```
 
-**Step 3:** Compute the xxx metric.
+**Step 3:** Compute the metric.
 
 ```python
 >>> metric = soft_label_metric_calc.compute_metrics(image_tensor=syn_images, soft_labels=soft_labels, syn_lr=syn_lr)
+# alternatively, you can specify the image folder path to compute the metric
+>>> metric = soft_label_metric_calc.compute_metrics(image_path='./your/path/to/syn/images', soft_labels=soft_labels, syn_lr=syn_lr)
 ```
 
 The following results will be returned to you:

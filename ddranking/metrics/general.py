@@ -10,12 +10,12 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torch.nn import CrossEntropyLoss
 from torchvision import transforms, datasets
-from dd_ranking.utils import build_model, get_pretrained_model_path, get_dataset, TensorDataset
-from dd_ranking.utils import set_seed, get_optimizer, get_lr_scheduler
-from dd_ranking.utils import train_one_epoch, validate
-from dd_ranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
-from dd_ranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
-from dd_ranking.config import Config
+from ddranking.utils import build_model, get_pretrained_model_path, get_dataset, TensorDataset
+from ddranking.utils import set_seed, get_optimizer, get_lr_scheduler
+from ddranking.utils import train_one_epoch, validate
+from ddranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
+from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
+from ddranking.config import Config
 
 
 class GeneralEvaluator:

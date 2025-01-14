@@ -249,7 +249,7 @@ device: str = "cuda"
 # compute the metrics
 &gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, hard_labels=hard_labels)
 # alternatively, you can provide the image path
-&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image.png', hard_labels=hard_labels)
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', hard_labels=hard_labels)
 </code></pre>
 <p>with keyword arguments:</p>
 <pre><code class="language-python">&gt;&gt;&gt; evaluator = HardLabelEvaluator(
@@ -279,7 +279,7 @@ device: str = "cuda"
 # compute the metrics
 &gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, hard_labels=hard_labels)
 # alternatively, you can provide the image path
-&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image.png', hard_labels=hard_labels)
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', hard_labels=hard_labels)
 </code></pre>
 
                     </main>
@@ -311,22 +311,6 @@ device: str = "cuda"
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

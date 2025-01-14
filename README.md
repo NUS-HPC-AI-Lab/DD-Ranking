@@ -13,7 +13,7 @@
 Fair and benchmark for dataset distillation.
 </h3> -->
 <p align="center">
-| <a href="https://nus-hpc-ai-lab.github.io/DD-Ranking/"><b>Documentation</b></a> | <a href="https://huggingface.co/spaces/Soptq/DD-Ranking"><b>Leaderboard</b></a> | <a href=""><b>Paper </b> (Coming Soon)</a> | <a href=""><b>Twitter/X</b> (Coming Soon)</a> | <a href=""><b>Developer Slack</b> (Coming Soon)</a> |
+| <a href="https://nus-hpc-ai-lab.github.io/DD-Ranking/"><b>Documentation</b></a> | <a href="https://huggingface.co/spaces/Soptq/DD-Ranking"><b>Leaderboard</b></a> | <a href=""><b>Paper </b> (Coming Soon)</a> | <a href=""><b>Twitter/X</b> (Coming Soon)</a> | <a href="https://join.slack.com/t/dd-ranking/shared_invite/zt-2xlcuq1mf-hmVcfrtqrIB3qXRjwgB03A"><b>Developer Slack</b></a> |
 </p>
 
 
@@ -21,7 +21,7 @@ Fair and benchmark for dataset distillation.
 
 *Latest News* 🔥
 
-[Latest] Our PyPI package is officially released! Users can now install DD-Ranking via `pip install dd_ranking`.
+[Latest] Our PyPI package is officially released! Users can now install DD-Ranking via `pip install ddranking`.
 
 <details>
 <summary>Unfold to see more details.</summary>
@@ -84,11 +84,13 @@ $\text{Acc.}$ is the accuracy of models trained on different samples. Samples' m
 - $\text{syn-any}$: Synthetic dataset with personalized evaluation methods (hard or soft labels);
 - $\text{rdm-any}$: Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.
 
-DD-Ranking uses a weight sum of $-\text{IOR}$ and $\text{HLR}$ to rank different methods:
-$$
-\text{Rank\_Score} = w_1 (-\text{IOR}) + w_2 \text{HLR}, \quad w_1 + w_2 = 1
-$$
-By default, we set $w_1 = w_2 = 0.5$ on the leaderboard, meaning that both $\text{IOR}$ and $\text{HLR}$ are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.
+DD-Ranking uses a weight sum of $\text{IOR}$ and $-\text{HLR}$ to rank different methods:
+$\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]$
+
+Formally, the **DD-Ranking Score (DDRS)** is defined as:
+$(e^{\alpha}-e^{-1}) / (e - e^{-1})$
+
+By default, we set $w = 0.5$ on the leaderboard, meaning that both $\text{IOR}$ and $\text{HLR}$ are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.
 
 </details>
 
@@ -126,7 +128,7 @@ Install DD-Ranking with `pip` or from [source](https://github.com/NUS-HPC-AI-Lab
 From pip
 
 ```bash
-pip install dd_ranking
+pip install ddranking
 ```
 
 From source
@@ -141,11 +143,11 @@ Below is a step-by-step guide on how to use our `dd_ranking`. This demo is based
 **Step1**: Intialize a soft-label metric evaluator object. Config files are recommended for users to specify hyper-parameters. Sample config files are provided [here](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/tree/main/configs).
 
 ```python
-from dd_ranking.metrics import SoftLabelEvaluator
-from dd_ranking.config import Config
+from ddranking.metrics import SoftLabelEvaluator
+from ddranking.config import Config
 
 config = Config.from_file("./configs/Demo_Soft_Label.yaml")
-soft_obj = SoftLabelEvaluator(config)
+soft_label_metric_calc = SoftLabelEvaluator(config)
 ```
 
 <details>
@@ -204,10 +206,12 @@ soft_labels = torch.load('/your/path/to/syn/labels.pt')
 syn_lr = torch.load('/your/path/to/syn/lr.pt')
 ```
 
-**Step 3:** Compute the xxx metric.
+**Step 3:** Compute the metric.
 
 ```python
-metric = soft_label_metric_calc.compute_metrics(syn_images, soft_labels=soft_labels, syn_lr=syn_lr)
+metric = soft_label_metric_calc.compute_metrics(image_tensor=syn_images, soft_labels=soft_labels, syn_lr=syn_lr)
+# alternatively, you can specify the image folder path to compute the metric
+metric = soft_label_metric_calc.compute_metrics(image_path='./your/path/to/syn/images', soft_labels=soft_labels, syn_lr=syn_lr)
 ```
 
 The following results will be returned to you:
@@ -221,15 +225,48 @@ The following results will be returned to you:
 Check out our <span style="color: #ff0000;">[documentation](https://nus-hpc-ai-lab.github.io/DD-Ranking/)</span> to learn more.
 
 ## Coming Soon
-- [ ] DD-Ranking scores that decouple the impacts from data augmentation.
+
 - [ ] Evaluation results on ImageNet subsets.
 - [ ] More baseline methods.
+- [ ] DD-Ranking scores that decouple the impacts from data augmentation.
 
 ## Contributing
 
 <!-- Only PR for the 1st version of DD-Ranking -->
 Feel free to submit grades to update the DD-Ranking list. We welcome and value any contributions and collaborations.
 Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
+
+
+<!-- ## Team
+
+### Developers:
+
+<div style="column-count: 2;">
+
+- [Zekai Li](https://lizekai-richard.github.io/) (Project Lead)
+- [Xinhao Zhong](https://ndhg1213.github.io/)
+- [Zhiyuan Liang](https://jerryliang24.github.io/)
+- [Yuhao Zhou](https://github.com/Soptq)
+- [Mingjia Shi](https://bdemo.github.io/homepage/)
+- Ziqiao Wang
+- [Wangbo Zhao](https://wangbo-zhao.github.io/)
+- [Xuanlei Zhao](https://oahzxl.github.io/)
+- [Haonan Wang](https://charles-haonan-wang.me/)
+</div>
+
+### Advisors:
+<div style="column-count: 2;">
+
+- [Dai Liu](https://scholar.google.com/citations?user=3aWKpkQAAAAJ&hl=en)
+- [Ziheng Qin](https://henryqin1997.github.io/ziheng_qin/)
+- [Kaipeng Zhang](https://kpzhang93.github.io/)
+- [Zheng Zhu](http://www.zhengzhu.net/)
+- [Zhangyang Wang](https://vita-group.github.io/)
+- [Bo Zhao](https://www.bozhao.me/)
+- [Yang You](https://www.comp.nus.edu.sg/~youy/)
+- [Kai Wang](https://kaiwang960112.github.io/)
+
+</div> -->
 
 ## License
 
