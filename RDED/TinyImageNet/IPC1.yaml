@@ -1,6 +1,6 @@
 # real data
 dataset: TinyImageNet
-real_data_path: ./dataset/tiny-imagenet-200/
+real_data_path: ./datasets/tiny-imagenet-200/
 
 # synthetic data
 ipc: 1
@@ -33,8 +33,6 @@ custom_val_trans:
       mean: [0.485, 0.456, 0.406]
       std: [0.229, 0.224, 0.225]
 
-use_aug_for_hard: false
-
 # soft label settings
 soft_label_mode: M
 soft_label_criterion: kl
@@ -42,14 +40,14 @@ temperature: 20.0
 
 # training specifics
 optimizer: adamw
-lr_scheduler: cosine
+lr_scheduler: lambda_cos
 weight_decay: 0.01
 num_eval: 5
 num_epochs: 300
 default_lr: 0.001
 num_workers: 4
-device: cuda
-syn_batch_size: 256
+device: cuda:3
+syn_batch_size: 10
 real_batch_size: 256
 
 # save path

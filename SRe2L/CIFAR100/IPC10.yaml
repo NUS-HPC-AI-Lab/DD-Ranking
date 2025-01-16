@@ -1,6 +1,6 @@
 # real data
 dataset: CIFAR100
-real_data_path: ./dataset/
+real_data_path: ./datasets/
 
 # synthetic data
 ipc: 10
