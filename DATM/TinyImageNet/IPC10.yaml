@@ -24,6 +24,7 @@ aug_params:
     crop: 0.125
     cutout: 0.5
 use_zca: true
+use_aug_for_hard: true
 
 custom_train_trans: null
 custom_val_trans: null
