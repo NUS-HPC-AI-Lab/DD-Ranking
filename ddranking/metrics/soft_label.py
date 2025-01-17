@@ -375,7 +375,7 @@ class SoftLabelEvaluator:
                 syn_data_soft_label_acc = self.compute_soft_label_metrics(
                     model=model, 
                     image_tensor=image_tensor,
-                    image_path=None,
+                    image_path=image_path,
                     lr=syn_lr,
                     soft_labels=soft_labels
                 )
