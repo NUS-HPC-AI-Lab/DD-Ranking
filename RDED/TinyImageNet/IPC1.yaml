@@ -46,7 +46,7 @@ num_eval: 5
 num_epochs: 300
 default_lr: 0.001
 num_workers: 4
-device: cuda:3
+device: cuda
 syn_batch_size: 10
 real_batch_size: 256
 
