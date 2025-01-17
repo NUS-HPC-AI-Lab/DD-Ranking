@@ -223,7 +223,16 @@ class SoftLabelEvaluator:
                                   num_workers=self.num_workers, shuffle=True)
 
         loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
+        # We use default optimizer and lr scheduler to train a model on real data. These parameters are empirically set.
+        if mode == 'real':
+            if self.model_name.startswith('ConvNet'):
+                optimizer = get_optimizer('sgd', model, lr, 0.0005, 0.9)
+            elif self.model_name.startswith('ResNet'):
+                optimizer = get_optimizer('adamw', model, lr, 0.01, 0.9)
+            else:  # TODO: add more models
+                optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
+        else:
+            optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
         lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs)
 
         best_acc1 = 0
