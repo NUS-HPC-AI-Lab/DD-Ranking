@@ -48,7 +48,7 @@ class TensorDataset(torch.utils.data.Dataset):
         return len(self.images)
 
 
-def get_dataset(dataset, data_path, im_size, use_zca, custom_train_trans, custom_val_trans, device):
+def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
     class_map_inv = None
 
     if dataset == 'CIFAR10':
@@ -68,8 +68,9 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_train_trans, custom
                 transforms.ToTensor()
             ])
 
-        dst_train = datasets.CIFAR10(data_path, train=True, download=True, transform=transform if custom_train_trans is None else custom_train_trans)
-        dst_test = datasets.CIFAR10(data_path, train=False, download=True, transform=transform if custom_val_trans is None else custom_val_trans)
+        dst_train = datasets.CIFAR10(data_path, train=True, download=True, transform=transform)
+        dst_test_real = datasets.CIFAR10(data_path, train=False, download=True, transform=transform)
+        dst_test_syn = datasets.CIFAR10(data_path, train=False, download=True, transform=transform if custom_val_trans is None else custom_val_trans)
         class_map = {x: x for x in range(num_classes)}
 
     elif dataset == 'CIFAR100':
@@ -89,8 +90,9 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_train_trans, custom
                 transforms.ToTensor()
             ])
 
-        dst_train = datasets.CIFAR100(data_path, train=True, download=True, transform=transform if custom_train_trans is None else custom_train_trans)
-        dst_test = datasets.CIFAR100(data_path, train=False, download=True, transform=transform if custom_val_trans is None else custom_val_trans)
+        dst_train = datasets.CIFAR100(data_path, train=True, download=True, transform=transform)
+        dst_test_real = datasets.CIFAR100(data_path, train=False, download=True, transform=transform)
+        dst_test_syn = datasets.CIFAR100(data_path, train=False, download=True, transform=transform if custom_val_trans is None else custom_val_trans)
         class_map = {x: x for x in range(num_classes)}
 
     elif dataset == 'TinyImageNet':
@@ -108,8 +110,9 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_train_trans, custom
             transform = transforms.Compose([
                 transforms.ToTensor()
             ])
-        dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform if custom_train_trans is None else custom_train_trans)
-        dst_test = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform if custom_val_trans is None else custom_val_trans)
+        dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform)
+        dst_test_real = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform)
+        dst_test_syn = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform if custom_val_trans is None else custom_val_trans)
         class_map = {x: x for x in range(num_classes)}
 
     elif dataset in ['ImageNette', 'ImageWoof', 'ImageMeow', 'ImageSquawk', 'ImageFruit', 'ImageYellow']:
@@ -129,12 +132,18 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_train_trans, custom
             transforms.CenterCrop(im_size)
         ])
 
-        dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform if custom_train_trans is None else custom_train_trans)
+        dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform)
         dst_train = torch.utils.data.Subset(dst_train, np.squeeze(np.argwhere(np.isin(dst_train.targets, config.img_net_classes))))
-        dst_test = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform if custom_val_trans is None else custom_val_trans)
-        dst_test = torch.utils.data.Subset(dst_test, np.squeeze(np.argwhere(np.isin(dst_test.targets, config.img_net_classes))))
+
+        dst_test_real = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform)
+        dst_test_syn = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform if custom_val_trans is None else custom_val_trans)
+
+        dst_test_real = torch.utils.data.Subset(dst_test_real, np.squeeze(np.argwhere(np.isin(dst_test_real.targets, config.img_net_classes))))
+        dst_test_syn = torch.utils.data.Subset(dst_test_syn, np.squeeze(np.argwhere(np.isin(dst_test_syn.targets, config.img_net_classes))))
+
         for c in range(len(config.img_net_classes)):
-            dst_test.dataset.targets[dst_test.dataset.targets == config.img_net_classes[c]] = c
+            dst_test_real.dataset.targets[dst_test_real.dataset.targets == config.img_net_classes[c]] = c
+            dst_test_syn.dataset.targets[dst_test_syn.dataset.targets == config.img_net_classes[c]] = c
             dst_train.dataset.targets[dst_train.dataset.targets == config.img_net_classes[c]] = c
         
         class_map = {x: i for i, x in enumerate(config.img_net_classes)}
@@ -153,8 +162,9 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_train_trans, custom
             transforms.CenterCrop(im_size)
         ])
 
-        dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform if custom_train_trans is None else custom_train_trans)
-        dst_test = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform if custom_val_trans is None else custom_val_trans)
+        dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform)
+        dst_test_real = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform)
+        dst_test_syn = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform if custom_val_trans is None else custom_val_trans)
 
         class_map = {x: i for i, x in enumerate(range(num_classes))}
         class_map_inv = {i: x for i, x in enumerate(range(num_classes))}
@@ -173,26 +183,47 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_train_trans, custom
         dst_train = TensorDataset(zca_images, labels)
 
         images, labels = [], []
-        for i in tqdm(range(len(dst_test))):
-            im, lab = dst_test[i]
+        for i in tqdm(range(len(dst_test_real))):
+            im, lab = dst_test_real[i]
             images.append(im)
             labels.append(lab)
         images = torch.stack(images, dim=0).to(device)
         labels = torch.tensor(labels, dtype=torch.long, device='cpu')
 
         zca_images = zca(images).to("cpu")
-        dst_test = TensorDataset(zca_images, labels)
+        dst_test_real = TensorDataset(zca_images, labels)
 
-    return channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv
+        images, labels = [], []
+        for i in tqdm(range(len(dst_test_syn))):
+            im, lab = dst_test_syn[i]
+            images.append(im)
+            labels.append(lab)
+        images = torch.stack(images, dim=0).to(device)
+        labels = torch.tensor(labels, dtype=torch.long, device='cpu')
+        zca_images = zca(images).to("cpu")
+        dst_test_syn = TensorDataset(zca_images, labels)
+
+    return channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv
 
 
-def get_random_images(images_all, labels_all, class_indices, n_images_per_class):
-    all_selected_indices = []
-    num_classes = len(class_indices)
-    for c in range(num_classes):
-        idx_shuffle = np.random.permutation(class_indices[c])[:n_images_per_class]
-        all_selected_indices.extend(idx_shuffle)
-    selected_images = images_all[all_selected_indices]
-    selected_labels = labels_all[all_selected_indices]
-    assert len(selected_images) == num_classes * n_images_per_class
+def get_random_images(dataset, class_indices, n_images_per_class):
+    # all_selected_indices = []
+    # num_classes = len(class_indices)
+    # for c in range(num_classes):
+    #     idx_shuffle = np.random.permutation(class_indices[c])[:n_images_per_class]
+    #     all_selected_indices.extend(idx_shuffle)
+    # selected_images = images_all[all_selected_indices]
+    # selected_labels = labels_all[all_selected_indices]
+    # assert len(selected_images) == num_classes * n_images_per_class
+    # return selected_images, selected_labels
+
+    subset_indices = []
+    for indices in class_indices:
+        subset_indices.extend(random.sample(indices, n))
+    subset_dataset = Subset(dataset, subset_indices)
+    
+    selected_images, selected_labels = [], []
+    for i, (image, label) in enumerate(subset_dataset):
+        selected_images.append(image)
+        selected_labels.append(label)
     return selected_images, selected_labels

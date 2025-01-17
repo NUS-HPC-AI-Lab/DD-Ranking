@@ -2,7 +2,6 @@
 
 [Introduction](introduction.md)
 [Contributing](contributing.md)
-<!-- [Community](community.md) -->
 
 # Getting Started
 

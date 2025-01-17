@@ -22,7 +22,7 @@ class SoftLabelEvaluator:
     def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
                  soft_label_criterion: str='kl', data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, soft_label_mode: str='S',
                  optimizer: str='sgd', lr_scheduler: str='step', temperature: float=1.0, weight_decay: float=0.0005, 
-                 momentum: float=0.9, num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False,
+                 momentum: float=0.9, num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, use_aug_for_hard: bool=False,
                  real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None, stu_use_torchvision: bool=False, 
                  tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', custom_train_trans: transforms.Compose=None, 
                  custom_val_trans: transforms.Compose=None, device: str="cuda"):
@@ -46,6 +46,7 @@ class SoftLabelEvaluator:
             im_size = self.config.get('im_size')
             num_epochs = self.config.get('num_epochs')
             use_zca = self.config.get('use_zca')
+            use_aug_for_hard = self.config.get('use_aug_for_hard')
             real_batch_size = self.config.get('real_batch_size')
             syn_batch_size = self.config.get('syn_batch_size')
             default_lr = self.config.get('default_lr')
@@ -58,15 +59,18 @@ class SoftLabelEvaluator:
             teacher_dir = self.config.get('teacher_dir')
             device = self.config.get('device')
 
-        channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, 
-                                                                                                   real_data_path, 
-                                                                                                   im_size, 
-                                                                                                   use_zca,
-                                                                                                   custom_train_trans,
-                                                                                                   custom_val_trans,
-                                                                                                   device)
-        self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
-        self.test_loader = DataLoader(dst_test, batch_size=real_batch_size, num_workers=num_workers, shuffle=False)
+        channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(dataset, 
+                                                                                                                      real_data_path, 
+                                                                                                                      im_size, 
+                                                                                                                      use_zca,
+                                                                                                                      custom_val_trans,
+                                                                                                                      device)
+        # self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
+        self.class_indices = self.get_class_indices(dst_train, class_map, num_classes)
+        self.dst_train = dst_train
+
+        self.test_loader_real = DataLoader(dst_test_real, batch_size=real_batch_size, num_workers=num_workers, shuffle=False)
+        self.test_loader_syn = DataLoader(dst_test_syn, batch_size=syn_batch_size, num_workers=num_workers, shuffle=False)
 
         self.soft_label_mode = soft_label_mode
         self.soft_label_criterion = soft_label_criterion
@@ -94,6 +98,7 @@ class SoftLabelEvaluator:
         self.num_workers = num_workers
         self.device = device
 
+        # data augmentation
         if data_aug_func == 'dsa':
             self.aug_func = DSA(aug_params)
         elif data_aug_func == 'mixup':
@@ -102,7 +107,9 @@ class SoftLabelEvaluator:
             self.aug_func = Cutmix(aug_params)
         else:
             self.aug_func = None
+        self.use_aug_for_hard = use_aug_for_hard
 
+        # save path
         if not save_path:
             save_path = f"./results/{dataset}/{model_name}/ipc{ipc}/obj_scores.csv"
         if not os.path.exists(os.path.dirname(save_path)):
@@ -138,6 +145,15 @@ class SoftLabelEvaluator:
             class_indices[label].append(i)
         
         return images_all, labels_all, class_indices
+    
+    def get_class_indices(self, dataset, class_map, num_classes):
+        class_indices = [[] for c in range(num_classes)]
+        for idx, (_, label) in enumerate(dataset.imgs):
+            if torch.is_tensor(label):
+                label = label.item()
+            true_label = class_map[label]
+            class_indices[true_label].append(idx)
+        return class_indices
     
     def hyper_param_search_for_hard_label(self, image_tensor, image_path, hard_labels, mode='real'):
         lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
@@ -177,7 +193,7 @@ class SoftLabelEvaluator:
             model = build_model(
                 model_name=self.model_name, 
                 num_classes=self.num_classes, 
-                im_size=self.im_size, 
+                im_size=self.im_size,
                 pretrained=False,
                 use_torchvision=self.stu_use_torchvision,
                 device=self.device
@@ -196,11 +212,13 @@ class SoftLabelEvaluator:
         return best_acc, best_lr
     
     def compute_hard_label_metrics(self, model, image_tensor, image_path, lr, hard_labels, mode='real'):
-        
-        if image_tensor is None:
-            hard_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
+        if mode == 'real':
+            hard_label_dataset = self.dst_train
         else:
-            hard_label_dataset = TensorDataset(image_tensor, hard_labels)
+            if image_tensor is None:
+                hard_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
+            else:
+                hard_label_dataset = TensorDataset(image_tensor, hard_labels)
         train_loader = DataLoader(hard_label_dataset, batch_size=self.real_batch_size if mode == 'real' else self.syn_batch_size, 
                                   num_workers=self.num_workers, shuffle=True)
 
@@ -216,7 +234,7 @@ class SoftLabelEvaluator:
                 loader=train_loader, 
                 loss_fn=loss_fn, 
                 optimizer=optimizer,
-                aug_func=self.aug_func,
+                aug_func=self.aug_func if self.use_aug_for_hard else None,
                 lr_scheduler=lr_scheduler, 
                 tea_model=self.teacher_model, 
                 device=self.device
@@ -224,7 +242,7 @@ class SoftLabelEvaluator:
             if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
                 metric = validate(
                     model=model, 
-                    loader=self.test_loader,
+                    loader=self.test_loader_real,
                     device=self.device
                 )
                 if metric['top1'] > best_acc1:
@@ -272,7 +290,7 @@ class SoftLabelEvaluator:
             if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
                 metric = validate(
                     model=model, 
-                    loader=self.test_loader,
+                    loader=self.test_loader_syn,
                     device=self.device
                 )
                 if metric['top1'] > best_acc1:
@@ -326,10 +344,10 @@ class SoftLabelEvaluator:
             )
             full_data_hard_label_acc = self.compute_hard_label_metrics(
                 model=model, 
-                image_tensor=self.images_train,
+                image_tensor=None,
                 image_path=None,
                 lr=self.default_lr, 
-                hard_labels=self.labels_train,
+                hard_labels=None,
                 mode='real'
             )
             del model
@@ -362,7 +380,7 @@ class SoftLabelEvaluator:
             print(f"Syn data soft label acc: {syn_data_soft_label_acc:.2f}%")
 
             print("Caculating random data soft label metrics...")
-            random_images, _ = get_random_images(self.images_train, self.labels_train, self.class_indices_train, self.ipc)
+            random_images, _ = get_random_images(self.dst_train, self.class_indices, self.ipc)
             if self.soft_label_mode == 'S':
                 random_data_soft_labels = self.generate_soft_labels(random_images)
             else:

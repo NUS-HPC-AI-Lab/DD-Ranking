@@ -4,7 +4,7 @@ packages = find_packages()
 
 setup(
     name='ddranking',  # Package name
-    version='0.1.0',  # Version number
+    version='0.1.1',  # Version number
     description='DD-Ranking: Rethinking the Evaluation of Dataset Distillation',
     long_description=open('README.md').read(),  # Use your README as the long description
     long_description_content_type='text/markdown',

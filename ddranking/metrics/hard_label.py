@@ -50,15 +50,18 @@ class HardLabelEvaluator:
             num_workers = self.config.get('num_workers')
             device = self.config.get('device')
 
-        channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, 
-                                                                                                   real_data_path, 
-                                                                                                   im_size, 
-                                                                                                   use_zca,
-                                                                                                   custom_train_trans,
-                                                                                                   custom_val_trans,
-                                                                                                   device)
-        self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
-        self.test_loader = DataLoader(dst_test, batch_size=real_batch_size, num_workers=num_workers, shuffle=False)
+        channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(dataset, 
+                                                                                                                      real_data_path, 
+                                                                                                                      im_size, 
+                                                                                                                      use_zca,
+                                                                                                                      custom_val_trans,
+                                                                                                                      device)
+        # self.images_train, self.labels_train, self.class_indices_train = self.load_real_data(dst_train, class_map, num_classes)
+        self.class_indices = self.get_class_indices(dst_train, class_map, num_classes)
+        self.dst_train = dst_train
+
+        self.test_loader_real = DataLoader(dst_test_real, batch_size=real_batch_size, num_workers=num_workers, shuffle=False)
+        self.test_loader_syn = DataLoader(dst_test_syn, batch_size=syn_batch_size, num_workers=num_workers, shuffle=False)
 
         # data info
         self.im_size = im_size
@@ -115,6 +118,15 @@ class HardLabelEvaluator:
         
         return images_all, labels_all, class_indices
     
+    def get_class_indices(self, dataset, class_map, num_classes):
+        class_indices = [[] for c in range(num_classes)]
+        for i, (_, label) in enumerate(dataset):
+            if torch.is_tensor(label):
+                label = label.item()
+            true_label = class_map[label]
+            class_indices[true_label].append(i)
+        return class_indices
+    
     def hyper_param_search_for_hard_label(self, image_tensor, image_path, hard_labels, mode='real'):
         lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
         best_acc = 0
@@ -144,11 +156,13 @@ class HardLabelEvaluator:
         return best_acc, best_lr
 
     def compute_hard_label_metrics(self, model, image_tensor, image_path, lr, hard_labels, mode='real'):
-        
-        if image_tensor is None:
-            hard_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
+        if mode == 'real':
+            hard_label_dataset = self.dst_train
         else:
-            hard_label_dataset = TensorDataset(image_tensor, hard_labels)
+            if image_tensor is None:
+                hard_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
+            else:
+                hard_label_dataset = TensorDataset(image_tensor, hard_labels)
         train_loader = DataLoader(hard_label_dataset, batch_size=self.real_batch_size if mode == 'real' else self.syn_batch_size, 
                                   num_workers=self.num_workers, shuffle=True)
 

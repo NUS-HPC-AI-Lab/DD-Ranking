@@ -11,4 +11,3 @@ title               = "DD-Ranking API Documentation"
 
 [output.html]
 mathjax-support = true
-additional-css = ["theme/book.css"]

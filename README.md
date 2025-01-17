@@ -21,13 +21,15 @@ Fair and benchmark for dataset distillation.
 
 *Latest News* 🔥
 
-[Latest] Our PyPI package is officially released! Users can now install DD-Ranking via `pip install ddranking`.
+[Latest] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking --upgrade`.
 
 <details>
 <summary>Unfold to see more details.</summary>
 <br>
 
-- [2025/01] Our PyPI package is officially released! Users can now install DD-Ranking via `pip install dd_ranking`.
+- [2025/01] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking --upgrade`.
+
+- [2025/01] Our PyPI package is officially released! Users can now install DD-Ranking via `pip install ddranking`.
 
 - [2024/12] We officially released DD-Ranking! DD-Ranking provides us a new benchmark decoupling the impacts from knowledge distillation and data augmentation.
 </details>
@@ -109,7 +111,8 @@ DD-Ranking has the following features:
 - **Extensible**: DD-Ranking supports various datasets and models.
 - **Customizable**: DD-Ranking supports various data augmentations and soft label strategies.
 
-DD-Ranking currently includes the following datasets and methods (categorized by hard/soft label). Evaluation results can be found in the [leaderboard](https://huggingface.co/spaces/Soptq/DD-Ranking).
+DD-Ranking currently includes the following datasets and methods (categorized by hard/soft label). Our replication of the following baselines can be found at the [methods](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/tree/methods) branch. Evaluation results can be found in the [leaderboard](https://huggingface.co/spaces/Soptq/DD-Ranking) and evaluation configurations can be found at the [eval](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/tree/eval) branch.
+
 |Supported Dataset|Evaluated Hard Label Methods|Evaluated Soft Label Methods|
 |:-|:-|:-|
 |CIFAR-10|DC|DATM|
@@ -260,9 +263,25 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Dai Liu](https://scholar.google.com/citations?user=3aWKpkQAAAAJ&hl=en)
 - [Ziheng Qin](https://henryqin1997.github.io/ziheng_qin/)
 - [Kaipeng Zhang](https://kpzhang93.github.io/)
+- [Yuzhang Shang](https://42shawn.github.io/)
 - [Zheng Zhu](http://www.zhengzhu.net/)
+- [Kun Wang](https://www.kunwang.net/)
+- [Guang Li](https://www-lmd.ist.hokudai.ac.jp/member/guang-li/)
+- [Junhao Zhang](https://junhaozhang98.github.io/)
+- [Jiawei Liu](https://jia-wei-liu.github.io/)
+- [Lingjuan Lyu](https://sites.google.com/view/lingjuan-lyu)
+- [Yaochu Jin](https://en.westlake.edu.cn/faculty/yaochu-jin.html)
+- [Mike Shou](https://sites.google.com/view/showlab)
+- [Angela Yao](https://www.comp.nus.edu.sg/~ayao/)
+- [Xavier Bresson](https://graphdeeplearning.github.io/authors/xavier-bresson/)
+- [Tat-Seng Chua](https://www.chuatatseng.com/)
+- [Justin Cui](https://scholar.google.com/citations?user=zel3jUcAAAAJ&hl=en)
+- [Yan Yan](https://tomyan555.github.io/)
+- [Tianlong Chen](https://tianlong-chen.github.io/)
 - [Zhangyang Wang](https://vita-group.github.io/)
+- [Konstantinos N. Plataniotis](https://www.comm.utoronto.ca/~kostas/)
 - [Bo Zhao](https://www.bozhao.me/)
+- [Manolis Kellis](https://web.mit.edu/manoli/)
 - [Yang You](https://www.comp.nus.edu.sg/~youy/)
 - [Kai Wang](https://kaiwang960112.github.io/)
 
