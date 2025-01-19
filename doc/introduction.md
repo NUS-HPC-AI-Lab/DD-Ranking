@@ -45,13 +45,13 @@ Revisit the original goal of dataset distillation:
 >
 
 The evaluation method for DD-Ranking is grounded in the essence of dataset distillation, aiming to better reflect the information content of the synthesized data by assessing the following two aspects:  
-1. The degree to which the original dataset is recovered under hard labels (hard label recovery): \\( \text{HLR} = \text{Acc.} \text{full-hard} - \text{Acc.} \text{syn-hard} \\)
+1. The degree to which the real dataset is recovered under hard labels (hard label recovery): \\( \text{HLR} = \text{Acc.} \text{real-hard} - \text{Acc.} \text{syn-hard} \\)
 
 2. The improvement over random selection when using personalized evaluation methods (improvement over random): \\( \text{IOR} = \text{Acc.} \text{syn-any} - \text{Acc.} \text{rdm-any} \\)
 
 \\(\text{Acc.}\\) is the accuracy of models trained on different samples. Samples' marks are as follows:
 
-- \\(\text{full-hard}\\): Full dataset with hard labels;
+- \\(\text{real-hard}\\): Real dataset with hard labels;
 - \\(\text{syn-hard}\\): Synthetic dataset with hard labels;
 - \\(\text{syn-any}\\): Synthetic dataset with personalized evaluation methods (hard or soft labels);
 - \\(\text{rdm-any}\\): Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.

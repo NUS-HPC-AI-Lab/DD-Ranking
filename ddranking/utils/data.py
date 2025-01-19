@@ -6,6 +6,7 @@ import torchvision.datasets as datasets
 import kornia as K
 from tqdm import tqdm
 from torch import Tensor
+from torch.utils.data import Subset
 
 
 class Config:
@@ -219,7 +220,7 @@ def get_random_images(dataset, class_indices, n_images_per_class):
 
     subset_indices = []
     for indices in class_indices:
-        subset_indices.extend(random.sample(indices, n))
+        subset_indices.extend(random.sample(indices, n_images_per_class))
     subset_dataset = Subset(dataset, subset_indices)
     
     selected_images, selected_labels = [], []

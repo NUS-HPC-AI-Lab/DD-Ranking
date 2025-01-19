@@ -77,11 +77,11 @@ Revisit the original goal of dataset distillation:
 >
 
 The evaluation method for DD-Ranking is grounded in the essence of dataset distillation, aiming to better reflect the informativeness of the synthesized data by assessing the following two aspects:  
-1. The degree to which the original dataset is recovered under hard labels (hard label recovery): $\text{HLR}=\text{Acc.}{\text{full-hard}}-\text{Acc.}{\text{syn-hard}}$.  
+1. The degree to which the real dataset is recovered under hard labels (hard label recovery): $\text{HLR}=\text{Acc.}{\text{real-hard}}-\text{Acc.}{\text{syn-hard}}$.  
 
 2. The improvement over random selection when using personalized evaluation methods (improvement over random): $\text{IOR}=\text{Acc.}{\text{syn-any}}-\text{Acc.}{\text{rdm-any}}$.
 $\text{Acc.}$ is the accuracy of models trained on different samples. Samples' marks are as follows:
-- $\text{full-hard}$: Full dataset with hard labels;
+- $\text{real-hard}$: Real dataset with hard labels;
 - $\text{syn-hard}$: Synthetic dataset with hard labels;
 - $\text{syn-any}$: Synthetic dataset with personalized evaluation methods (hard or soft labels);
 - $\text{rdm-any}$: Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.
@@ -99,8 +99,6 @@ By default, we set $w = 0.5$ on the leaderboard, meaning that both $\text{IOR}$ 
 ## Overview
 
 DD-Ranking is integrated with:
-<!-- Uniform Fair Labels: loss on soft label -->
-<!-- Data Aug. -->
 - Multiple [strategies](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/tree/main/dd_ranking/loss) of using soft labels in existing works;
 - Commonly used [data augmentation](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/tree/main/dd_ranking/aug) methods in existing works;
 - Commonly used [model architectures](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/utils/networks.py) in existing works.
@@ -222,8 +220,6 @@ The following results will be returned to you:
 - `HLR std`: The standard deviation of hard label recovery over `num_eval` runs.
 - `IOR mean`: The mean of improvement over random over `num_eval` runs.
 - `IOR std`: The standard deviation of improvement over random over `num_eval` runs.
-<!-- - `IOR/HLR mean`: The mean of IOR/HLR over `num_eval` runs.
-- `IOR/HLR std`: The standard deviation of IOR/HLR over `num_eval` runs. -->
 
 Check out our <span style="color: #ff0000;">[documentation](https://nus-hpc-ai-lab.github.io/DD-Ranking/)</span> to learn more.
 
@@ -240,52 +236,50 @@ Feel free to submit grades to update the DD-Ranking list. We welcome and value a
 Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 
 
-<!-- ## Team
+## Team
 
 ### Developers:
+*\* project lead*
 
-<div style="column-count: 2;">
-
-- [Zekai Li](https://lizekai-richard.github.io/) (Project Lead)
-- [Xinhao Zhong](https://ndhg1213.github.io/)
-- [Zhiyuan Liang](https://jerryliang24.github.io/)
-- [Yuhao Zhou](https://github.com/Soptq)
-- [Mingjia Shi](https://bdemo.github.io/homepage/)
-- Ziqiao Wang
-- [Wangbo Zhao](https://wangbo-zhao.github.io/)
-- [Xuanlei Zhao](https://oahzxl.github.io/)
-- [Haonan Wang](https://charles-haonan-wang.me/)
-</div>
+- [Zekai Li*](https://lizekai-richard.github.io/) (National University of Singapore)
+- [Xinhao Zhong](https://ndhg1213.github.io/) (National University of Singapore)
+- [Zhiyuan Liang](https://jerryliang24.github.io/) (University of Science and Technology of China)
+- [Yuhao Zhou](https://github.com/Soptq) (Sichuan University)
+- [Mingjia Shi](https://bdemo.github.io/homepage/) (Sichuan University)
+- [Ziqiao Wang](https://github.com/wangzq1998) (National University of Singapore)
+- [Wangbo Zhao](https://wangbo-zhao.github.io/) (National University of Singapore)
+- [Xuanlei Zhao](https://oahzxl.github.io/) (National University of Singapore)
+- [Haonan Wang](https://charles-haonan-wang.me/) (National University of Singapore)
 
 ### Advisors:
-<div style="column-count: 2;">
 
-- [Dai Liu](https://scholar.google.com/citations?user=3aWKpkQAAAAJ&hl=en)
-- [Ziheng Qin](https://henryqin1997.github.io/ziheng_qin/)
-- [Kaipeng Zhang](https://kpzhang93.github.io/)
-- [Yuzhang Shang](https://42shawn.github.io/)
-- [Zheng Zhu](http://www.zhengzhu.net/)
-- [Kun Wang](https://www.kunwang.net/)
-- [Guang Li](https://www-lmd.ist.hokudai.ac.jp/member/guang-li/)
-- [Junhao Zhang](https://junhaozhang98.github.io/)
-- [Jiawei Liu](https://jia-wei-liu.github.io/)
-- [Lingjuan Lyu](https://sites.google.com/view/lingjuan-lyu)
-- [Yaochu Jin](https://en.westlake.edu.cn/faculty/yaochu-jin.html)
-- [Mike Shou](https://sites.google.com/view/showlab)
-- [Angela Yao](https://www.comp.nus.edu.sg/~ayao/)
-- [Xavier Bresson](https://graphdeeplearning.github.io/authors/xavier-bresson/)
-- [Tat-Seng Chua](https://www.chuatatseng.com/)
-- [Justin Cui](https://scholar.google.com/citations?user=zel3jUcAAAAJ&hl=en)
-- [Yan Yan](https://tomyan555.github.io/)
-- [Tianlong Chen](https://tianlong-chen.github.io/)
-- [Zhangyang Wang](https://vita-group.github.io/)
-- [Konstantinos N. Plataniotis](https://www.comm.utoronto.ca/~kostas/)
-- [Bo Zhao](https://www.bozhao.me/)
-- [Manolis Kellis](https://web.mit.edu/manoli/)
-- [Yang You](https://www.comp.nus.edu.sg/~youy/)
-- [Kai Wang](https://kaiwang960112.github.io/)
-
-</div> -->
+- [Dai Liu](https://scholar.google.com/citations?user=3aWKpkQAAAAJ&hl=en) (Munich Technology University)
+- [Ziheng Qin](https://henryqin1997.github.io/ziheng_qin/) (National University of Singapore)
+- [Kaipeng Zhang](https://kpzhang93.github.io/) (Shanghai AI Lab)
+- [Yuzhang Shang](https://42shawn.github.io/) (University of Illinois at Chicago)
+- [Tianyi Zhou](https://joeyzhouty.github.io/) (A*STAR)
+- [Zheng Zhu](http://www.zhengzhu.net/) (GigaAI)
+- [Kun Wang](https://www.kunwang.net/) (University of Science and Technology of China)
+- [Guang Li](https://www-lmd.ist.hokudai.ac.jp/member/guang-li/) (Hokkaido University)
+- [Junhao Zhang](https://junhaozhang98.github.io/) (National University of Singapore)
+- [Jiawei Liu](https://jia-wei-liu.github.io/) (National University of Singapore)
+- [Lingjuan Lyu](https://sites.google.com/view/lingjuan-lyu) (Sony)
+- [Jiancheng Lv](https://scholar.google.com/citations?user=0TCaWKwAAAAJ&hl=en) (Sichuan University)
+- [Yaochu Jin](https://en.westlake.edu.cn/faculty/yaochu-jin.html) (Westlake University)
+- [Mike Shou](https://sites.google.com/view/showlab) (National University of Singapore)
+- [Angela Yao](https://www.comp.nus.edu.sg/~ayao/) (National University of Singapore)
+- [Xavier Bresson](https://graphdeeplearning.github.io/authors/xavier-bresson/) (National University of Singapore)
+- [Tat-Seng Chua](https://www.chuatatseng.com/) (National University of Singapore)
+- [Justin Cui](https://scholar.google.com/citations?user=zel3jUcAAAAJ&hl=en) (UC Los Angeles)
+- [George Cazenavette](https://georgecazenavette.github.io/) (Massachusetts Institute of Technology)
+- [Yan Yan](https://tomyan555.github.io/) (University of Illinois at Chicago)
+- [Tianlong Chen](https://tianlong-chen.github.io/) (UNC Chapel Hill)
+- [Zhangyang Wang](https://vita-group.github.io/) (UT Austin)
+- [Konstantinos N. Plataniotis](https://www.comm.utoronto.ca/~kostas/) (University of Toronto)
+- [Bo Zhao](https://www.bozhao.me/) (Shanghai Jiao Tong University)
+- [Manolis Kellis](https://web.mit.edu/manoli/) (Massachusetts Institute of Technology)
+- [Yang You](https://www.comp.nus.edu.sg/~youy/) (National University of Singapore)
+- [Kai Wang](https://kaiwang960112.github.io/) (National University of Singapore)
 
 ## License
 
