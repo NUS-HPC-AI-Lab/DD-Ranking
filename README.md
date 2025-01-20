@@ -239,7 +239,7 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 ## Team
 
 ### Developers:
-*\* project lead*
+*\* Project lead*, *† Correspondance*
 
 - [Zekai Li*](https://lizekai-richard.github.io/) (National University of Singapore)
 - [Xinhao Zhong](https://ndhg1213.github.io/) (National University of Singapore)
@@ -250,11 +250,12 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Wangbo Zhao](https://wangbo-zhao.github.io/) (National University of Singapore)
 - [Xuanlei Zhao](https://oahzxl.github.io/) (National University of Singapore)
 - [Haonan Wang](https://charles-haonan-wang.me/) (National University of Singapore)
+- [Ziheng Qin](https://henryqin1997.github.io/ziheng_qin/) (National University of Singapore)
+- [Kai Wang†](https://kaiwang960112.github.io/) (National University of Singapore)
 
 ### Advisors:
 
 - [Dai Liu](https://scholar.google.com/citations?user=3aWKpkQAAAAJ&hl=en) (Munich Technology University)
-- [Ziheng Qin](https://henryqin1997.github.io/ziheng_qin/) (National University of Singapore)
 - [Kaipeng Zhang](https://kpzhang93.github.io/) (Shanghai AI Lab)
 - [Yuzhang Shang](https://42shawn.github.io/) (University of Illinois at Chicago)
 - [Tianyi Zhou](https://joeyzhouty.github.io/) (A*STAR)
@@ -279,7 +280,7 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Bo Zhao](https://www.bozhao.me/) (Shanghai Jiao Tong University)
 - [Manolis Kellis](https://web.mit.edu/manoli/) (Massachusetts Institute of Technology)
 - [Yang You](https://www.comp.nus.edu.sg/~youy/) (National University of Singapore)
-- [Kai Wang](https://kaiwang960112.github.io/) (National University of Singapore)
+
 
 ## License
 
