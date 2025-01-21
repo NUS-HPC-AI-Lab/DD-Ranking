@@ -239,7 +239,7 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 ## Team
 
 ### Developers:
-*\* Project lead*, *† Correspondance*
+*\* Project lead*, *† Corresponding*
 
 - [Zekai Li*](https://lizekai-richard.github.io/) (National University of Singapore)
 - [Xinhao Zhong](https://ndhg1213.github.io/) (National University of Singapore)
@@ -271,6 +271,7 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Angela Yao](https://www.comp.nus.edu.sg/~ayao/) (National University of Singapore)
 - [Xavier Bresson](https://graphdeeplearning.github.io/authors/xavier-bresson/) (National University of Singapore)
 - [Tat-Seng Chua](https://www.chuatatseng.com/) (National University of Singapore)
+- [Xindi Wu](https://xindiwu.github.io/) (Princeton University)
 - [Justin Cui](https://scholar.google.com/citations?user=zel3jUcAAAAJ&hl=en) (UC Los Angeles)
 - [George Cazenavette](https://georgecazenavette.github.io/) (Massachusetts Institute of Technology)
 - [Yan Yan](https://tomyan555.github.io/) (University of Illinois at Chicago)

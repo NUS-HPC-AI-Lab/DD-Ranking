@@ -1,5 +1,6 @@
 import os
 import torch
+import random
 import numpy as np
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
@@ -208,15 +209,6 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
 
 
 def get_random_images(dataset, class_indices, n_images_per_class):
-    # all_selected_indices = []
-    # num_classes = len(class_indices)
-    # for c in range(num_classes):
-    #     idx_shuffle = np.random.permutation(class_indices[c])[:n_images_per_class]
-    #     all_selected_indices.extend(idx_shuffle)
-    # selected_images = images_all[all_selected_indices]
-    # selected_labels = labels_all[all_selected_indices]
-    # assert len(selected_images) == num_classes * n_images_per_class
-    # return selected_images, selected_labels
 
     subset_indices = []
     for indices in class_indices:
