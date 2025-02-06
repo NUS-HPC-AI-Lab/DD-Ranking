@@ -62,6 +62,9 @@ def train_one_epoch(
     if tea_model is not None:
         tea_model.eval()
 
+    if torch.distributed.is_initialized():
+        loader.sampler.set_epoch(epoch)
+
     accum_steps = grad_accum_steps
     last_accum_steps = len(loader) % accum_steps
     updates_per_epoch = (len(loader) + accum_steps - 1) // accum_steps
@@ -120,7 +123,12 @@ def train_one_epoch(
         update_time_m.update(time.time() - update_start_time)
         update_start_time = time_now
 
-        if logging:
+        if torch.distributed.is_initialized():
+            rank = torch.distributed.get_rank()
+        else:
+            rank = 0
+
+        if logging and rank == 0:
             lrl = [param_group['lr'] for param_group in optimizer.param_groups]
             lr = sum(lrl) / len(lrl)
 
@@ -141,11 +149,19 @@ def train_one_epoch(
         update_sample_count = 0
         data_start_time = time.time()
 
-    loss_avg = losses_m.avg
+    # 同步最终loss
+    if torch.distributed.is_initialized():
+        loss_avg_tensor = torch.tensor(losses_m.avg, device=device)
+        torch.distributed.all_reduce(loss_avg_tensor, op=torch.distributed.ReduceOp.SUM)
+        loss_avg = loss_avg_tensor.item() / torch.distributed.get_world_size()
+    else:
+        loss_avg = losses_m.avg
+
     return loss_avg
 
 
 def validate(
+    epoch,
     model,
     loader,
     device='cuda',
@@ -158,10 +174,14 @@ def validate(
 
     model.eval()
 
+    if torch.distributed.is_initialized():
+        loader.sampler.set_epoch(epoch)
+
     end = time.time()
     last_idx = len(loader) - 1
     with torch.no_grad():
         for batch_idx, (input, target) in enumerate(loader):
+            
             last_batch = batch_idx == last_idx
             input = input.to(device)
             target = target.to(device)
@@ -170,16 +190,27 @@ def validate(
             if isinstance(output, (tuple, list)):
                 output = output[0]
 
-                # augmentation reduction
-                reduce_factor = 1
-                if reduce_factor > 1:
-                    output = output.unfold(0, reduce_factor, reduce_factor).mean(dim=2)
-                    target = target[0:target.size(0):reduce_factor]
-    
             acc1, acc5 = timm.utils.accuracy(output, target, topk=(1, 5))
 
-            top1_m.update(acc1.item(), output.size(0))
-            top5_m.update(acc5.item(), output.size(0))
+            acc1_tensor = torch.tensor(acc1.item(), device=device)
+            acc5_tensor = torch.tensor(acc5.item(), device=device)
+            batch_size_tensor = torch.tensor(output.size(0), device=device)
+
+            if torch.distributed.is_initialized():
+                torch.distributed.all_reduce(acc1_tensor, op=torch.distributed.ReduceOp.SUM)
+                torch.distributed.all_reduce(acc5_tensor, op=torch.distributed.ReduceOp.SUM)
+                torch.distributed.all_reduce(batch_size_tensor, op=torch.distributed.ReduceOp.SUM)
+
+                global_acc1 = (acc1_tensor / torch.distributed.get_world_size()).item()
+                global_acc5 = (acc5_tensor / torch.distributed.get_world_size()).item()
+                global_batch_size = batch_size_tensor.item()
+            else:
+                global_acc1 = acc1.item()
+                global_acc5 = acc5.item()
+                global_batch_size = output.size(0)
+
+            top1_m.update(global_acc1, global_batch_size)
+            top5_m.update(global_acc5, global_batch_size)
 
             batch_time_m.update(time.time() - end)
             end = time.time()
@@ -191,6 +222,19 @@ def validate(
                     f'Acc@5: {top5_m.val:>7.3f} ({top5_m.avg:>7.3f})'
                 )
 
-    metrics = OrderedDict([('top1', top1_m.avg), ('top5', top5_m.avg)])
+    if torch.distributed.is_initialized():
+        total_top1 = torch.tensor(top1_m.sum, device=device)
+        total_count = torch.tensor(top1_m.count, device=device)
+        torch.distributed.all_reduce(total_top1, op=torch.distributed.ReduceOp.SUM)
+        torch.distributed.all_reduce(total_count, op=torch.distributed.ReduceOp.SUM)
+        final_top1 = (total_top1 / total_count).item()
 
+        total_top5 = torch.tensor(top5_m.sum, device=device)
+        torch.distributed.all_reduce(total_top5, op=torch.distributed.ReduceOp.SUM)
+        final_top5 = (total_top5 / total_count).item()
+    else:
+        final_top1 = top1_m.avg
+        final_top5 = top5_m.avg
+
+    metrics = OrderedDict([('top1', final_top1), ('top5', final_top5)])
     return metrics

@@ -19,5 +19,6 @@ dependencies = [
     "tqdm",
     "scipy",
     "kornia",
-    "timm"
+    "timm",
+    "pandas"
 ]

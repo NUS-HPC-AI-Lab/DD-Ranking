@@ -25,6 +25,7 @@ setup(
         'torchvision',
         'tqdm',
         'scipy',
+        'pandas',
         'kornia',
         'timm'
     ],
