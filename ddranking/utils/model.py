@@ -18,7 +18,7 @@ def parse_model_name(model_name):
         
 
 def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, pretrained=False, model_path=None):
-    print(f"Creating {model_name} with depth={net_depth}, norm={net_norm}")
+    # print(f"Creating {model_name} with depth={net_depth}, norm={net_norm}")
     model = ConvNet(channel=channel, num_classes=num_classes, net_width=128, net_depth=net_depth,
                     net_act='relu', net_norm=net_norm, net_pooling='avgpooling', im_size=im_size)
     if pretrained:
@@ -26,21 +26,21 @@ def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, 
     return model
 
 def get_mlp(model_name, im_size, channel, num_classes, pretrained=False, model_path=None):
-    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
+    # print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     model = MLP(channel=channel, num_classes=num_classes, res=im_size[0])
     if pretrained:
         model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
 def get_lenet(model_name, im_size, channel, num_classes, pretrained=False, model_path=None):
-    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
+    # print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     model = LeNet(channel=channel, num_classes=num_classes, res=im_size[0])
     if pretrained:
         model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
 def get_alexnet(model_name, im_size, channel, num_classes, use_torchvision=False, pretrained=False, model_path=None):
-    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
+    # print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         return torchvision.models.alexnet(num_classes=num_classes, pretrained=pretrained)
     else:
@@ -50,7 +50,7 @@ def get_alexnet(model_name, im_size, channel, num_classes, use_torchvision=False
         return model
 
 def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False, use_torchvision=False, pretrained=False, model_path=None):
-    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
+    # print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
         if depth == 11:
             if batchnorm:
@@ -81,9 +81,9 @@ def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False
     
 
 def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=False, use_torchvision=False, pretrained=False, model_path=None):
-    print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
+    # print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
-        print(f"ResNet in torchvision uses batchnorm by default.")
+        # print(f"ResNet in torchvision uses batchnorm by default.")
         if depth == 18:
             model = torchvision.models.resnet18(num_classes=num_classes, pretrained=False)
         elif depth == 34:
