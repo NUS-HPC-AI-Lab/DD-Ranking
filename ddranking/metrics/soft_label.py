@@ -494,20 +494,7 @@ class SoftLabelEvaluator:
             print(f"Hard Label Recovery Mean: {hard_label_recovery_mean:.2f}%  Std: {hard_label_recovery_std:.2f}")
             print(f"Improvement Over Random Mean: {improvement_over_random_mean:.2f}%  Std: {improvement_over_random_std:.2f}")
         
-        else:
-            hard_label_recovery_mean = 0.0
-            hard_label_recovery_std = 0.0 
-            improvement_over_random_mean = 0.0
-            improvement_over_random_std = 0.0
-        
         if self.use_dist:
             torch.distributed.destroy_process_group()
-
-        return {
-            "hard_label_recovery_mean": hard_label_recovery_mean,
-            "hard_label_recovery_std": hard_label_recovery_std,
-            "improvement_over_random_mean": improvement_over_random_mean,
-            "improvement_over_random_std": improvement_over_random_std
-        }
 
 

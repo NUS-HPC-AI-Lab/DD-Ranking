@@ -10,7 +10,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 from ddranking.utils import build_model, get_pretrained_model_path
-from ddranking.utils import TensorDataset, get_random_images, get_dataset, save_results
+from ddranking.utils import TensorDataset, get_random_images, get_dataset, save_results, setup_dist
 from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, get_lr_scheduler
 from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
 from ddranking.config import Config
@@ -18,11 +18,11 @@ from ddranking.config import Config
 
 class HardLabelEvaluator:
 
-    def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, 
-                 model_name: str='ConvNet-3', data_aug_func: str='cutmix', aug_params: dict={'cutmix_p': 1.0}, optimizer: str='sgd', 
-                 lr_scheduler: str='step', weight_decay: float=0.0005, momentum: float=0.9, use_zca: bool=False, num_eval: int=5, 
+    def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
+                 data_aug_func: str='cutmix', aug_params: dict={'cutmix_p': 1.0}, optimizer: str='sgd', lr_scheduler: str='step', 
+                 lr_scheduler_params: dict=None, weight_decay: float=0.0005, momentum: float=0.9, use_zca: bool=False, num_eval: int=5, 
                  im_size: tuple=(32, 32), num_epochs: int=300, real_batch_size: int=256, syn_batch_size: int=256, use_torchvision: bool=False,
-                 default_lr: float=0.01, num_workers: int=4, save_path: str=None, custom_train_trans=None, custom_val_trans=None, device: str="cuda"):
+                 default_lr: float=0.01, num_workers: int=4, save_path: str=None, custom_train_trans=None, custom_val_trans=None, device: str="cuda", dist: bool=False):
         
         if config is not None:
             self.config = config
@@ -49,6 +49,14 @@ class HardLabelEvaluator:
             custom_val_trans = self.config.get('custom_val_trans')
             num_workers = self.config.get('num_workers')
             device = self.config.get('device')
+            dist = self.config.get('dist', False)
+        
+        self.use_dist = dist
+
+        if self.use_dist:
+            self.rank = setup_dist(device)
+            self.world_size = torch.distributed.get_world_size()
+            self.device = f'cuda:{self.rank}'
 
         channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(dataset, 
                                                                                                                       real_data_path, 
@@ -141,6 +149,8 @@ class HardLabelEvaluator:
                 use_torchvision=self.use_torchvision,
                 device=self.device
             )
+            if self.use_dist:
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
             acc = self.compute_hard_label_metrics(
                 model=model, 
                 image_tensor=image_tensor,
@@ -215,9 +225,11 @@ class HardLabelEvaluator:
         improvement_over_random = []
         for i in range(self.num_eval):
             set_seed()
-            print(f"########################### {i+1}th Evaluation ###########################")
+            if self.rank == 0:
+                print(f"########################### {i+1}th Evaluation ###########################")
 
-            print("Caculating syn data hard label metrics...")
+            if self.rank == 0:
+                print("Caculating syn data hard label metrics...")
             if syn_lr:
                 model = build_model(
                     model_name=self.model_name, 
@@ -227,6 +239,8 @@ class HardLabelEvaluator:
                     use_torchvision=self.use_torchvision,
                     device=self.device
                 )
+                if self.use_dist:
+                    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
                 syn_data_hard_label_acc = self.compute_hard_label_metrics(
                     model=model, 
                     image_tensor=image_tensor,
@@ -243,9 +257,11 @@ class HardLabelEvaluator:
                     hard_labels=hard_labels,
                     mode='syn'
                 )
-            print(f"Syn data hard label acc: {syn_data_hard_label_acc:.2f}%")
+            if self.rank == 0:
+                print(f"Syn data hard label acc: {syn_data_hard_label_acc:.2f}%")
 
-            print("Caculating full data hard label metrics...")
+            if self.rank == 0:
+                print("Caculating full data hard label metrics...")
             model = build_model(
                 model_name=self.model_name,
                 num_classes=self.num_classes, 
@@ -254,6 +270,8 @@ class HardLabelEvaluator:
                 use_torchvision=self.use_torchvision,
                 device=self.device
             )
+            if self.use_dist:
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
             full_data_hard_label_acc = self.compute_hard_label_metrics(
                 model=model, 
                 image_tensor=self.images_train,
@@ -263,9 +281,11 @@ class HardLabelEvaluator:
                 mode='real'
             )
             del model
-            print(f"Full data hard label acc: {full_data_hard_label_acc:.2f}%")
+            if self.rank == 0:
+                print(f"Full data hard label acc: {full_data_hard_label_acc:.2f}%")
 
-            print("Caculating random data hard label metrics...")
+            if self.rank == 0:
+                print("Caculating random data hard label metrics...")
             random_images, random_data_hard_labels = get_random_images(self.images_train, self.labels_train, self.class_indices_train, self.ipc)
             random_data_hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(
                 image_tensor=random_images,
@@ -273,30 +293,39 @@ class HardLabelEvaluator:
                 hard_labels=random_data_hard_labels,
                 mode='syn'
             )
-            print(f"Random data hard label acc: {random_data_hard_label_acc:.2f}%")
+            if self.rank == 0:
+                print(f"Random data hard label acc: {random_data_hard_label_acc:.2f}%")
 
             hlr = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
             ior = 1.00 * (syn_data_hard_label_acc - random_data_hard_label_acc)
 
             hard_label_recovery.append(hlr)
             improvement_over_random.append(ior)
-        
-        results_to_save = {
-            "hard_label_recovery": hard_label_recovery,
-            "improvement_over_random": improvement_over_random
-        }
-        save_results(results_to_save, self.save_path)
 
-        hard_label_recovery_mean = np.mean(hard_label_recovery)
-        hard_label_recovery_std = np.std(hard_label_recovery)
-        improvement_over_random_mean = np.mean(improvement_over_random)
-        improvement_over_random_std = np.std(improvement_over_random)
+        if self.use_dist:
+            hard_label_recovery_tensor = torch.tensor(hard_label_recovery, device=self.device)
+            improvement_over_random_tensor = torch.tensor(improvement_over_random, device=self.device)
+            
+            torch.distributed.all_reduce(hard_label_recovery_tensor, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(improvement_over_random_tensor, op=torch.distributed.ReduceOp.SUM)
+            
+            hard_label_recovery = (hard_label_recovery_tensor / self.world_size).cpu().tolist()
+            improvement_over_random = (improvement_over_random_tensor / self.world_size).cpu().tolist()
 
-        print(f"Hard Label Recovery Mean: {hard_label_recovery_mean:.2f}%  Std: {hard_label_recovery_std:.2f}")
-        print(f"Improvement Over Random Mean: {improvement_over_random_mean:.2f}%  Std: {improvement_over_random_std:.2f}")
-        return {
-            "hard_label_recovery_mean": hard_label_recovery_mean,
-            "hard_label_recovery_std": hard_label_recovery_std,
-            "improvement_over_random_mean": improvement_over_random_mean,
-            "improvement_over_random_std": improvement_over_random_std
-        }
+        if self.rank == 0:
+            results_to_save = {
+                "hard_label_recovery": hard_label_recovery,
+                "improvement_over_random": improvement_over_random
+            }
+            save_results(results_to_save, self.save_path)
+
+            hard_label_recovery_mean = np.mean(hard_label_recovery)
+            hard_label_recovery_std = np.std(hard_label_recovery)
+            improvement_over_random_mean = np.mean(improvement_over_random)
+            improvement_over_random_std = np.std(improvement_over_random)
+
+            print(f"Hard Label Recovery Mean: {hard_label_recovery_mean:.2f}%  Std: {hard_label_recovery_std:.2f}")
+            print(f"Improvement Over Random Mean: {improvement_over_random_mean:.2f}%  Std: {improvement_over_random_std:.2f}")
+
+        if self.use_dist:
+            torch.distributed.destroy_process_group()

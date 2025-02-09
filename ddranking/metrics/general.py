@@ -10,7 +10,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torch.nn import CrossEntropyLoss
 from torchvision import transforms, datasets
-from ddranking.utils import build_model, get_pretrained_model_path, get_dataset, TensorDataset
+from ddranking.utils import build_model, get_pretrained_model_path, get_dataset, TensorDataset, save_results, setup_dist
 from ddranking.utils import set_seed, get_optimizer, get_lr_scheduler
 from ddranking.utils import train_one_epoch, validate
 from ddranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
@@ -49,6 +49,7 @@ class GeneralEvaluator:
         custom_val_trans: transforms.Compose=None,
         num_workers: int=4,
         save_path: str=None,
+        dist: bool=False,
         device: str="cuda"
     ):
 
@@ -90,6 +91,14 @@ class GeneralEvaluator:
             custom_train_trans = self.config.get('custom_train_trans', None)
             custom_val_trans = self.config.get('custom_val_trans', None)
             device = self.config.get('device', 'cuda')
+            dist = self.config.get('dist', False)
+
+        self.use_dist = dist
+        if dist:
+            setup_dist(device)
+            self.rank = setup_dist(device)
+            self.world_size = torch.distributed.get_world_size()
+            self.device = f'cuda:{self.rank}'
 
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, 
                                                                                                    real_data_path, 
@@ -144,6 +153,8 @@ class GeneralEvaluator:
             use_torchvision=tea_use_torchvision
         )
         self.teacher_model.eval()
+        if self.use_dist:
+            self.teacher_model = torch.nn.parallel.DistributedDataParallel(self.teacher_model, device_ids=[self.rank])
 
         if data_aug_func is None:
             self.aug_func = None
@@ -180,6 +191,8 @@ class GeneralEvaluator:
                 use_torchvision=self.stu_use_torchvision,
                 device=self.device
             )
+            if self.use_dist:
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
             acc = self.compute_metrics_helper(
                 model=model, 
                 loader=loader,
@@ -258,7 +271,8 @@ class GeneralEvaluator:
         lrs = []
         for i in range(self.num_eval):
             set_seed()
-            print(f"########################### {i+1}th Evaluation ###########################")
+            if self.rank == 0:
+                print(f"########################### {i+1}th Evaluation ###########################")
             if syn_lr:
                 model = build_model(
                     model_name=self.model_name, 
@@ -268,6 +282,8 @@ class GeneralEvaluator:
                     use_torchvision=self.stu_use_torchvision,
                     device=self.device
                 )
+                if self.use_dist:
+                    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
                 syn_data_acc = self.compute_metrics_helper(
                     model=model,
                     loader=syn_loader,
@@ -282,15 +298,24 @@ class GeneralEvaluator:
             else:
                 lrs.append(best_lr)
         
-        results_to_save = {
-            "accs": accs,
-            "lrs": lrs
-        }
-        save_results(results_to_save, self.save_path)
+        if self.use_dist:
+            accs_tensor = torch.tensor(accs, device=self.device)
+            lrs_tensor = torch.tensor(lrs, device=self.device)
+            
+            torch.distributed.all_reduce(accs_tensor, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(lrs_tensor, op=torch.distributed.ReduceOp.SUM)
+        
+        if self.rank == 0:
+            results_to_save = {
+                "accs": accs,
+                "lrs": lrs
+            }
+            save_results(results_to_save, self.save_path)
 
-        accs_mean = np.mean(accs)
-        accs_std = np.std(accs)
-        return {
-            "acc_mean": accs_mean,
-            "acc_std": accs_std
-        }
+            accs_mean = np.mean(accs)
+            accs_std = np.std(accs)
+
+            print(f"Accs Mean: {accs_mean:.2f}%  Std: {accs_std:.2f}")
+        
+        if self.use_dist:
+            torch.distributed.destroy_process_group()
