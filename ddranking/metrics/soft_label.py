@@ -166,7 +166,7 @@ class SoftLabelEvaluator:
     
     def get_class_indices(self, dataset, class_map, num_classes):
         class_indices = [[] for c in range(num_classes)]
-        for idx, (_, label) in enumerate(dataset.imgs):
+        for idx, label in enumerate(dataset.targets):
             if torch.is_tensor(label):
                 label = label.item()
             true_label = class_map[label]
