@@ -13,7 +13,7 @@
 Fair and benchmark for dataset distillation.
 </h3> -->
 <p align="center">
-| <a href="https://nus-hpc-ai-lab.github.io/DD-Ranking/"><b>Documentation</b></a> | <a href="https://huggingface.co/spaces/Soptq/DD-Ranking"><b>Leaderboard</b></a> | <a href=""><b>Paper </b> (Coming Soon)</a> | <a href=""><b>Twitter/X</b> (Coming Soon)</a> | <a href="https://join.slack.com/t/dd-ranking/shared_invite/zt-2xlcuq1mf-hmVcfrtqrIB3qXRjwgB03A"><b>Developer Slack</b></a> |
+| <a href="https://nus-hpc-ai-lab.github.io/DD-Ranking/"><b>Documentation</b></a> | <a href="https://huggingface.co/spaces/logits/DD-Ranking"><b>Leaderboard</b></a> | <a href=""><b>Paper </b> (Coming Soon)</a> | <a href=""><b>Twitter/X</b> (Coming Soon)</a> | <a href="https://join.slack.com/t/dd-ranking/shared_invite/zt-2xlcuq1mf-hmVcfrtqrIB3qXRjwgB03A"><b>Developer Slack</b></a> |
 </p>
 
 
@@ -253,7 +253,7 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Ziheng Qin](https://henryqin1997.github.io/ziheng_qin/) (National University of Singapore)
 - [Kai Wang†](https://kaiwang960112.github.io/) (National University of Singapore)
 
-### Advisors:
+### Committee:
 
 - [Dai Liu](https://scholar.google.com/citations?user=3aWKpkQAAAAJ&hl=en) (Munich Technology University)
 - [Kaipeng Zhang](https://kpzhang93.github.io/) (Shanghai AI Lab)
@@ -272,8 +272,6 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Jindong Gu](https://jindonggu.github.io/) (Oxford University)
 - [Mike Shou](https://sites.google.com/view/showlab) (National University of Singapore)
 - [Angela Yao](https://www.comp.nus.edu.sg/~ayao/) (National University of Singapore)
-- [Xavier Bresson](https://graphdeeplearning.github.io/authors/xavier-bresson/) (National University of Singapore)
-- [Tat-Seng Chua](https://www.chuatatseng.com/) (National University of Singapore)
 - [Xindi Wu](https://xindiwu.github.io/) (Princeton University)
 - [Zhiwei Deng](https://lucas2012.github.io/) (Google DeepMind)
 - [Justin Cui](https://scholar.google.com/citations?user=zel3jUcAAAAJ&hl=en) (UC Los Angeles)
