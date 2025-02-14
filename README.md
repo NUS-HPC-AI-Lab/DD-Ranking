@@ -276,6 +276,7 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Manolis Kellis](https://web.mit.edu/manoli/) (Massachusetts Institute of Technology)
 - [Konstantinos N. Plataniotis](https://www.comm.utoronto.ca/~kostas/) (University of Toronto)
 - [Bo Zhao](https://www.bozhao.me/) (Shanghai Jiao Tong University)
+- [Hakan Bilen](https://homepages.inf.ed.ac.uk/hbilen/) (University of Edinburgh)
 - [Zhangyang Wang](https://vita-group.github.io/) (UT Austin)
 - [Yang You](https://www.comp.nus.edu.sg/~youy/) (National University of Singapore)
 - [Kai Wang](https://kaiwang960112.github.io/) (National University of Singapore)
