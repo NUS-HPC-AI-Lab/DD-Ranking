@@ -41,7 +41,7 @@ class TensorDataset(torch.utils.data.Dataset):
         super(TensorDataset, self).__init__()
         self.images = images
         self.targets = labels
-        self.imgs = [(images[i], labels[i]) for i in range(len(images))]
+        self.imgs = [(image, label) for image, label in zip(images, labels)]
 
     def __getitem__(self, index: int):
         image = self.images[index]

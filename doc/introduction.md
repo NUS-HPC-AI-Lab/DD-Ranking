@@ -6,7 +6,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/NUS-HPC-AI-Lab/DD-Ranking?style=flat&logo=github)](https://github.com/NUS-HPC-AI-Lab/DD-Ranking)
 [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-Leaderboard-yellow?style=flat)](https://huggingface.co/spaces/logits/DD-Ranking)
-[![Twitter](https://img.shields.io/badge/Twitter-Follow-blue?style=flat&logo=twitter)](https://twitter.com/DD_Ranking)
+[![Twitter](https://img.shields.io/badge/Twitter-Follow-blue?style=flat&logo=twitter)](https://x.com/Richard91316073/status/1890296645486801230)
 
 </span>
 
