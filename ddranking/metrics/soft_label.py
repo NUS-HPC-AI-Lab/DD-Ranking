@@ -61,7 +61,7 @@ class SoftLabelEvaluator:
             dist = self.config.get('dist')
         
         self.use_dist = dist
-
+        # setup dist
         if self.use_dist:
             self.rank = setup_dist(device)
             self.world_size = torch.distributed.get_world_size()
@@ -75,7 +75,7 @@ class SoftLabelEvaluator:
                                                                                                                       device)
         self.class_indices = self.get_class_indices(dst_train, class_map, num_classes)
         self.dst_train = dst_train
-        
+
         if self.use_dist:
             test_sampler_real = torch.utils.data.distributed.DistributedSampler(dst_test_real)
             test_sampler_syn = torch.utils.data.distributed.DistributedSampler(dst_test_syn)
@@ -178,8 +178,6 @@ class SoftLabelEvaluator:
         best_acc = 0
         best_lr = 0
         for lr in lr_list:
-            if self.rank == 0:
-                print(f"Searching lr:{lr} for hard label...")
             model = build_model(
                 model_name=self.model_name, 
                 num_classes=self.num_classes, 
@@ -210,8 +208,6 @@ class SoftLabelEvaluator:
         best_acc = 0
         best_lr = 0
         for lr in lr_list:
-            if self.rank == 0:
-                print(f"Searching lr:{lr} for soft label...")
             model = build_model(
                 model_name=self.model_name, 
                 num_classes=self.num_classes, 
@@ -264,7 +260,7 @@ class SoftLabelEvaluator:
         lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs)
 
         best_acc1 = 0
-        for epoch in tqdm(range(self.num_epochs), total=self.num_epochs, desc="Training with hard labels", disable=self.rank != 0):
+        for epoch in tqdm(range(self.num_epochs), total=self.num_epochs, desc="Training with hard labels", disable=self.use_dist and self.rank != 0):
             train_one_epoch(
                 epoch=epoch, 
                 stu_model=model, 
@@ -294,7 +290,6 @@ class SoftLabelEvaluator:
             labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
         else:
             labels = soft_labels
-        
         if image_tensor is None:
             soft_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
         else:
@@ -317,7 +312,7 @@ class SoftLabelEvaluator:
         lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs)
 
         best_acc1 = 0
-        for epoch in tqdm(range(self.num_epochs), total=self.num_epochs, desc="Training with soft labels", disable=self.rank != 0):
+        for epoch in tqdm(range(self.num_epochs), total=self.num_epochs, desc="Training with soft labels", disable=self.use_dist and self.rank != 0):
             train_one_epoch(
                 epoch=epoch, 
                 stu_model=model,
@@ -343,27 +338,17 @@ class SoftLabelEvaluator:
         return best_acc1
 
     def generate_soft_labels(self, images):
-        if self.use_dist:
-            images_list = [torch.zeros_like(images) for _ in range(self.world_size)]
-            torch.distributed.all_gather(images_list, images.to(self.device))
-            images = torch.cat(images_list, dim=0).cpu()
-
+        images = images.to(self.device)
         batches = torch.split(images, self.syn_batch_size)
         soft_labels = []
         
-        with torch.no_grad(), self.teacher_model.no_sync() if self.use_dist else nullcontext():
+        with torch.no_grad():
             for image_batch in batches:
-                image_batch = image_batch.to(self.device)
                 outputs = self.teacher_model(image_batch)
                 soft_labels.append(outputs.detach().cpu())
         
         soft_labels = torch.cat(soft_labels, dim=0)
-        
-        if self.use_dist:
-            soft_labels_list = [torch.zeros_like(soft_labels) for _ in range(self.world_size)]
-            torch.distributed.all_gather(soft_labels_list, soft_labels.to(self.device))
-            soft_labels = torch.cat(soft_labels_list, dim=0).cpu()
-        
+        soft_labels = soft_labels.detach().cpu()
         return soft_labels
     
     def compute_metrics(self, image_tensor: Tensor=None, image_path: str=None, soft_labels: Tensor=None, syn_lr: float=None):
@@ -380,22 +365,18 @@ class SoftLabelEvaluator:
         improvement_over_random = []
         for i in range(self.num_eval):
             set_seed()
-            if self.rank == 0:
+            if not self.use_dist or (self.use_dist and self.rank == 0):
                 print(f"########################### {i+1}th Evaluation ###########################")
 
-            if self.rank == 0:  
-                print("Caculating syn data hard label metrics...")
             syn_data_hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(
                 image_tensor=image_tensor,
                 image_path=image_path,
                 hard_labels=hard_labels,
                 mode='syn'
             )
-            if self.rank == 0:
+            if not self.use_dist or (self.use_dist and self.rank == 0):
                 print(f"Syn data hard label acc: {syn_data_hard_label_acc:.2f}%")
 
-            if self.rank == 0:
-                print("Caculating full data hard label metrics...")
             model = build_model(
                 model_name=self.model_name, 
                 num_classes=self.num_classes, 
@@ -415,11 +396,9 @@ class SoftLabelEvaluator:
                 mode='real'
             )
             del model
-            if self.rank == 0:
+            if not self.use_dist or (self.use_dist and self.rank == 0):
                 print(f"Full data hard label acc: {full_data_hard_label_acc:.2f}%")
 
-            if self.rank == 0:
-                print("Caculating syn data soft label metrics...")
             if syn_lr:
                 model = build_model(
                     model_name=self.model_name, 
@@ -445,22 +424,33 @@ class SoftLabelEvaluator:
                     image_path=image_path,
                     soft_labels=soft_labels
                 )
-            if self.rank == 0:
+            if not self.use_dist or (self.use_dist and self.rank == 0):
                 print(f"Syn data soft label acc: {syn_data_soft_label_acc:.2f}%")
 
-            if self.rank == 0:
-                print("Caculating random data soft label metrics...")
-            random_images, _ = get_random_images(self.dst_train, self.class_indices, self.ipc)
+            if not self.use_dist or (self.use_dist and self.rank == 0):
+                random_images, _ = get_random_images(self.dst_train, self.class_indices, self.ipc)
+                random_images_tensor = random_images.clone().to(self.device)
+            else:
+                random_images_tensor = torch.empty((self.num_classes * self.ipc, 3, self.im_size[0], self.im_size[1]), 
+                                                    device=self.device if self.use_dist else 'cpu')
+
+            if self.use_dist:
+                random_images_tensor = random_images_tensor.to(self.device)
+                torch.distributed.broadcast(random_images_tensor, src=0)
+
             if self.soft_label_mode == 'S':
-                random_data_soft_labels = self.generate_soft_labels(random_images)
+                random_data_soft_labels = self.generate_soft_labels(random_images_tensor)
             else:
                 random_data_soft_labels = None
+
+            random_images = random_images_tensor.clone().detach().cpu()
+            random_data_soft_labels = random_data_soft_labels.cpu()
             random_data_soft_label_acc, best_lr = self.hyper_param_search_for_soft_label(
                 image_tensor=random_images,
                 image_path=None,
                 soft_labels=random_data_soft_labels
             )
-            if self.rank == 0:
+            if not self.use_dist or (self.use_dist and self.rank == 0):
                 print(f"Random data soft label acc: {random_data_soft_label_acc:.2f}%")
 
             hlr = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
@@ -479,7 +469,7 @@ class SoftLabelEvaluator:
             hard_label_recovery = (hard_label_recovery_tensor / self.world_size).cpu().tolist()
             improvement_over_random = (improvement_over_random_tensor / self.world_size).cpu().tolist()
 
-        if self.rank == 0:
+        if not self.use_dist or (self.use_dist and self.rank == 0):
             results_to_save = {
                 "hard_label_recovery": hard_label_recovery,
                 "improvement_over_random": improvement_over_random

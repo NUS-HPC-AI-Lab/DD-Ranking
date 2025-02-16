@@ -193,7 +193,6 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
             labels.append(lab)
         images = torch.stack(images, dim=0).to(device)
         labels = torch.tensor(labels, dtype=torch.long, device='cpu')
-
         zca_images = zca(images).to("cpu")
         dst_test_real = TensorDataset(zca_images, labels)
 
@@ -221,4 +220,6 @@ def get_random_images(dataset, class_indices, n_images_per_class):
     for i, (image, label) in enumerate(subset_dataset):
         selected_images.append(image)
         selected_labels.append(label)
+    selected_images = torch.stack(selected_images, dim=0)
+    selected_labels = torch.tensor(selected_labels, dtype=torch.long)
     return selected_images, selected_labels
