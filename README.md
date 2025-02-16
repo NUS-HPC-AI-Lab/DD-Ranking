@@ -21,13 +21,13 @@ Fair and benchmark for dataset distillation.
 
 *Latest News* 🔥
 
-[Latest] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking --upgrade`.
+[Latest] We have fixed some bugs and released a new version of DD-Ranking. Please install the latest version via `pip install ddranking==0.1.4` or `pip install ddranking --upgrade`.
 
 <details>
 <summary>Unfold to see more details.</summary>
 <br>
 
-- [2025/02] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking --upgrade`.
+- [2025/02] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking==0.1.4` or `pip install ddranking --upgrade`.
 
 - [2025/01] Our PyPI package is officially released! Users can now install DD-Ranking via `pip install ddranking`.
 
