@@ -196,7 +196,7 @@ class HardLabelEvaluator:
             if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
                 metric = validate(
                     model=model, 
-                    loader=self.test_loader,
+                    loader=self.test_loader_real if mode == 'real' else self.test_loader_syn,
                     device=self.device
                 )
                 if metric['top1'] > best_acc1:
@@ -256,17 +256,17 @@ class HardLabelEvaluator:
             )
             full_data_hard_label_acc = self.compute_hard_label_metrics(
                 model=model, 
-                image_tensor=self.images_train,
+                image_tensor=None,
                 image_path=None,
                 lr=self.default_lr, 
-                hard_labels=self.labels_train,
+                hard_labels=None,
                 mode='real'
             )
             del model
             print(f"Full data hard label acc: {full_data_hard_label_acc:.2f}%")
 
             print("Caculating random data hard label metrics...")
-            random_images, random_data_hard_labels = get_random_images(self.images_train, self.labels_train, self.class_indices_train, self.ipc)
+            random_images, random_data_hard_labels = get_random_images(self.dst_train, self.class_indices, self.ipc)
             random_data_hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(
                 image_tensor=random_images,
                 image_path=None,
