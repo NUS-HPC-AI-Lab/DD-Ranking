@@ -221,4 +221,6 @@ def get_random_images(dataset, class_indices, n_images_per_class):
     for i, (image, label) in enumerate(subset_dataset):
         selected_images.append(image)
         selected_labels.append(label)
+    selected_images = torch.stack(selected_images, dim=0)
+    selected_labels = torch.tensor(selected_labels, dtype=torch.long)
     return selected_images, selected_labels
