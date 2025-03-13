@@ -256,6 +256,7 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Guang Li](https://www-lmd.ist.hokudai.ac.jp/member/guang-li/) (Hokkaido University)
 - [Junhao Zhang](https://junhaozhang98.github.io/) (National University of Singapore)
 - [Jiawei Liu](https://jia-wei-liu.github.io/) (National University of Singapore)
+- [Zhiheng Ma](https://zhiheng-ma.github.io/) (SUAT)
 - [Yiran Huang](https://www.eml-munich.de/people/yiran-huang) (Technical University of Munich)
 - [Lingjuan Lyu](https://sites.google.com/view/lingjuan-lyu) (Sony)
 - [Jiancheng Lv](https://scholar.google.com/citations?user=0TCaWKwAAAAJ&hl=en) (Sichuan University)
