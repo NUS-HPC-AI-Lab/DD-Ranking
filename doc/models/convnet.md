@@ -1,6 +1,6 @@
 ## ConvNet
 
-Our [implementation](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/utils/networks.py) of ConvNet is based on [DC](https://github.com/VICO-UoE/DatasetCondensation). 
+Our [implementation](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/networks.py) of ConvNet is based on [DC](https://github.com/VICO-UoE/DatasetCondensation). 
 
 By default, we use width 128, average pooling, and ReLU activation. We provide the following interface to initialize a ConvNet model:
 
@@ -8,7 +8,7 @@ By default, we use width 128, average pooling, and ReLU activation. We provide t
 
 dd_ranking.utils.get_convnet(model_name: str, 
 im_size: tuple, channel: int, num_classes: int, net_depth: int, net_norm: str, pretrained: bool, model_path: str)
-[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/utils/model.py)
+[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/model.py)
 </div>
 
 ### Parameters

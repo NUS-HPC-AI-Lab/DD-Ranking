@@ -33,7 +33,7 @@ dd_ranking.metrics.GeneralEvaluator(config: Optional[Config] = None,
     custom_val_trans: Optional[Callable]=None, 
     device: str="cuda"
 )
-[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/metrics/general.py)
+[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/metrics/general.py)
 </div>
 
 A class for evaluating the traditional test accuracy of a surrogate model on the synthetic dataset under various settings (label type, data augmentation, etc.).
