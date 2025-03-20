@@ -5,8 +5,8 @@ Mixup is a data augmentation technique that generates new training samples by li
 <div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
 
 <span style="color:#FF6B00;">CLASS</span> 
-dd_ranking.aug.Mixup(params: dict)
-[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/aug/mixup.py)
+ddranking.aug.Mixup(params: dict)
+[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/aug/mixup.py)
 
 </div>
 

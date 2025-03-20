@@ -21,13 +21,13 @@ Fair and benchmark for dataset distillation.
 
 *Latest News* 🔥
 
-[Latest] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking --upgrade`.
+[Latest] We have fixed some bugs and released a new version of DD-Ranking. Please install the latest version via `pip install ddranking==0.1.4` or `pip install ddranking --upgrade`.
 
 <details>
 <summary>Unfold to see more details.</summary>
 <br>
 
-- [2025/02] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking --upgrade`.
+- [2025/02] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking==0.1.4` or `pip install ddranking --upgrade`.
 
 - [2025/01] Our PyPI package is officially released! Users can now install DD-Ranking via `pip install ddranking`.
 
@@ -256,6 +256,7 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Guang Li](https://www-lmd.ist.hokudai.ac.jp/member/guang-li/) (Hokkaido University)
 - [Junhao Zhang](https://junhaozhang98.github.io/) (National University of Singapore)
 - [Jiawei Liu](https://jia-wei-liu.github.io/) (National University of Singapore)
+- [Zhiheng Ma](https://zhiheng-ma.github.io/) (SUAT)
 - [Yiran Huang](https://www.eml-munich.de/people/yiran-huang) (Technical University of Munich)
 - [Lingjuan Lyu](https://sites.google.com/view/lingjuan-lyu) (Sony)
 - [Jiancheng Lv](https://scholar.google.com/citations?user=0TCaWKwAAAAJ&hl=en) (Sichuan University)
