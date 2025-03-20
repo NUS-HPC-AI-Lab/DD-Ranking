@@ -57,6 +57,8 @@ class HardLabelEvaluator:
             self.rank = setup_dist(device)
             self.world_size = torch.distributed.get_world_size()
             self.device = f'cuda:{self.rank}'
+        else:
+            self.rank = 0
 
         channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(dataset, 
                                                                                                                       real_data_path, 
@@ -68,8 +70,15 @@ class HardLabelEvaluator:
         self.class_indices = self.get_class_indices(dst_train, class_map, num_classes)
         self.dst_train = dst_train
 
-        self.test_loader_real = DataLoader(dst_test_real, batch_size=real_batch_size, num_workers=num_workers, shuffle=False)
-        self.test_loader_syn = DataLoader(dst_test_syn, batch_size=syn_batch_size, num_workers=num_workers, shuffle=False)
+        if self.use_dist:
+            test_sampler_real = torch.utils.data.distributed.DistributedSampler(dst_test_real)
+            test_sampler_syn = torch.utils.data.distributed.DistributedSampler(dst_test_syn)
+        else:
+            test_sampler_real = torch.utils.data.RandomSampler(dst_test_real)
+            test_sampler_syn = torch.utils.data.RandomSampler(dst_test_syn)
+
+        self.test_loader_real = DataLoader(dst_test_real, batch_size=real_batch_size, num_workers=num_workers, sampler=test_sampler_real)
+        self.test_loader_syn = DataLoader(dst_test_syn, batch_size=syn_batch_size, num_workers=num_workers, sampler=test_sampler_syn)
 
         # data info
         self.im_size = im_size
@@ -173,8 +182,13 @@ class HardLabelEvaluator:
                 hard_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
             else:
                 hard_label_dataset = TensorDataset(image_tensor, hard_labels)
+        
+        if self.use_dist:
+            train_sampler = torch.utils.data.distributed.DistributedSampler(hard_label_dataset)
+        else:
+            train_sampler = torch.utils.data.RandomSampler(hard_label_dataset)
         train_loader = DataLoader(hard_label_dataset, batch_size=self.real_batch_size if mode == 'real' else self.syn_batch_size, 
-                                  num_workers=self.num_workers, shuffle=True)
+                                  num_workers=self.num_workers, sampler=train_sampler)
 
         loss_fn = torch.nn.CrossEntropyLoss()
 
@@ -205,8 +219,9 @@ class HardLabelEvaluator:
             )
             if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
                 metric = validate(
+                    epoch=epoch,
                     model=model, 
-                    loader=self.test_loader,
+                    loader=self.test_loader_real if mode == 'real' else self.test_loader_syn,
                     device=self.device
                 )
                 if metric['top1'] > best_acc1:
@@ -218,8 +233,11 @@ class HardLabelEvaluator:
         if image_tensor is None and image_path is None:
             raise ValueError("Either image_tensor or image_path must be provided")
 
-        if not hard_labels:
+        if hard_labels is None:
             hard_labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
+        
+        if torch.is_tensor(syn_lr):
+            syn_lr = syn_lr.item()
 
         hard_label_recovery = []
         improvement_over_random = []
@@ -274,10 +292,10 @@ class HardLabelEvaluator:
                 model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
             full_data_hard_label_acc = self.compute_hard_label_metrics(
                 model=model, 
-                image_tensor=self.images_train,
+                image_tensor=None,
                 image_path=None,
                 lr=self.default_lr, 
-                hard_labels=self.labels_train,
+                hard_labels=None,
                 mode='real'
             )
             del model
@@ -286,7 +304,7 @@ class HardLabelEvaluator:
 
             if self.rank == 0:
                 print("Caculating random data hard label metrics...")
-            random_images, random_data_hard_labels = get_random_images(self.images_train, self.labels_train, self.class_indices_train, self.ipc)
+            random_images, random_data_hard_labels = get_random_images(self.dst_train, self.class_indices, self.ipc)
             random_data_hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(
                 image_tensor=random_images,
                 image_path=None,

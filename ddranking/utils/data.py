@@ -1,4 +1,5 @@
 import os
+import shutil
 import torch
 import random
 import numpy as np
@@ -10,7 +11,7 @@ from torch import Tensor
 from torch.utils.data import Subset
 
 
-class Config:
+class ImageNetSubsets:
     imagenette = [0, 217, 482, 491, 497, 566, 569, 571, 574, 701]
 
     imagewoof = [193, 182, 258, 162, 155, 167, 159, 273, 207, 229]
@@ -32,8 +33,7 @@ class Config:
         "ImageSquawk": imagesquawk
     }
 
-config = Config()
-
+imagenet_subsets = ImageNetSubsets()
 
 class TensorDataset(torch.utils.data.Dataset):
     
@@ -89,7 +89,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std),
             ])
-        else:
+        else:   
             transform = transforms.Compose([
                 transforms.ToTensor()
             ])
@@ -124,7 +124,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
         im_size = (128, 128) if not im_size else im_size
         num_classes = 10
 
-        config.img_net_classes = config.dict[dataset]
+        imagenet_subsets.img_net_classes = imagenet_subsets.dict[dataset]
 
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
@@ -137,21 +137,21 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
         ])
 
         dst_train = datasets.ImageFolder(os.path.join(data_path, "train"), transform=transform)
-        dst_train = torch.utils.data.Subset(dst_train, np.squeeze(np.argwhere(np.isin(dst_train.targets, config.img_net_classes))))
+        dst_train = torch.utils.data.Subset(dst_train, np.squeeze(np.argwhere(np.isin(dst_train.targets, imagenet_subsets.img_net_classes))))
 
         dst_test_real = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform)
         dst_test_syn = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform if custom_val_trans is None else custom_val_trans)
 
-        dst_test_real = torch.utils.data.Subset(dst_test_real, np.squeeze(np.argwhere(np.isin(dst_test_real.targets, config.img_net_classes))))
-        dst_test_syn = torch.utils.data.Subset(dst_test_syn, np.squeeze(np.argwhere(np.isin(dst_test_syn.targets, config.img_net_classes))))
+        dst_test_real = torch.utils.data.Subset(dst_test_real, np.squeeze(np.argwhere(np.isin(dst_test_real.targets, imagenet_subsets.img_net_classes))))
+        dst_test_syn = torch.utils.data.Subset(dst_test_syn, np.squeeze(np.argwhere(np.isin(dst_test_syn.targets, imagenet_subsets.img_net_classes))))
 
-        for c in range(len(config.img_net_classes)):
-            dst_test_real.dataset.targets[dst_test_real.dataset.targets == config.img_net_classes[c]] = c
-            dst_test_syn.dataset.targets[dst_test_syn.dataset.targets == config.img_net_classes[c]] = c
-            dst_train.dataset.targets[dst_train.dataset.targets == config.img_net_classes[c]] = c
+        for c in range(len(imagenet_subsets.img_net_classes)):
+            dst_test_real.dataset.targets[dst_test_real.dataset.targets == imagenet_subsets.img_net_classes[c]] = c
+            dst_test_syn.dataset.targets[dst_test_syn.dataset.targets == imagenet_subsets.img_net_classes[c]] = c
+            dst_train.dataset.targets[dst_train.dataset.targets == imagenet_subsets.img_net_classes[c]] = c
         
-        class_map = {x: i for i, x in enumerate(config.img_net_classes)}
-        class_map_inv = {i: x for i, x in enumerate(config.img_net_classes)}
+        class_map = {x: i for i, x in enumerate(imagenet_subsets.img_net_classes)}
+        class_map_inv = {i: x for i, x in enumerate(imagenet_subsets.img_net_classes)}
 
     elif dataset == 'ImageNet1K':
         channel = 3
@@ -172,7 +172,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
 
         class_map = {x: i for i, x in enumerate(range(num_classes))}
         class_map_inv = {i: x for i, x in enumerate(range(num_classes))}
-    
+
     if use_zca:
         images, labels = [], []
         for i in tqdm(range(len(dst_train))):
@@ -209,10 +209,10 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
     return channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv
 
 
-def get_random_images(dataset, class_indices, n_images_per_class):
+def get_random_image_tensors(dataset, class_to_indices, n_images_per_class):
 
     subset_indices = []
-    for indices in class_indices:
+    for indices in class_to_indices:
         subset_indices.extend(random.sample(indices, n_images_per_class))
     subset_dataset = Subset(dataset, subset_indices)
     
@@ -223,3 +223,66 @@ def get_random_images(dataset, class_indices, n_images_per_class):
     selected_images = torch.stack(selected_images, dim=0)
     selected_labels = torch.tensor(selected_labels, dtype=torch.long)
     return selected_images, selected_labels
+
+
+def get_random_image_path_from_cifar(dataset, class_to_indices, n_images_per_class, saved_path=None):
+    if isinstance(dataset, datasets.CIFAR10):   
+        dataset_name = "CIFAR10"
+    elif isinstance(dataset, datasets.CIFAR100):
+        dataset_name = "CIFAR100"
+    else:
+        raise ValueError(f"Dataset {type(dataset)} is not supported")
+
+    if saved_path is None:
+        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}"
+    os.makedirs(saved_path, exist_ok=True)
+
+    def denormalize(image_tensor):
+        mean = [0.4914, 0.4822, 0.4465]
+        std = [0.2023, 0.1994, 0.2010]
+        image_tensor = image_tensor * torch.tensor(std).view(3, 1, 1) + torch.tensor(mean).view(3, 1, 1)
+        return image_tensor
+
+    to_pil = transforms.ToPILImage()
+    for class_idx, indices in enumerate(class_to_indices):
+        os.makedirs(os.path.join(saved_path, f"{class_idx:05d}"), exist_ok=True)
+        selected_indices = random.sample(indices, n_images_per_class)
+        for i, index in enumerate(selected_indices):
+            image_tensor, label = dataset[index]
+            image_tensor = denormalize(image_tensor)
+            image_tensor = torch.clamp(image_tensor, 0, 1)
+            image_pil = to_pil(image_tensor)
+            image_pil.save(os.path.join(saved_path, f"{class_idx:05d}", f"{i:05d}.jpg"))
+
+    return saved_path   
+
+def get_random_image_path(dataset_name, class_to_samples, n_images_per_class, saved_path=None):
+    if saved_path is None:
+        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}"
+    os.makedirs(saved_path, exist_ok=True)
+
+    for class_idx, samples in enumerate(class_to_samples):
+        os.makedirs(os.path.join(saved_path, f"{class_idx:05d}"), exist_ok=True)
+        selected_samples = random.sample(samples, n_images_per_class)
+        for i, sample in enumerate(selected_samples):
+            shutil.copy(sample, os.path.join(saved_path, f"{class_idx:05d}", f"{i:05d}.jpg"))
+
+    return saved_path
+
+
+if __name__ == "__main__":
+    dataset_name = "CIFAR10"
+    channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
+        dataset_name, 
+        "/home/wangkai/datasets/", 
+        (32, 32), 
+        False, 
+        None, 
+        "cpu"
+    )
+    n_images_per_class = 1
+    class_to_indices = [[] for _ in range(num_classes)]
+    for i, label in enumerate(dst_train.targets):
+        class_to_indices[label].append(i)
+    # print(class_to_samples)
+    get_random_image_path_from_cifar(dst_train, class_to_indices, n_images_per_class)
