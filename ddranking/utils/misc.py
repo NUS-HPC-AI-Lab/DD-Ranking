@@ -23,3 +23,8 @@ def setup_dist(device):
     torch.cuda.set_device(local_rank)  # This ensures each process uses the correct GPU
     torch.distributed.init_process_group(backend="nccl" if device == "cuda" else "gloo")
     return local_rank
+
+def logging(message):
+    local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    if local_rank == 0:
+        print(message)

@@ -225,13 +225,7 @@ def get_random_image_tensors(dataset, class_to_indices, n_images_per_class):
     return selected_images, selected_labels
 
 
-def get_random_image_path_from_cifar(dataset, class_to_indices, n_images_per_class, saved_path=None):
-    if isinstance(dataset, datasets.CIFAR10):   
-        dataset_name = "CIFAR10"
-    elif isinstance(dataset, datasets.CIFAR100):
-        dataset_name = "CIFAR100"
-    else:
-        raise ValueError(f"Dataset {type(dataset)} is not supported")
+def get_random_image_path_from_cifar(dataset_name, dataset, class_to_indices, n_images_per_class, saved_path=None):
 
     if saved_path is None:
         saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}"
@@ -257,6 +251,7 @@ def get_random_image_path_from_cifar(dataset, class_to_indices, n_images_per_cla
     return saved_path   
 
 def get_random_image_path(dataset_name, class_to_samples, n_images_per_class, saved_path=None):
+
     if saved_path is None:
         saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}"
     os.makedirs(saved_path, exist_ok=True)
