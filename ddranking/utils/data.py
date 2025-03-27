@@ -209,7 +209,10 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
     return channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv
 
 
-def get_random_image_tensors(dataset, class_to_indices, n_images_per_class):
+def get_random_data_tensors(dataset_name, dataset, class_to_indices, n_images_per_class, eval_iter, saved_path=None):
+    if saved_path is None:
+        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
+    os.makedirs(saved_path, exist_ok=True)
 
     subset_indices = []
     for indices in class_to_indices:
@@ -222,13 +225,16 @@ def get_random_image_tensors(dataset, class_to_indices, n_images_per_class):
         selected_labels.append(label)
     selected_images = torch.stack(selected_images, dim=0)
     selected_labels = torch.tensor(selected_labels, dtype=torch.long)
-    return selected_images, selected_labels
+    if saved_path is not None:
+        torch.save(selected_images, os.path.join(saved_path, f'rdm_data_iter{eval_iter}.pt'))
+        torch.save(selected_labels, os.path.join(saved_path, f'rdm_labels_iter{eval_iter}.pt'))
+    return selected_images.detach().cpu(), selected_labels.detach().cpu()
 
 
-def get_random_image_path_from_cifar(dataset_name, dataset, class_to_indices, n_images_per_class, saved_path=None):
+def get_random_data_path_from_cifar(dataset_name, dataset, class_to_indices, n_images_per_class, eval_iter, saved_path=None):
 
     if saved_path is None:
-        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}"
+        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
     os.makedirs(saved_path, exist_ok=True)
 
     def denormalize(image_tensor):
@@ -250,10 +256,10 @@ def get_random_image_path_from_cifar(dataset_name, dataset, class_to_indices, n_
 
     return saved_path   
 
-def get_random_image_path(dataset_name, class_to_samples, n_images_per_class, saved_path=None):
+def get_random_data_path(dataset_name, class_to_samples, n_images_per_class, eval_iter, saved_path=None):
 
     if saved_path is None:
-        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}"
+        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
     os.makedirs(saved_path, exist_ok=True)
 
     for class_idx, samples in enumerate(class_to_samples):
@@ -263,21 +269,3 @@ def get_random_image_path(dataset_name, class_to_samples, n_images_per_class, sa
             shutil.copy(sample, os.path.join(saved_path, f"{class_idx:05d}", f"{i:05d}.jpg"))
 
     return saved_path
-
-
-if __name__ == "__main__":
-    dataset_name = "CIFAR10"
-    channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
-        dataset_name, 
-        "/home/wangkai/datasets/", 
-        (32, 32), 
-        False, 
-        None, 
-        "cpu"
-    )
-    n_images_per_class = 1
-    class_to_indices = [[] for _ in range(num_classes)]
-    for i, label in enumerate(dst_train.targets):
-        class_to_indices[label].append(i)
-    # print(class_to_samples)
-    get_random_image_path_from_cifar(dst_train, class_to_indices, n_images_per_class)
