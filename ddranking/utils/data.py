@@ -211,7 +211,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
 
 def get_random_data_tensors(dataset_name, dataset, class_to_indices, n_images_per_class, eval_iter, saved_path=None):
     if saved_path is None:
-        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
+        saved_path = f"./random_data/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
     os.makedirs(saved_path, exist_ok=True)
 
     subset_indices = []
@@ -234,7 +234,7 @@ def get_random_data_tensors(dataset_name, dataset, class_to_indices, n_images_pe
 def get_random_data_path_from_cifar(dataset_name, dataset, class_to_indices, n_images_per_class, eval_iter, saved_path=None):
 
     if saved_path is None:
-        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
+        saved_path = f"./random_data/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
     os.makedirs(saved_path, exist_ok=True)
 
     def denormalize(image_tensor):
@@ -259,7 +259,7 @@ def get_random_data_path_from_cifar(dataset_name, dataset, class_to_indices, n_i
 def get_random_data_path(dataset_name, class_to_samples, n_images_per_class, eval_iter, saved_path=None):
 
     if saved_path is None:
-        saved_path = f"./random_images/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
+        saved_path = f"./random_data/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
     os.makedirs(saved_path, exist_ok=True)
 
     for class_idx, samples in enumerate(class_to_samples):

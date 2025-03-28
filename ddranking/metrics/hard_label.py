@@ -14,7 +14,7 @@ from ddranking.utils import TensorDataset, get_random_data_tensors, get_random_d
 from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, get_lr_scheduler
 from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
 from ddranking.config import Config
-from ddranking.utils import logging
+from ddranking.utils import logging, broadcast_string
 
 
 class HardLabelEvaluator:
@@ -64,13 +64,15 @@ class HardLabelEvaluator:
         else:
             self.rank = 0
 
-        channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(dataset, 
-                                                                                                                      real_data_path, 
-                                                                                                                      im_size, 
-                                                                                                                      use_zca,
-                                                                                                                      custom_val_trans,
-                                                                                                                      device)
-        
+        channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
+            dataset, 
+            real_data_path, 
+            im_size, 
+            use_zca,
+            custom_val_trans,
+            device
+        )
+        self.dataset = dataset
         self.class_indices = self._get_class_indices(dst_train, class_map, num_classes)
         if dataset not in ['CIFAR10', 'CIFAR100']:
             self.class_to_samples = self._get_class_to_samples(dst_train, class_map, num_classes)
@@ -293,7 +295,7 @@ class HardLabelEvaluator:
             if self.random_data_format == 'tensors':
                 torch.distributed.broadcast(random_data_tensors, src=0)
             elif self.random_data_format == 'image':
-                torch.distributed.broadcast(random_data_path, src=0)
+                random_data_path = broadcast_string(random_data_path, device=self.device, src=0)
 
         if self.random_data_format == 'tensors':
             return None, random_data_tensors, random_data_hard_labels

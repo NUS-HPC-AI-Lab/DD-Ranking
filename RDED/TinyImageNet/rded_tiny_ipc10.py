@@ -3,6 +3,7 @@ import random
 import torch
 from torchvision import transforms
 from ddranking.metrics import SoftLabelEvaluator
+os.environ["CUDA_VISIBLE_DEVICES"] = "3,4"
 
 
 class ShufflePatches(torch.nn.Module):
@@ -32,12 +33,12 @@ class ShufflePatches(torch.nn.Module):
         return img
 
 
-root = "./"
-device = "cuda:4"
+root = "/home/wangkai/DD-Ranking"
+device = "cuda"
 method_name = "RDED"
 dataset = "TinyImageNet"
 im_size = (64, 64)
-data_dir = os.path.join(root, "datasets/tiny-imagenet-200")
+data_dir = "/home/wangkai/datasets/tiny-imagenet-200"
 model_name = "ConvNet-4-BN"
 cutmix_params = {"beta": 1.0}
 ipc = 10
@@ -65,6 +66,7 @@ custom_val_trans = transforms.Compose([
 
 print(f"Evaluating {method_name} on {dataset} with ipc{ipc}")
 syn_image_dir = os.path.join(root, f"baselines/{method_name}/{dataset}/IPC{ipc}/")
+random_data_path = os.path.join(root, f"random_data/{method_name}/")
 save_path_soft = f"./results/{dataset}/{model_name}/IPC{ipc}/rded_tiny_ipc10.csv"
 convd4_soft_obj = SoftLabelEvaluator(
     dataset=dataset, 
@@ -78,9 +80,12 @@ convd4_soft_obj = SoftLabelEvaluator(
     weight_decay=0.01,
     temperature=20,
     num_epochs=300,
+    num_eval=1,
     model_name=model_name,
     stu_use_torchvision=False,
     tea_use_torchvision=False,
+    random_data_format='image',
+    random_data_path=random_data_path,
     teacher_dir="./teacher_models",
     data_aug_func='cutmix',
     aug_params=cutmix_params,
@@ -90,7 +95,7 @@ convd4_soft_obj = SoftLabelEvaluator(
     num_workers=4,
     custom_train_trans=custom_train_trans,
     custom_val_trans=custom_val_trans,
-    device=device,
+    dist=True,
     save_path=save_path_soft
 )
 print(convd4_soft_obj.compute_metrics(image_path=syn_image_dir, syn_lr=0.001))
