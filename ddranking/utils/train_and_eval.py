@@ -47,6 +47,7 @@ def train_one_epoch(
     aug_func=None,
     tea_model=None,
     lr_scheduler=None,
+    class_map=None,
     grad_accum_steps=1,
     logging=False,
     log_interval=10,
@@ -84,6 +85,8 @@ def train_one_epoch(
         if batch_idx >= last_batch_idx_to_accum:
             accum_steps = last_accum_steps
 
+        if class_map is not None:
+            target = torch.tensor([class_map[target[i].item()] for i in range(len(target))], dtype=target.dtype, device=target.device)
         input, target = input.to(device), target.to(device)
         input = aug_func(input)
         # multiply by accum steps to get equivalent for full update
@@ -165,6 +168,7 @@ def validate(
     model,
     loader,
     device='cuda',
+    class_map=None,
     logging=False,
     log_interval=10
 ):
@@ -183,6 +187,8 @@ def validate(
         for batch_idx, (input, target) in enumerate(loader):
             
             last_batch = batch_idx == last_idx
+            if class_map is not None:
+                target = torch.tensor([class_map[target[i].item()] for i in range(len(target))], dtype=target.dtype, device=target.device)
             input = input.to(device)
             target = target.to(device)
 

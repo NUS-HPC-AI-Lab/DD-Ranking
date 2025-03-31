@@ -72,7 +72,6 @@ class SoftLabelEvaluator:
         else:
             self.rank = 0
 
-        self.dataset = dataset
         channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
             dataset, 
             real_data_path, 
@@ -81,7 +80,8 @@ class SoftLabelEvaluator:
             custom_val_trans,
             device
         )
-
+        self.dataset = dataset
+        self.class_map = class_map
         self.class_to_indices = self._get_class_to_indices(dst_train, class_map, num_classes)
         if dataset not in ['CIFAR10', 'CIFAR100']:
             self.class_to_samples = self._get_class_to_samples(dst_train, class_map, num_classes)
@@ -284,7 +284,8 @@ class SoftLabelEvaluator:
                 optimizer=optimizer,
                 aug_func=self.aug_func if self.use_aug_for_hard else None,
                 lr_scheduler=lr_scheduler, 
-                tea_model=self.teacher_model, 
+                tea_model=self.teacher_model,
+                class_map=self.class_map if mode == 'real' else None,
                 device=self.device
             )
             if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
@@ -292,6 +293,7 @@ class SoftLabelEvaluator:
                     epoch=epoch,
                     model=model, 
                     loader=self.test_loader_real,
+                    class_map=self.class_map,
                     device=self.device
                 )
                 if metric['top1'] > best_acc1:
@@ -346,6 +348,7 @@ class SoftLabelEvaluator:
                     epoch=epoch,
                     model=model, 
                     loader=self.test_loader_syn,
+                    class_map=self.class_map,
                     device=self.device
                 )
                 if metric['top1'] > best_acc1:

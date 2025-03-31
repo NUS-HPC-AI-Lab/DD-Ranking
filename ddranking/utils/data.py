@@ -8,7 +8,6 @@ import torchvision.datasets as datasets
 import kornia as K
 from tqdm import tqdm
 from torch import Tensor
-from torch.utils.data import Subset
 
 
 class ImageNetSubsets:
@@ -76,7 +75,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
         dst_test_real = datasets.CIFAR10(data_path, train=False, download=True, transform=transform)
         dst_test_syn = datasets.CIFAR10(data_path, train=False, download=True, transform=transform if custom_val_trans is None else custom_val_trans)
         class_map = {x: x for x in range(num_classes)}
-
+        class_map_inv = {x: x for x in range(num_classes)}
     elif dataset == 'CIFAR100':
         channel = 3
         im_size = (32, 32) if not im_size else im_size
@@ -98,6 +97,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
         dst_test_real = datasets.CIFAR100(data_path, train=False, download=True, transform=transform)
         dst_test_syn = datasets.CIFAR100(data_path, train=False, download=True, transform=transform if custom_val_trans is None else custom_val_trans)
         class_map = {x: x for x in range(num_classes)}
+        class_map_inv = {x: x for x in range(num_classes)}
 
     elif dataset == 'TinyImageNet':
         channel = 3
@@ -118,6 +118,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
         dst_test_real = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform)
         dst_test_syn = datasets.ImageFolder(os.path.join(data_path, "val"), transform=transform if custom_val_trans is None else custom_val_trans)
         class_map = {x: x for x in range(num_classes)}
+        class_map_inv = {x: x for x in range(num_classes)}
 
     elif dataset in ['ImageNette', 'ImageWoof', 'ImageMeow', 'ImageSquawk', 'ImageFruit', 'ImageYellow']:
         channel = 3
@@ -269,3 +270,5 @@ def get_random_data_path(dataset_name, class_to_samples, n_images_per_class, eva
             shutil.copy(sample, os.path.join(saved_path, f"{class_idx:05d}", f"{i:05d}.jpg"))
 
     return saved_path
+
+        

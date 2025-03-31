@@ -73,6 +73,7 @@ class HardLabelEvaluator:
             device
         )
         self.dataset = dataset
+        self.class_map = class_map
         self.class_indices = self._get_class_indices(dst_train, class_map, num_classes)
         if dataset not in ['CIFAR10', 'CIFAR100']:
             self.class_to_samples = self._get_class_to_samples(dst_train, class_map, num_classes)
@@ -156,7 +157,7 @@ class HardLabelEvaluator:
             raise ValueError(f"Dataset type {type(dataset)} not supported")
         return class_to_samples
     
-    def hyper_param_search_for_hard_label(self, image_tensor, image_path, hard_labels, mode='real'):
+    def _hyper_param_search_for_hard_label(self, image_tensor, image_path, hard_labels, mode='real'):
         lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
         best_acc = 0
         best_lr = 0
@@ -171,7 +172,7 @@ class HardLabelEvaluator:
             )
             if self.use_dist:
                 model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
-            acc = self.compute_hard_label_metrics(
+            acc = self._compute_hard_label_metrics(
                 model=model, 
                 image_tensor=image_tensor,
                 image_path=image_path,
@@ -185,9 +186,9 @@ class HardLabelEvaluator:
             del model
         return best_acc, best_lr
     
-    def _compute_hard_label_metrics_helper(self, model, image_tensor, image_path, hard_labels, lr, mode, hyper_param_search=False):
+    def _compute_hard_label_metrics_helper(self, image_tensor, image_path, hard_labels, lr, mode, hyper_param_search=False):
         if hyper_param_search:
-            hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(
+            hard_label_acc, best_lr = self._hyper_param_search_for_hard_label(
                 image_tensor=image_tensor,
                 image_path=image_path,
                 hard_labels=hard_labels,
@@ -255,7 +256,8 @@ class HardLabelEvaluator:
                 loss_fn=loss_fn, 
                 optimizer=optimizer,
                 aug_func=self.aug_func,
-                lr_scheduler=lr_scheduler, 
+                lr_scheduler=lr_scheduler,
+                class_map=self.class_map if mode == 'real' else None,
                 device=self.device
             )
             if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
@@ -263,6 +265,7 @@ class HardLabelEvaluator:
                     epoch=epoch,
                     model=model, 
                     loader=self.test_loader_real if mode == 'real' else self.test_loader_syn,
+                    class_map=self.class_map,
                     device=self.device
                 )
                 if metric['top1'] > best_acc1:
@@ -319,7 +322,6 @@ class HardLabelEvaluator:
             logging(f"########################### {i+1}th Evaluation ###########################")
 
             syn_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
-                model=model,
                 image_tensor=image_tensor,
                 image_path=image_path,
                 hard_labels=hard_labels,
@@ -330,7 +332,6 @@ class HardLabelEvaluator:
             logging(f"Syn data hard label acc: {syn_data_hard_label_acc:.2f}% under learning rate {best_lr}")
 
             full_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
-                model=model,
                 image_tensor=None,
                 image_path=None,
                 hard_labels=None,
