@@ -430,7 +430,7 @@ class SoftLabelEvaluator:
 
     def _get_random_data_helper(self, eval_iter):
         if self.rank == 0:
-            if self.random_data_format == 'tensors':
+            if self.random_data_format == 'tensor':
                 random_data_tensors, _ = get_random_data_tensors(self.dataset, self.dst_train, self.class_to_indices, self.ipc, eval_iter, self.random_data_path)
             elif self.random_data_format == 'image':
                 if self.dataset in ['CIFAR10', 'CIFAR100']:
@@ -440,7 +440,7 @@ class SoftLabelEvaluator:
             else:
                 raise ValueError(f"Random data format {self.random_data_format} not supported")
         else:
-            if self.random_data_format == 'tensors':
+            if self.random_data_format == 'tensor':
                 random_data_tensors = torch.empty((self.num_classes * self.ipc, 3, self.im_size[0], self.im_size[1]), 
                                                     device='cpu')
             elif self.random_data_format == 'image':
@@ -449,7 +449,7 @@ class SoftLabelEvaluator:
                 raise ValueError(f"Random data format {self.random_data_format} not supported")
 
         if self.use_dist:
-            if self.random_data_format == 'tensors':
+            if self.random_data_format == 'tensor':
                 torch.distributed.broadcast(random_data_tensors, src=0)
             elif self.random_data_format == 'image':
                 random_data_path = broadcast_string(random_data_path, device=self.device, src=0)
@@ -459,7 +459,7 @@ class SoftLabelEvaluator:
         else:
             random_data_soft_labels = None
 
-        if self.random_data_format == 'tensors':
+        if self.random_data_format == 'tensor':
             return None, random_data_tensors, random_data_soft_labels
         else:
             return random_data_path, None, None
