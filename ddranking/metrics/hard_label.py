@@ -74,7 +74,7 @@ class HardLabelEvaluator:
         )
         self.dataset = dataset
         self.class_map = class_map
-        self.class_indices = self._get_class_indices(dst_train, class_map, num_classes)
+        self.class_to_indices = self._get_class_indices(dst_train, class_map, num_classes)
         if dataset not in ['CIFAR10', 'CIFAR100']:
             self.class_to_samples = self._get_class_to_samples(dst_train, class_map, num_classes)
         self.dst_train = dst_train
@@ -277,7 +277,8 @@ class HardLabelEvaluator:
         if self.rank == 0:
             if self.random_data_format == 'tensor':
                 random_data_tensors, random_data_hard_labels = get_random_data_tensors(self.dataset, self.dst_train, self.class_to_indices, 
-                                                                                       self.ipc, eval_iter, self.random_data_path)
+                                                                                       self.ipc, self.class_map, eval_iter, self.random_data_path)
+                random_data_tensors, random_data_hard_labels = random_data_tensors.to(self.device), random_data_hard_labels.to(self.device)
             elif self.random_data_format == 'image':
                 if self.dataset in ['CIFAR10', 'CIFAR100']:
                     random_data_path = get_random_data_path_from_cifar(self.dataset, self.dst_train, self.class_to_indices, self.ipc, eval_iter, self.random_data_path)
@@ -288,7 +289,8 @@ class HardLabelEvaluator:
         else:
             if self.random_data_format == 'tensor':
                 random_data_tensors = torch.empty((self.num_classes * self.ipc, 3, self.im_size[0], self.im_size[1]), 
-                                                    device='cpu')
+                                                    device=self.device)
+                random_data_hard_labels = torch.empty((self.num_classes * self.ipc), dtype=torch.long, device=self.device)
             elif self.random_data_format == 'image':
                 random_data_path = ""
             else:
@@ -297,6 +299,7 @@ class HardLabelEvaluator:
         if self.use_dist:
             if self.random_data_format == 'tensor':
                 torch.distributed.broadcast(random_data_tensors, src=0)
+                torch.distributed.broadcast(random_data_hard_labels, src=0)
             elif self.random_data_format == 'image':
                 random_data_path = broadcast_string(random_data_path, device=self.device, src=0)
 

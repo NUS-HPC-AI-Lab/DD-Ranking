@@ -8,6 +8,7 @@ import torchvision.datasets as datasets
 import kornia as K
 from tqdm import tqdm
 from torch import Tensor
+from torch.utils.data import Subset
 
 
 class ImageNetSubsets:
@@ -156,7 +157,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
 
     elif dataset == 'ImageNet1K':
         channel = 3
-        im_size = (64, 64)
+        im_size = (224, 224) if not im_size else im_size
         num_classes = 1000
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
@@ -210,7 +211,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
     return channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv
 
 
-def get_random_data_tensors(dataset_name, dataset, class_to_indices, n_images_per_class, eval_iter, saved_path=None):
+def get_random_data_tensors(dataset_name, dataset, class_to_indices, n_images_per_class, class_map, eval_iter, saved_path=None):
     if saved_path is None:
         saved_path = f"./random_data/{dataset_name}_IPC{n_images_per_class}/iter{eval_iter}"
     os.makedirs(saved_path, exist_ok=True)
@@ -223,7 +224,7 @@ def get_random_data_tensors(dataset_name, dataset, class_to_indices, n_images_pe
     selected_images, selected_labels = [], []
     for i, (image, label) in enumerate(subset_dataset):
         selected_images.append(image)
-        selected_labels.append(label)
+        selected_labels.append(class_map[label])
     selected_images = torch.stack(selected_images, dim=0)
     selected_labels = torch.tensor(selected_labels, dtype=torch.long)
     if saved_path is not None:
