@@ -1,6 +1,6 @@
 # real data
 dataset: CIFAR100 
-real_data_path: ./dataset/
+real_data_path: /home/wangkai/datasets/
 
 # synthetic data
 ipc: 50
@@ -51,6 +51,9 @@ num_workers: 4
 device: cuda
 syn_batch_size: 256
 real_batch_size: 256
+dist: true
 
 # save path
 save_path: ./results/cifar100/ipc50/sre2l.csv
+random_data_format: image
+random_data_path: ./random_data/SRe2L/CIFAR100/IPC50/
