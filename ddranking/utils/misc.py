@@ -6,8 +6,9 @@ import random
 import pandas as pd
 
 
-def set_seed():
-    seed = int(time.time() * 1000) % 1000000
+def set_seed(seed=None):
+    if seed is None:
+        seed = int(time.time() * 1000) % 1000000
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)

@@ -500,8 +500,9 @@ class AugmentationRobustnessEvaluator:
 
         with_aug_scores = []
         without_aug_scores = []
+        seed_list = [0, 1, 42, 1234, 3407]
         for i in range(self.num_eval):
-            set_seed()
+            set_seed(seed_list[i])
             logging(f"########################### {i+1}th Evaluation ###########################")
 
             syn_data_with_aug_acc, best_lr = self._compute_with_aug_metrics_helper(

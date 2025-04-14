@@ -320,8 +320,9 @@ class HardLabelEvaluator:
 
         hard_label_recovery = []
         improvement_over_random = []
+        seed_list = [0, 1, 42, 1234, 3407]
         for i in range(self.num_eval):
-            set_seed()
+            set_seed(seed_list[i])
             logging(f"########################### {i+1}th Evaluation ###########################")
 
             syn_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
