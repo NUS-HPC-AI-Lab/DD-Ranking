@@ -54,3 +54,5 @@ real_batch_size: 256
 
 # save path
 save_path: ./results/cifar10/ipc10/d4m.csv
+random_data_format: image
+random_data_path: ./random_data/D4M/CIFAR10/IPC10/

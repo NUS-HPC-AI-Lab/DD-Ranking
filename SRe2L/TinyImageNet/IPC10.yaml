@@ -1,6 +1,6 @@
 # real data
 dataset: TinyImageNet
-real_data_path: ./dataset/tiny-imagenet-200/
+real_data_path: /home/wangkai/datasets/tiny-imagenet-200/
 
 # synthetic data
 ipc: 10
@@ -22,7 +22,7 @@ custom_train_trans:
   - name: RandomResizedCrop
     args:
       size: 64
-      scale: (0.08, 1.0)
+      scale: [0.08, 1.0]
   - name: RandomHorizontalFlip
     args:
       p: 0.5
@@ -61,8 +61,11 @@ num_epochs: 400
 default_lr: 0.001
 num_workers: 4
 device: cuda
+dist: true
 syn_batch_size: 256
 real_batch_size: 256
 
 # save path
 save_path: ./results/tinyimagenet/ipc10/sre2l.csv
+random_data_format: image
+random_data_path: ./random_data/SRe2L/TinyImageNet/IPC10/

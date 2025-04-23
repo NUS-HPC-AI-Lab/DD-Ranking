@@ -35,12 +35,12 @@ class ShufflePatches(torch.nn.Module):
 root = "/home/wangkai/"
 device = "cuda"
 method_name = "RDED"
-dataset = "TinyImageNet"
-im_size = (64, 64)
-data_dir = os.path.join(root, "datasets/tiny-imagenet-200")
-model_name = "ConvNet-4-BN"
+dataset = "CIFAR10"
+im_size = (32, 32)
+data_dir = os.path.join(root, "./datasets")
+model_name = "ConvNet-3-BN"
 cutmix_params = {"beta": 1.0}
-ipc = 1
+ipc = 10
 
 custom_train_transform = []
 custom_train_transform.append(transforms.ToTensor())
@@ -65,7 +65,7 @@ custom_val_transform = transforms.Compose([
 
 print(f"Evaluating {method_name} on {dataset} with ipc{ipc}")
 syn_image_dir = os.path.join(root, f"DD-Ranking/baselines/{method_name}/{dataset}/IPC{ipc}/")
-save_path_soft = f"./results/{dataset}/{model_name}/IPC{ipc}/rded_tiny_ipc1.csv"
+save_path_soft = f"./results/{dataset}/{model_name}/IPC{ipc}/rded_cifar10_ipc10.csv"
 convd4_soft_obj = SoftLabelEvaluator(
     dataset=dataset, 
     real_data_path=data_dir, 
@@ -86,7 +86,7 @@ convd4_soft_obj = SoftLabelEvaluator(
     aug_params=cutmix_params,
     im_size=im_size,
     real_batch_size=256,
-    syn_batch_size=100,
+    syn_batch_size=50,
     num_workers=4,
     custom_train_trans=custom_train_transform,
     custom_val_trans=custom_val_transform,
@@ -94,6 +94,6 @@ convd4_soft_obj = SoftLabelEvaluator(
     dist=True,
     save_path=save_path_soft,
     random_data_format='image',
-    random_data_path="./random_data/RDED/TinyImageNet/IPC1/"
+    random_data_path="./random_data/RDED/CIFAR10/IPC10/"
 )
 convd4_soft_obj.compute_metrics(image_path=syn_image_dir, syn_lr=0.001)

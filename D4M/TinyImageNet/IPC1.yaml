@@ -1,6 +1,6 @@
 # real data
 dataset: TinyImageNet
-real_data_path: ./dataset/tiny-imagenet-200/
+real_data_path: /home/wangkai/datasets/tiny-imagenet-200/
 
 # synthetic data
 ipc: 1
@@ -21,7 +21,7 @@ use_zca: false
 custom_train_trans: 
   - name: RandomResizedCrop
     args:
-      size: 224
+      size: 64
       scale: [0.08, 1.0]
   - name: RandomHorizontalFlip
     args:
@@ -35,10 +35,10 @@ custom_train_trans:
 custom_val_trans:
   - name: Resize
     args:
-      size: 224
+      size: 64
   - name: CenterCrop
     args:
-      size: 224
+      size: 64
   - name: ToTensor
   - name: Normalize
     args:
@@ -66,3 +66,5 @@ real_batch_size: 1024
 
 # save path
 save_path: ./results/tinyimagenet/ipc1/d4m.csv
+random_data_format: image
+random_data_path: ./random_data/D4M/TinyImageNet/IPC1/
