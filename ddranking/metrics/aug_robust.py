@@ -134,7 +134,7 @@ class AugmentationRobustnessEvaluator:
         if not save_path:
             save_path = f"./results/{dataset}/{model_name}/ipc{ipc}/aug_scores.csv"
         if not os.path.exists(os.path.dirname(save_path)):
-            os.makedirs(os.path.dirname(save_path))
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
         self.save_path = save_path
 
         # teacher model
