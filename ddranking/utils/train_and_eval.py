@@ -146,11 +146,11 @@ def train_one_epoch(
                 f'Data: {data_time_m.val:.3f} ({data_time_m.avg:.3f})'
             )
 
-        if lr_scheduler is not None:
-            lr_scheduler.step(epoch)
-
         update_sample_count = 0
         data_start_time = time.time()
+    
+    if lr_scheduler is not None:
+        lr_scheduler.step()
 
     # 同步最终loss
     if torch.distributed.is_initialized():
