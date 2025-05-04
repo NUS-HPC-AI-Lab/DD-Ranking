@@ -2,6 +2,7 @@ import time
 import torch
 import timm
 import math
+import warnings
 import datetime
 from torch.optim import SGD, Adam, AdamW
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, LambdaLR
