@@ -16,17 +16,17 @@ from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, 
 from ddranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
 from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
 from ddranking.config import Config
+from ddranking.utils import REAL_DATA_TRAINING_CONFIG
 
 
 class SoftLabelEvaluator:
 
     def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
-                 soft_label_criterion: str='kl', data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, soft_label_mode: str='S',
-                 optimizer: str='sgd', lr_scheduler: str='step', temperature: float=1.0, weight_decay: float=0.0005, momentum: float=0.9, 
-                 num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, use_aug_for_hard: bool=False, random_data_format: str='tensors',
-                 random_data_path: str=None, real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None,
-                 stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', 
-                 custom_train_trans: transforms.Compose=None, custom_val_trans: transforms.Compose=None, device: str="cuda", dist: bool=False):
+                 soft_label_criterion: str='kl', scale_loss=False, data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, soft_label_mode: str='S', 
+                 optimizer: str='sgd', lr_scheduler: str='step', temperature: float=1.0, step_size: int=None, weight_decay: float=0.0005, momentum: float=0.9, 
+                 num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, use_aug_for_hard: bool=False, random_data_format: str='tensors', 
+                 random_data_path: str=None, real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None, stu_use_torchvision: bool=False, 
+                 tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', teacher_model_names: List[str]=None, custom_train_trans: transforms.Compose=None, custom_val_trans: transforms.Compose=None, device: str="cuda", dist: bool=False):
 
         if config is not None:
             self.config = config
@@ -35,6 +35,7 @@ class SoftLabelEvaluator:
             ipc = self.config.get('ipc')
             model_name = self.config.get('model_name')
             soft_label_criterion = self.config.get('soft_label_criterion')
+            scale_loss = self.config.get('scale_loss')
             data_aug_func = self.config.get('data_aug_func')
             aug_params = self.config.get('aug_params')
             soft_label_mode = self.config.get('soft_label_mode')
@@ -53,6 +54,7 @@ class SoftLabelEvaluator:
             real_batch_size = self.config.get('real_batch_size')
             syn_batch_size = self.config.get('syn_batch_size')
             default_lr = self.config.get('default_lr')
+            step_size = self.config.get('step_size')
             save_path = self.config.get('save_path')
             num_workers = self.config.get('num_workers')
             stu_use_torchvision = self.config.get('stu_use_torchvision')
@@ -60,6 +62,7 @@ class SoftLabelEvaluator:
             custom_train_trans = self.config.get('custom_train_trans')
             custom_val_trans = self.config.get('custom_val_trans')
             teacher_dir = self.config.get('teacher_dir')
+            teacher_model_names = self.config.get('teacher_model_names')
             device = self.config.get('device')
             dist = self.config.get('dist')
         
@@ -98,6 +101,7 @@ class SoftLabelEvaluator:
 
         self.soft_label_mode = soft_label_mode
         self.soft_label_criterion = soft_label_criterion
+        self.scale_loss = scale_loss
         self.temperature = temperature
 
         # data info
@@ -120,6 +124,7 @@ class SoftLabelEvaluator:
         self.syn_batch_size = syn_batch_size
         self.num_epochs = num_epochs
         self.default_lr = default_lr
+        self.step_size = step_size
         self.test_interval = 20
         self.num_workers = num_workers
         self.device = device
@@ -146,20 +151,29 @@ class SoftLabelEvaluator:
         self.tea_use_torchvision = tea_use_torchvision
         self.stu_use_torchvision = stu_use_torchvision
 
-        pretrained_model_path = get_pretrained_model_path(teacher_dir, model_name, dataset, ipc)
-        self.teacher_model = build_model(model_name, 
-                                         num_classes=self.num_classes, 
-                                         im_size=self.im_size,
-                                         pretrained=True, 
-                                         device=self.device, 
-                                         model_path=pretrained_model_path,
-                                         use_torchvision=tea_use_torchvision)
-        self.teacher_model.eval()
-        if self.use_dist:
-            self.teacher_model = torch.nn.parallel.DistributedDataParallel(
-                self.teacher_model,
-                device_ids=[self.rank]
+        pretrained_model_paths = get_pretrained_model_path(teacher_dir, teacher_model_names, dataset)
+        self.teacher_models = [
+            build_model(
+                model_name, 
+                num_classes=self.num_classes, 
+                im_size=self.im_size,
+                pretrained=True, 
+                device=self.device, 
+                model_path=pretrained_model_path,
+                use_torchvision=tea_use_torchvision
             )
+            for pretrained_model_path in pretrained_model_paths
+        ]
+        for teacher_model in self.teacher_models:
+            teacher_model.eval()
+        if self.use_dist:
+            self.teacher_models = [
+                torch.nn.parallel.DistributedDataParallel(
+                    teacher_model,
+                    device_ids=[self.rank]
+                )
+                for teacher_model in self.teacher_models
+            ]
     
     def _get_class_to_indices(self, dataset, class_map, num_classes):
         class_to_indices = [[] for c in range(num_classes)]
@@ -264,15 +278,23 @@ class SoftLabelEvaluator:
         loss_fn = torch.nn.CrossEntropyLoss()
         # We use default optimizer and lr scheduler to train a model on real data. These parameters are empirically set.
         if mode == 'real':
-            if self.model_name.startswith('ConvNet'):
-                optimizer = get_optimizer('sgd', model, lr, 0.0005, 0.9)
-            elif self.model_name.startswith('ResNet'):
-                optimizer = get_optimizer('adamw', model, lr, 0.01, 0.9)
-            else:  # TODO: add more models
-                optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
+            real_data_training_config = REAL_DATA_TRAINING_CONFIG[f"{self.dataset}-{self.model_name}"]
+            optimizer = get_optimizer(
+                real_data_training_config['optimizer'], 
+                model, 
+                real_data_training_config['lr'], 
+                real_data_training_config['weight_decay'], 
+                real_data_training_config['momentum']
+            )
+            lr_scheduler = get_lr_scheduler(
+                real_data_training_config['lr_scheduler'], 
+                optimizer, 
+                real_data_training_config['num_epochs'], 
+                real_data_training_config['step_size']
+            )
         else:
             optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
-        lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs)
+            lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs, self.step_size)
 
         best_acc1 = 0
         for epoch in tqdm(range(self.num_epochs), total=self.num_epochs, desc="Training with hard labels", disable=self.rank != 0):
@@ -284,20 +306,19 @@ class SoftLabelEvaluator:
                 optimizer=optimizer,
                 aug_func=self.aug_func if self.use_aug_for_hard else None,
                 lr_scheduler=lr_scheduler, 
-                tea_model=self.teacher_model,
+                tea_models=None,
                 class_map=self.class_map if mode == 'real' else None,
                 device=self.device
             )
-            if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
-                metric = validate(
-                    epoch=epoch,
+            if (epoch + 1) % self.test_interval == 0:
+                acc1 = validate(
                     model=model, 
                     loader=self.test_loader_real,
                     class_map=self.class_map,
                     device=self.device
                 )
-                if metric['top1'] > best_acc1:
-                    best_acc1 = metric['top1']
+                if acc1 > best_acc1:
+                    best_acc1 = acc1
 
         return best_acc1
         
@@ -320,14 +341,14 @@ class SoftLabelEvaluator:
         train_loader = DataLoader(soft_label_dataset, batch_size=self.syn_batch_size, num_workers=self.num_workers, sampler=train_sampler)
 
         if self.soft_label_criterion == 'sce':
-            loss_fn = SoftCrossEntropyLoss(temperature=self.temperature).to(self.device)
+            loss_fn = SoftCrossEntropyLoss(temperature=self.temperature, scale_loss=self.scale_loss).to(self.device)
         elif self.soft_label_criterion == 'kl':
-            loss_fn = KLDivergenceLoss(temperature=self.temperature).to(self.device)
+            loss_fn = KLDivergenceLoss(temperature=self.temperature, scale_loss=self.scale_loss).to(self.device)
         else:
             raise NotImplementedError(f"Soft label criterion {self.soft_label_criterion} not implemented")
         
         optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
-        lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs)
+        lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs, self.step_size)
 
         best_acc1 = 0
         for epoch in tqdm(range(self.num_epochs), total=self.num_epochs, desc="Training with soft labels", disable=self.rank != 0):
@@ -340,19 +361,18 @@ class SoftLabelEvaluator:
                 aug_func=self.aug_func,
                 soft_label_mode=self.soft_label_mode,
                 lr_scheduler=lr_scheduler,
-                tea_model=self.teacher_model,
+                tea_models=self.teacher_models,
                 device=self.device
             )
-            if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
-                metric = validate(
-                    epoch=epoch,
+            if (epoch + 1) % self.test_interval == 0:
+                acc1 = validate(
                     model=model, 
                     loader=self.test_loader_syn,
                     class_map=self.class_map,
                     device=self.device
                 )
-                if metric['top1'] > best_acc1:
-                    best_acc1 = metric['top1']
+                if acc1 > best_acc1:
+                    best_acc1 = acc1
         
         return best_acc1
 

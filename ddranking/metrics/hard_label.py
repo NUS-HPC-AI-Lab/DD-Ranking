@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 from ddranking.utils import build_model, get_pretrained_model_path
 from ddranking.utils import TensorDataset, get_random_data_tensors, get_random_data_path_from_cifar, get_random_data_path, get_dataset, save_results, setup_dist
-from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, get_lr_scheduler
+from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, get_lr_scheduler, REAL_DATA_TRAINING_CONFIG
 from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
 from ddranking.config import Config
 from ddranking.utils import logging, broadcast_string
@@ -21,7 +21,7 @@ class HardLabelEvaluator:
 
     def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
                  data_aug_func: str='cutmix', aug_params: dict={'cutmix_p': 1.0}, optimizer: str='sgd', lr_scheduler: str='step', 
-                 lr_scheduler_params: dict=None, weight_decay: float=0.0005, momentum: float=0.9, use_zca: bool=False, num_eval: int=5, 
+                 step_size: int=None, weight_decay: float=0.0005, momentum: float=0.9, use_zca: bool=False, num_eval: int=5, 
                  im_size: tuple=(32, 32), num_epochs: int=300, real_batch_size: int=256, syn_batch_size: int=256, use_torchvision: bool=False,
                  default_lr: float=0.01, num_workers: int=4, save_path: str=None, custom_train_trans=None, custom_val_trans=None, device: str="cuda", 
                  dist: bool=False, random_data_format: str='tensors', random_data_path: str=None):
@@ -38,6 +38,7 @@ class HardLabelEvaluator:
             lr_scheduler = self.config.get('lr_scheduler')
             weight_decay = self.config.get('weight_decay')
             momentum = self.config.get('momentum')
+            step_size = self.config.get('step_size')
             num_eval = self.config.get('num_eval')
             im_size = self.config.get('im_size')
             num_epochs = self.config.get('num_epochs')
@@ -102,6 +103,7 @@ class HardLabelEvaluator:
         self.lr_scheduler = lr_scheduler
         self.weight_decay = weight_decay
         self.momentum = momentum
+        self.step_size = step_size
         self.num_eval = num_eval
         self.model_name = model_name
         self.real_batch_size = real_batch_size
@@ -236,16 +238,23 @@ class HardLabelEvaluator:
 
         # We use default optimizer and lr scheduler to train a model on real data. These parameters are empirically set.
         if mode == 'real':
-            if self.model_name.startswith('ConvNet'):
-                optimizer = get_optimizer('sgd', model, lr, 0.0005, 0.9)
-            elif self.model_name.startswith('ResNet'):
-                optimizer = get_optimizer('adamw', model, lr, 0.01, 0.9)
-            else:  # TODO: add more models
-                optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
+            real_data_training_config = REAL_DATA_TRAINING_CONFIG[f"{self.dataset}-{self.model_name}"]
+            optimizer = get_optimizer(
+                real_data_training_config['optimizer'], 
+                model, 
+                real_data_training_config['lr'], 
+                real_data_training_config['weight_decay'], 
+                real_data_training_config['momentum']
+            )
+            lr_scheduler = get_lr_scheduler(
+                real_data_training_config['lr_scheduler'], 
+                optimizer, 
+                real_data_training_config['num_epochs'], 
+                real_data_training_config['step_size']
+            )
         else:
             optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
-        # Learning rate scheduler doesn't affect the results too much.
-        lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs)
+            lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs, self.step_size)
 
         best_acc1 = 0
         for epoch in tqdm(range(self.num_epochs)):

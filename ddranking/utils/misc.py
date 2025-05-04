@@ -49,3 +49,20 @@ def broadcast_string(string_data, device, src=0):
     torch.distributed.broadcast(string_tensor, src=src)
     received_string = ''.join([chr(byte) for byte in string_tensor])
     return received_string
+
+def is_dist_avail_and_initialized():
+    if not torch.distributed.is_available():
+        return False
+    if not torch.distributed.is_initialized():
+        return False
+    return True
+
+def reduce_across_processes(val):
+    if not is_dist_avail_and_initialized():
+        # nothing to sync, but we still convert to tensor for consistency with the distributed case.
+        return torch.tensor(val)
+
+    t = torch.tensor(val, device="cuda")
+    torch.distributed.barrier()
+    torch.distributed.all_reduce(t)
+    return t

@@ -142,26 +142,6 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
     return model
 
 
-def get_pretrained_model_path(teacher_dir, model_name, dataset, ipc):
-    # if dataset == 'CIFAR10':
-    #     if ipc <= 10:
-    #         return os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_20.pt")
-    #     elif ipc <= 100:
-    #         return os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_40.pt")
-    #     elif ipc <= 1000:
-    #         return os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_80.pt")
-    # elif dataset == 'CIFAR100':
-    #     if ipc <= 1:
-    #         return os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_20.pt")
-    #     elif ipc <= 10:
-    #         return os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_60.pt")
-    #     elif ipc <= 100:
-    #         return os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_100.pt")
-    # elif dataset == 'TinyImageNet':
-    #     if ipc <= 1:
-    #         return os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_20.pt")
-    #     elif ipc <= 10:
-    #         return os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_60.pt")
-    #     elif ipc <= 100:
-    #         return os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_80.pt")
-    return os.path.join(os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_best.pt"))
+def get_pretrained_model_path(teacher_dir, model_names, dataset):
+    
+    return [os.path.join(os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_best.pt")) for model_name in model_names]

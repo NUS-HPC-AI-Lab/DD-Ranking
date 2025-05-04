@@ -22,9 +22,9 @@ class AugmentationRobustnessEvaluator:
 
     def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
                  data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, label_type: str='soft', soft_label_mode: str='S', soft_label_criterion: str='kl', 
-                 optimizer: str='sgd', lr_scheduler: str='step', temperature: float=1.0, weight_decay: float=0.0005, momentum: float=0.9, 
-                 num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, batch_size: int=256, save_path: str=None, 
-                 stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', 
+                 optimizer: str='sgd', lr_scheduler: str='step', temperature: float=1.0, scale_loss: bool=False, step_size: int=None, weight_decay: float=0.0005, 
+                 momentum: float=0.9, num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, batch_size: int=256, save_path: str=None, 
+                 stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', teacher_model_names: List[str]=None,
                  custom_train_trans: transforms.Compose=None, custom_val_trans: transforms.Compose=None, device: str="cuda", dist: bool=False):
 
         if config is not None:
@@ -41,6 +41,8 @@ class AugmentationRobustnessEvaluator:
             optimizer = self.config.get('optimizer')
             lr_scheduler = self.config.get('lr_scheduler')
             temperature = self.config.get('temperature')
+            scale_loss = self.config.get('scale_loss')
+            step_size = self.config.get('step_size')
             weight_decay = self.config.get('weight_decay')
             momentum = self.config.get('momentum')
             num_eval = self.config.get('num_eval')
@@ -55,6 +57,7 @@ class AugmentationRobustnessEvaluator:
             custom_train_trans = self.config.get('custom_train_trans')
             custom_val_trans = self.config.get('custom_val_trans')
             teacher_dir = self.config.get('teacher_dir')
+            teacher_model_names = self.config.get('teacher_model_names')
             device = self.config.get('device')
             dist = self.config.get('dist')
         
@@ -141,20 +144,29 @@ class AugmentationRobustnessEvaluator:
         self.stu_use_torchvision = stu_use_torchvision
 
         if label_type == 'soft':
-            pretrained_model_path = get_pretrained_model_path(teacher_dir, model_name, dataset, ipc)
-            self.teacher_model = build_model(model_name, 
-                                            num_classes=self.num_classes, 
-                                            im_size=self.im_size,
-                                            pretrained=True, 
-                                            device=self.device, 
-                                            model_path=pretrained_model_path,
-                                            use_torchvision=tea_use_torchvision)
-            self.teacher_model.eval()
-            if self.use_dist:
-                self.teacher_model = torch.nn.parallel.DistributedDataParallel(
-                    self.teacher_model,
-                    device_ids=[self.rank]
+            pretrained_model_paths = get_pretrained_model_path(teacher_dir, teacher_model_names, dataset)
+            self.teacher_models = [
+                build_model(
+                    model_name, 
+                    num_classes=self.num_classes, 
+                    im_size=self.im_size,
+                    pretrained=True, 
+                    device=self.device, 
+                    model_path=pretrained_model_path,
+                    use_torchvision=tea_use_torchvision
                 )
+                for pretrained_model_path in pretrained_model_paths
+            ]
+            for teacher_model in self.teacher_models:
+                teacher_model.eval()
+            if self.use_dist:
+                self.teacher_models = [
+                    torch.nn.parallel.DistributedDataParallel(
+                        teacher_model,
+                        device_ids=[self.rank]
+                    )
+                    for teacher_model in self.teacher_models
+                ]
     
     def _get_class_to_indices(self, dataset, class_map, num_classes):
         class_to_indices = [[] for c in range(num_classes)]
@@ -269,7 +281,7 @@ class AugmentationRobustnessEvaluator:
                 optimizer=optimizer,
                 aug_func=self.aug_func if use_aug else None,
                 lr_scheduler=lr_scheduler, 
-                tea_model=self.teacher_model,
+                tea_models=self.teacher_models,
                 device=self.device
             )
             if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
@@ -303,9 +315,9 @@ class AugmentationRobustnessEvaluator:
         train_loader = DataLoader(soft_label_dataset, batch_size=self.batch_size, num_workers=self.num_workers, sampler=train_sampler)
 
         if self.soft_label_criterion == 'sce':
-            loss_fn = SoftCrossEntropyLoss(temperature=self.temperature).to(self.device)
+            loss_fn = SoftCrossEntropyLoss(temperature=self.temperature, scale_loss=self.scale_loss).to(self.device)
         elif self.soft_label_criterion == 'kl':
-            loss_fn = KLDivergenceLoss(temperature=self.temperature).to(self.device)
+            loss_fn = KLDivergenceLoss(temperature=self.temperature, scale_loss=self.scale_loss).to(self.device)
         else:
             raise NotImplementedError(f"Soft label criterion {self.soft_label_criterion} not implemented")
         
@@ -323,7 +335,7 @@ class AugmentationRobustnessEvaluator:
                 aug_func=self.aug_func if use_aug else None,
                 soft_label_mode=self.soft_label_mode,
                 lr_scheduler=lr_scheduler,
-                tea_model=self.teacher_model,
+                tea_models=self.teacher_models,
                 device=self.device
             )
             if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
@@ -346,7 +358,8 @@ class AugmentationRobustnessEvaluator:
         
         with torch.no_grad():
             for image_batch in batches:
-                outputs = self.teacher_model(image_batch)
+                outputs = [teacher_model(image_batch) for teacher_model in self.teacher_models]
+                outputs = torch.stack(outputs, dim=0).mean(dim=0)
                 soft_labels.append(outputs.detach().cpu())
         
         soft_labels = torch.cat(soft_labels, dim=0)
