@@ -29,6 +29,7 @@ REAL_DATA_TRAINING_CONFIG = {
         "lr": 0.01,
         "num_epochs": 100,
         "batch_size": 512,
+        "momentum": (0.9, 0.999)
     },
     "TinyImageNet-ConvNet-4-BN": {
         "optimizer": "sgd",
@@ -51,9 +52,9 @@ def get_optimizer(optimizer_name, model, lr, weight_decay=0.0005, momentum=0.9):
     if optimizer_name == 'sgd':
         return SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
     elif optimizer_name == 'adam':
-        return Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        return Adam(model.parameters(), lr=lr, weight_decay=weight_decay, betas=momentum if isinstance(momentum, tuple) else (0.9, 0.999))
     elif optimizer_name == 'adamw':
-        return AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+        return AdamW(model.parameters(), lr=lr, weight_decay=weight_decay, betas=momentum if isinstance(momentum, tuple) else (0.9, 0.999))
     else:
         raise NotImplementedError(f"Optimizer {optimizer_name} not implemented")
 
