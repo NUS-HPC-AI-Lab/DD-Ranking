@@ -288,14 +288,14 @@ class AugmentationRobustnessEvaluator:
                 device=self.device
             )
             if (epoch + 1) % self.test_interval == 0:
-                metric = validate(
+                acc1 = validate(
                     model=model, 
                     loader=self.test_loader_real,
                     class_map=self.class_map,
                     device=self.device
                 )
-                if metric['top1'] > best_acc1:
-                    best_acc1 = metric['top1']
+                if acc1 > best_acc1:
+                    best_acc1 = acc1
 
         return best_acc1
         
@@ -343,14 +343,14 @@ class AugmentationRobustnessEvaluator:
                 device=self.device
             )
             if (epoch + 1) % self.test_interval == 0:
-                metric = validate(
+                acc1 = validate(
                     model=model, 
                     loader=self.test_loader_syn,
                     class_map=self.class_map,
                     device=self.device
                 )
-                if metric['top1'] > best_acc1:
-                    best_acc1 = metric['top1']
+                if acc1 > best_acc1:
+                    best_acc1 = acc1
         
         return best_acc1
 
