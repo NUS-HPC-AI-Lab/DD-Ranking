@@ -65,7 +65,7 @@ class HardLabelEvaluator:
         else:
             self.rank = 0
 
-        channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
+        channel, im_size, mean, std, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
             dataset, 
             real_data_path, 
             im_size, 
@@ -332,7 +332,7 @@ class HardLabelEvaluator:
         seed_list = [0, 1, 42, 1234, 3407]
         for i in range(self.num_eval):
             set_seed(seed_list[i])
-            logging(f"########################### {i+1}th Evaluation ###########################")
+            logging(f"================ EVALUATION RUN {i+1}/{self.num_eval} ================")
 
             syn_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
                 image_tensor=image_tensor,

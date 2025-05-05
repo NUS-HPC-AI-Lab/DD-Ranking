@@ -208,7 +208,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
         zca_images = zca(images).to("cpu")
         dst_test_syn = TensorDataset(zca_images, labels)
 
-    return channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv
+    return channel, im_size, mean, std,num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv
 
 
 def get_random_data_tensors(dataset_name, dataset, class_to_indices, n_images_per_class, class_map, eval_iter, saved_path=None):

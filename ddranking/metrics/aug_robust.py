@@ -13,7 +13,7 @@ from ddranking.utils import build_model, get_pretrained_model_path
 from ddranking.utils import TensorDataset, get_random_data_tensors, get_random_data_path, get_random_data_path_from_cifar, get_dataset
 from ddranking.utils import save_results, setup_dist, logging, broadcast_string
 from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, get_lr_scheduler
-from ddranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
+from ddranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss, MSEGTLoss
 from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
 from ddranking.config import Config
 
@@ -22,7 +22,7 @@ class AugmentationRobustnessEvaluator:
 
     def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
                  data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, label_type: str='soft', soft_label_mode: str='S', soft_label_criterion: str='kl', 
-                 optimizer: str='sgd', lr_scheduler: str='step', temperature: float=1.0, scale_loss: bool=False, step_size: int=None, weight_decay: float=0.0005, 
+                 optimizer: str='sgd', lr_scheduler: str='step', loss_fn_kwargs: dict=None, step_size: int=None, weight_decay: float=0.0005, 
                  momentum: float=0.9, num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, batch_size: int=256, save_path: str=None, 
                  stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', teacher_model_names: List[str]=None,
                  custom_train_trans: transforms.Compose=None, custom_val_trans: transforms.Compose=None, device: str="cuda", dist: bool=False):
@@ -40,8 +40,7 @@ class AugmentationRobustnessEvaluator:
             soft_label_criterion = self.config.get('soft_label_criterion')
             optimizer = self.config.get('optimizer')
             lr_scheduler = self.config.get('lr_scheduler')
-            temperature = self.config.get('temperature')
-            scale_loss = self.config.get('scale_loss')
+            loss_fn_kwargs = self.config.get('loss_fn_kwargs')
             step_size = self.config.get('step_size')
             weight_decay = self.config.get('weight_decay')
             momentum = self.config.get('momentum')
@@ -70,7 +69,7 @@ class AugmentationRobustnessEvaluator:
         else:
             self.rank = 0
 
-        channel, im_size, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
+        channel, im_size, mean, std, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
             dataset, 
             real_data_path, 
             im_size, 
@@ -79,6 +78,12 @@ class AugmentationRobustnessEvaluator:
             device
         )
         del dst_test_real
+
+        self.default_transform = transforms.Compose([
+            transforms.Resize(im_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ])
 
         self.dataset = dataset
         self.class_map = class_map
@@ -96,10 +101,10 @@ class AugmentationRobustnessEvaluator:
 
         self.label_type = label_type
         if label_type == 'soft':
-            assert soft_label_mode is not None and soft_label_criterion is not None and temperature is not None, "You must specify soft_label_mode, soft_label_criterion, and temperature when label_type is 'soft'"
+            assert soft_label_mode is not None and soft_label_criterion is not None and loss_fn_kwargs is not None, "You must specify soft_label_mode, soft_label_criterion, and loss_fn_kwargs when label_type is 'soft'"
             self.soft_label_mode = soft_label_mode
             self.soft_label_criterion = soft_label_criterion
-            self.temperature = temperature
+            self.loss_fn_kwargs = loss_fn_kwargs
 
         # data info
         self.im_size = im_size
@@ -113,7 +118,6 @@ class AugmentationRobustnessEvaluator:
         self.weight_decay = weight_decay
 
         self.momentum = momentum
-        self.scale_loss = scale_loss
         self.num_eval = num_eval
         self.model_name = model_name
         self.batch_size = batch_size
@@ -256,7 +260,7 @@ class AugmentationRobustnessEvaluator:
     def _compute_hard_label_metrics(self, model, image_tensor, image_path, lr, hard_labels, use_aug):
 
         if image_tensor is None:
-            hard_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
+            hard_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans if use_aug else self.default_transform)
         else:
             hard_label_dataset = TensorDataset(image_tensor, hard_labels)
 
@@ -283,9 +287,8 @@ class AugmentationRobustnessEvaluator:
                 tea_models=self.teacher_models,
                 device=self.device
             )
-            if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
+            if (epoch + 1) % self.test_interval == 0:
                 metric = validate(
-                    epoch=epoch,
                     model=model, 
                     loader=self.test_loader_real,
                     class_map=self.class_map,
@@ -303,7 +306,7 @@ class AugmentationRobustnessEvaluator:
             labels = soft_labels
             
         if image_tensor is None:
-            soft_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
+            soft_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans if use_aug else self.default_transform)
         else:
             soft_label_dataset = TensorDataset(image_tensor, labels)
 
@@ -314,9 +317,11 @@ class AugmentationRobustnessEvaluator:
         train_loader = DataLoader(soft_label_dataset, batch_size=self.batch_size, num_workers=self.num_workers, sampler=train_sampler)
 
         if self.soft_label_criterion == 'sce':
-            loss_fn = SoftCrossEntropyLoss(temperature=self.temperature, scale_loss=self.scale_loss).to(self.device)
+            loss_fn = SoftCrossEntropyLoss(**self.loss_fn_kwargs).to(self.device)
         elif self.soft_label_criterion == 'kl':
-            loss_fn = KLDivergenceLoss(temperature=self.temperature, scale_loss=self.scale_loss).to(self.device)
+            loss_fn = KLDivergenceLoss(**self.loss_fn_kwargs).to(self.device)
+        elif self.soft_label_criterion == 'mse_gt':
+            loss_fn = MSEGTLoss(**self.loss_fn_kwargs).to(self.device)
         else:
             raise NotImplementedError(f"Soft label criterion {self.soft_label_criterion} not implemented")
         
@@ -337,9 +342,8 @@ class AugmentationRobustnessEvaluator:
                 tea_models=self.teacher_models,
                 device=self.device
             )
-            if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
+            if (epoch + 1) % self.test_interval == 0:
                 metric = validate(
-                    epoch=epoch,
                     model=model, 
                     loader=self.test_loader_syn,
                     class_map=self.class_map,
@@ -514,7 +518,7 @@ class AugmentationRobustnessEvaluator:
         seed_list = [0, 1, 42, 1234, 3407]
         for i in range(self.num_eval):
             set_seed(seed_list[i])
-            logging(f"########################### {i+1}th Evaluation ###########################")
+            logging(f"================ EVALUATION RUN {i+1}/{self.num_eval} ================")
 
             syn_data_with_aug_acc, best_lr = self._compute_with_aug_metrics_helper(
                 image_tensor=image_tensor,
