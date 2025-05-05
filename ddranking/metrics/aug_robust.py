@@ -88,10 +88,8 @@ class AugmentationRobustnessEvaluator:
         self.dst_train = dst_train
 
         if self.use_dist:
-            test_sampler_real = torch.utils.data.distributed.DistributedSampler(dst_test_real)
             test_sampler_syn = torch.utils.data.distributed.DistributedSampler(dst_test_syn)
         else:
-            test_sampler_real = torch.utils.data.RandomSampler(dst_test_real)
             test_sampler_syn = torch.utils.data.RandomSampler(dst_test_syn)
 
         self.test_loader_syn = DataLoader(dst_test_syn, batch_size=batch_size, num_workers=num_workers, sampler=test_sampler_syn)
@@ -115,6 +113,7 @@ class AugmentationRobustnessEvaluator:
         self.weight_decay = weight_decay
 
         self.momentum = momentum
+        self.scale_loss = scale_loss
         self.num_eval = num_eval
         self.model_name = model_name
         self.batch_size = batch_size
@@ -449,7 +448,6 @@ class AugmentationRobustnessEvaluator:
                 )
         return with_aug_acc, best_lr
     
-
     def _compute_without_aug_metrics_helper(self, image_tensor, image_path, hard_labels, soft_labels, lr, hyper_param_search=False):
         if hyper_param_search:
             if self.label_type == 'hard':

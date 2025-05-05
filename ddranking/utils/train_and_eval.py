@@ -30,6 +30,8 @@ REAL_DATA_TRAINING_CONFIG = {
         "lr": 0.01,
         "num_epochs": 100,
         "batch_size": 512,
+        "step_size": 0,
+        "gamma": 0,
         "momentum": (0.9, 0.999)
     },
     "TinyImageNet-ConvNet-4-BN": {
@@ -59,10 +61,10 @@ def get_optimizer(optimizer_name, model, lr, weight_decay=0.0005, momentum=0.9):
     else:
         raise NotImplementedError(f"Optimizer {optimizer_name} not implemented")
 
-def get_lr_scheduler(lr_scheduler_name, optimizer, num_epochs=None, step_size=None):
+def get_lr_scheduler(lr_scheduler_name, optimizer, num_epochs=None, step_size=None, gamma=None):
     if lr_scheduler_name == 'step':
         assert step_size is not None, "step_size must be provided for step scheduler"
-        return StepLR(optimizer, step_size=step_size, gamma=0.1)
+        return StepLR(optimizer, step_size=step_size, gamma=gamma if gamma is not None else 0.1)
     elif lr_scheduler_name == 'cosine':
         assert num_epochs is not None, "num_epochs must be provided for cosine scheduler"
         return CosineAnnealingLR(optimizer, T_max=num_epochs)
@@ -78,7 +80,6 @@ def get_lr_scheduler(lr_scheduler_name, optimizer, num_epochs=None, step_size=No
         return LambdaLR(optimizer, lambda step: (1.0 - step / num_epochs) if step <= num_epochs else 0, last_epoch=-1)
     else:
         raise NotImplementedError(f"LR Scheduler {lr_scheduler_name} not implemented")
-
 
 def train_one_epoch(
     epoch,
@@ -161,7 +162,6 @@ def train_one_epoch(
     
     if lr_scheduler is not None:
         lr_scheduler.step()
-
 
 def validate(
     model,
