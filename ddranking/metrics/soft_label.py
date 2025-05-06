@@ -22,11 +22,11 @@ from ddranking.utils import REAL_DATA_TRAINING_CONFIG
 class SoftLabelEvaluator:
 
     def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
-                 soft_label_criterion: str='kl', scale_loss=False, data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, soft_label_mode: str='S', 
-                 optimizer: str='sgd', lr_scheduler: str='step', temperature: float=1.0, step_size: int=None, weight_decay: float=0.0005, momentum: float=0.9, 
-                 num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, use_aug_for_hard: bool=False, random_data_format: str='tensors', 
-                 random_data_path: str=None, real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None, stu_use_torchvision: bool=False, 
-                 tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', teacher_model_names: List[str]=None, 
+                 soft_label_criterion: str='kl', loss_fn_kwargs: dict=None, data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, soft_label_mode: str='S', 
+                 optimizer: str='sgd', lr_scheduler: str='step', step_size: int=None, weight_decay: float=0.0005, momentum: float=0.9, num_eval: int=5, 
+                 im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, use_aug_for_hard: bool=False, random_data_format: str='tensors', 
+                 random_data_path: str=None, real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None, 
+                 stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', teacher_model_names: List[str]=None, 
                  custom_train_trans: transforms.Compose=None, custom_val_trans: transforms.Compose=None, device: str="cuda", dist: bool=False):
 
         if config is not None:
@@ -518,40 +518,40 @@ class SoftLabelEvaluator:
             )
             logging(f"Syn data hard label acc: {syn_data_hard_label_acc:.2f}% under learning rate {best_lr}")
 
-            full_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
-                image_tensor=None,
-                image_path=None,
-                hard_labels=None,
-                lr=self.default_lr,
-                mode='real',
-                hyper_param_search=False
-            )
-            logging(f"Full data hard label acc: {full_data_hard_label_acc:.2f}% under learning rate {best_lr}")
+            # full_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
+            #     image_tensor=None,
+            #     image_path=None,
+            #     hard_labels=None,
+            #     lr=self.default_lr,
+            #     mode='real',
+            #     hyper_param_search=False
+            # )
+            # logging(f"Full data hard label acc: {full_data_hard_label_acc:.2f}% under learning rate {best_lr}")
 
-            syn_data_soft_label_acc, best_lr = self._compute_soft_label_metrics_helper(
-                image_tensor=image_tensor,
-                image_path=image_path,
-                soft_labels=soft_labels,
-                lr=syn_lr,
-                hyper_param_search=True if syn_lr is None else False
-            )
-            logging(f"Syn data soft label acc: {syn_data_soft_label_acc:.2f}% under learning rate {best_lr}")
+            # syn_data_soft_label_acc, best_lr = self._compute_soft_label_metrics_helper(
+            #     image_tensor=image_tensor,
+            #     image_path=image_path,
+            #     soft_labels=soft_labels,
+            #     lr=syn_lr,
+            #     hyper_param_search=True if syn_lr is None else False
+            # )
+            # logging(f"Syn data soft label acc: {syn_data_soft_label_acc:.2f}% under learning rate {best_lr}")
 
-            random_data_path, random_data_tensors, random_data_soft_labels = self._get_random_data_helper(eval_iter=i)
-            random_data_soft_label_acc, best_lr = self._compute_soft_label_metrics_helper(
-                image_tensor=random_data_tensors,
-                image_path=random_data_path,
-                soft_labels=random_data_soft_labels,
-                lr=None,
-                hyper_param_search=True
-            )
-            logging(f"Random data soft label acc: {random_data_soft_label_acc:.2f}% under learning rate {best_lr}")
+            # random_data_path, random_data_tensors, random_data_soft_labels = self._get_random_data_helper(eval_iter=i)
+            # random_data_soft_label_acc, best_lr = self._compute_soft_label_metrics_helper(
+            #     image_tensor=random_data_tensors,
+            #     image_path=random_data_path,
+            #     soft_labels=random_data_soft_labels,
+            #     lr=None,
+            #     hyper_param_search=True
+            # )
+            # logging(f"Random data soft label acc: {random_data_soft_label_acc:.2f}% under learning rate {best_lr}")
 
-            hlr = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
-            ior = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
+            # hlr = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
+            # ior = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
 
-            hard_label_recovery.append(hlr)
-            improvement_over_random.append(ior)
+            # hard_label_recovery.append(hlr)
+            # improvement_over_random.append(ior)
         
         if self.use_dist:
             hard_label_recovery_tensor = torch.tensor(hard_label_recovery, device=self.device)
