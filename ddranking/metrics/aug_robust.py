@@ -24,8 +24,9 @@ class AugmentationRobustnessEvaluator:
                  data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, label_type: str='soft', soft_label_mode: str='S', soft_label_criterion: str='kl', 
                  optimizer: str='sgd', lr_scheduler: str='step', loss_fn_kwargs: dict=None, step_size: int=None, weight_decay: float=0.0005, 
                  momentum: float=0.9, num_eval: int=5, im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, batch_size: int=256, save_path: str=None, 
-                 stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', teacher_model_names: List[str]=None,
-                 custom_train_trans: transforms.Compose=None, custom_val_trans: transforms.Compose=None, device: str="cuda", dist: bool=False):
+                 stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', 
+                 teacher_model_names: List[str]=None, random_data_path: str=None, random_data_format: str='image', custom_train_trans: transforms.Compose=None, 
+                 custom_val_trans: transforms.Compose=None, device: str="cuda", dist: bool=False):
 
         if config is not None:
             self.config = config
@@ -111,6 +112,9 @@ class AugmentationRobustnessEvaluator:
         self.num_classes = num_classes
         self.ipc = ipc
         self.custom_train_trans = custom_train_trans
+
+        self.random_data_path = random_data_path
+        self.random_data_format = random_data_format
 
         # training info
         self.optimizer = optimizer
@@ -418,7 +422,8 @@ class AugmentationRobustnessEvaluator:
                 with_aug_acc, best_lr = self._hyper_param_search_for_soft_label(
                     image_tensor=image_tensor,
                     image_path=image_path,
-                    soft_labels=soft_labels
+                    soft_labels=soft_labels,
+                    use_aug=True
                 )
         else:
             best_lr = lr
