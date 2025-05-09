@@ -67,13 +67,10 @@ class SoftLabelEvaluator:
             dist = self.config.get('dist')
         
         self.use_dist = dist
+        self.device = device
         # setup dist
         if self.use_dist:
-            self.rank = setup_dist(device)
-            self.world_size = torch.distributed.get_world_size()
-            self.device = f'cuda:{self.rank}'
-        else:
-            self.rank = 0
+            setup_dist(self)
 
         channel, im_size, mean, std, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
             dataset, 
@@ -101,8 +98,6 @@ class SoftLabelEvaluator:
 
         self.soft_label_mode = soft_label_mode
         self.soft_label_criterion = soft_label_criterion
-        # self.scale_loss = scale_loss
-        # self.temperature = temperature
         self.loss_fn_kwargs = loss_fn_kwargs
 
         # data info
@@ -167,11 +162,13 @@ class SoftLabelEvaluator:
         ]
         for teacher_model in self.teacher_models:
             teacher_model.eval()
+            teacher_model.to(self.device)
+
         if self.use_dist:
             self.teacher_models = [
                 torch.nn.parallel.DistributedDataParallel(
                     teacher_model,
-                    device_ids=[self.rank]
+                    device_ids=[self.gpu]
                 )
                 for teacher_model in self.teacher_models
             ]
@@ -247,7 +244,7 @@ class SoftLabelEvaluator:
                 device=self.device
             )
             if self.use_dist:
-                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.gpu])
             acc = self._compute_soft_label_metrics(
                 model=model, 
                 image_tensor=image_tensor,
@@ -397,7 +394,7 @@ class SoftLabelEvaluator:
                 device=self.device
             )
             if self.use_dist:
-                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.gpu])
             hard_label_acc = self._compute_hard_label_metrics(
                 model=model, 
                 image_tensor=image_tensor,
@@ -426,7 +423,7 @@ class SoftLabelEvaluator:
                 device=self.device
             )
             if self.use_dist:
-                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.gpu])
             soft_label_acc = self._compute_soft_label_metrics(
                 model=model,
                 image_tensor=image_tensor,

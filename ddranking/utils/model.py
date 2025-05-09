@@ -138,7 +138,7 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
     else:
         model = get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained, model_path=model_path)
     
-    model = model.to(device)
+    model.to(device)
     return model
 
 

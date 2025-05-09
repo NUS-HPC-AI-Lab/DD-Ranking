@@ -19,16 +19,57 @@ def save_results(results, save_path):
     df = pd.DataFrame(results)
     df.to_csv(save_path, index=False)
 
-def setup_dist(device):
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    torch.cuda.set_device(local_rank)  # This ensures each process uses the correct GPU
-    torch.distributed.init_process_group(backend="nccl" if device == "cuda" else "gloo")
-    return local_rank
+
+def setup_for_distributed(is_master):
+    """
+    This function disables printing when not in master process
+    """
+    import builtins as __builtin__
+
+    builtin_print = __builtin__.print
+
+    def print(*args, **kwargs):
+        force = kwargs.pop("force", False)
+        if is_master or force:
+            builtin_print(*args, **kwargs)
+
+    __builtin__.print = print
+
+
+def setup_dist(args):
+    # local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    # torch.cuda.set_device(local_rank)  # This ensures each process uses the correct GPU
+    # torch.distributed.init_process_group(backend="nccl" if device == "cuda" else "gloo")
+    if "RANK" in os.environ and "WORLD_SIZE" in os.environ:
+        args.rank = int(os.environ["RANK"])
+        args.world_size = int(os.environ["WORLD_SIZE"])
+        args.gpu = int(os.environ["LOCAL_RANK"])
+    elif "SLURM_PROCID" in os.environ:
+        args.rank = int(os.environ["SLURM_PROCID"])
+        args.gpu = args.rank % torch.cuda.device_count()
+    elif hasattr(args, "rank"):
+        pass
+    else:
+        print("Not using distributed mode")
+        args.distributed = False
+        return
+
+    args.distributed = True
+
+    torch.cuda.set_device(args.gpu)
+    args.dist_backend = "nccl"
+    torch.distributed.init_process_group(
+        backend=args.dist_backend, world_size=args.world_size, rank=args.rank
+    )
+    torch.distributed.barrier()
+    setup_for_distributed(args.rank == 0)
+
 
 def logging(message):
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    if local_rank == 0:
+    rank = int(os.environ.get("RANK", 0))
+    if rank == 0:
         print(message)
+
 
 def broadcast_string(string_data, device, src=0):
     rank = torch.distributed.get_rank()

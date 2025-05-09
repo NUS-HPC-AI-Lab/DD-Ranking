@@ -59,11 +59,9 @@ class HardLabelEvaluator:
         self.use_dist = dist
 
         if self.use_dist:
-            self.rank = setup_dist(device)
-            self.world_size = torch.distributed.get_world_size()
-            self.device = f'cuda:{self.rank}'
-        else:
-            self.rank = 0
+            setup_dist(self)
+
+        self.device = device
 
         channel, im_size, mean, std, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
             dataset, 
@@ -173,7 +171,7 @@ class HardLabelEvaluator:
                 device=self.device
             )
             if self.use_dist:
-                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.gpu])
             acc = self._compute_hard_label_metrics(
                 model=model, 
                 image_tensor=image_tensor,
@@ -206,7 +204,7 @@ class HardLabelEvaluator:
                 device=self.device
             )
             if self.use_dist:
-                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.gpu])
             hard_label_acc = self._compute_hard_label_metrics(
                 model=model, 
                 image_tensor=image_tensor,
