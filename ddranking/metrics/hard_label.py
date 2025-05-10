@@ -24,7 +24,7 @@ class HardLabelEvaluator:
                  step_size: int=None, weight_decay: float=0.0005, momentum: float=0.9, use_zca: bool=False, num_eval: int=5, 
                  im_size: tuple=(32, 32), num_epochs: int=300, real_batch_size: int=256, syn_batch_size: int=256, use_torchvision: bool=False,
                  default_lr: float=0.01, num_workers: int=4, save_path: str=None, custom_train_trans=None, custom_val_trans=None, device: str="cuda", 
-                 dist: bool=False, random_data_format: str='tensors', random_data_path: str=None):
+                 dist: bool=False, random_data_format: str='tensor', random_data_path: str=None):
         
         if config is not None:
             self.config = config
@@ -262,14 +262,13 @@ class HardLabelEvaluator:
                 loader=train_loader, 
                 loss_fn=loss_fn, 
                 optimizer=optimizer,
-                aug_func=self.aug_func,
+                aug_func=self.aug_func if mode == 'syn' else None,
                 lr_scheduler=lr_scheduler,
                 class_map=self.class_map if mode == 'real' else None,
                 device=self.device
             )
-            if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
+            if (epoch + 1) % self.test_interval == 0:
                 metric = validate(
-                    epoch=epoch,
                     model=model, 
                     loader=self.test_loader_real if mode == 'real' else self.test_loader_syn,
                     class_map=self.class_map,
