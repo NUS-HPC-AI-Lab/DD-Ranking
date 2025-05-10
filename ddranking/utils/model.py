@@ -6,14 +6,15 @@ from .networks import ConvNet, MLP, LeNet, AlexNet, VGG, ResNet, BasicBlock, Bot
 
 
 def parse_model_name(model_name):
-    try:
+    
+    if "-" not in model_name:
+        depth, batchnorm = 0, False
+    else:
         depth = int(model_name.split("-")[1])
         if "BN" in model_name and len(model_name.split("-")) > 2 and model_name.split("-")[2] == "BN":
             batchnorm = True
         else:
             batchnorm = False
-    except:
-        raise ValueError("Model name must be in the format of <model_name>-<depth>-[<batchnorm>]")
     return depth, batchnorm
         
 
@@ -42,12 +43,14 @@ def get_lenet(model_name, im_size, channel, num_classes, pretrained=False, model
 def get_alexnet(model_name, im_size, channel, num_classes, use_torchvision=False, pretrained=False, model_path=None):
     # print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
     if use_torchvision:
-        return torchvision.models.alexnet(num_classes=num_classes, pretrained=pretrained)
+        model = torchvision.models.alexnet(num_classes=num_classes, pretrained=False)
+        if im_size == (32, 32) or im_size == (64, 64):
+            model.features[0] = torch.nn.Conv2d(3, 64, kernel_size=5, stride=1, padding=2)
     else:
         model = AlexNet(channel=channel, num_classes=num_classes, res=im_size[0])
-        if pretrained:
-            model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
-        return model
+    if pretrained:
+        model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
+    return model
 
 def get_vgg(model_name, im_size, channel, num_classes, depth=11, batchnorm=False, use_torchvision=False, pretrained=False, model_path=None):
     # print(f"Creating {model_name} with channel={channel}, num_classes={num_classes}")
