@@ -9,14 +9,14 @@ def parse_model_name(model_name):
     if "-" not in model_name:
         return 0, False
     try:
-        depth = int(model_name.split("-")[1])
+        depth = model_name.split("-")[1]
         if "BN" in model_name and len(model_name.split("-")) > 2 and model_name.split("-")[2] == "BN":
             batchnorm = True
         else:
             batchnorm = False
     except:
-        raise ValueError("Model name must be in the format of <model_name>-[<depth>]-[<batchnorm>]")
-    return depth, batchnorm
+        raise ValueError("Model name must be in the format of <model_name>-[<config>]-[<batchnorm>]")
+    return config, batchnorm
         
 
 def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, pretrained=False, model_path=None):
@@ -112,11 +112,13 @@ def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=Fa
 
 def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrained=False, model_path=None):
     try:
-        model = torchvision.models.get_model(model_name, pretrained=pretrained)
+        model = torchvision.models.get_model(model_name, pretrained=False)
     except:
-        model = timm.create_model(model_name, pretrained=pretrained)
+        model = timm.create_model(model_name, pretrained=False)
     finally:
         raise ValueError(f"Model {model_name} not found")
+    if pretrained:
+        model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
 
