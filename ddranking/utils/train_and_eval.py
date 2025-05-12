@@ -37,7 +37,7 @@ REAL_DATA_TRAINING_CONFIG = {
     "TinyImageNet-ConvNet-4-BN": {
         "optimizer": "sgd",
         "lr_scheduler": "step",
-        "weight_decay": 0.0001,
+        "weight_decay": 0.0005,
         "momentum": 0.9,
         "num_epochs": 100,
         "batch_size": 512,
@@ -50,10 +50,21 @@ REAL_DATA_TRAINING_CONFIG = {
         "lr_scheduler": "step",
         "weight_decay": 0.0005,
         "momentum": 0.9,
-        "num_epochs": 1000,
+        "num_epochs": 200,
         "batch_size": 512,
         "lr": 0.01,
-        "step_size": 500,
+        "step_size": 100,
+        "gamma": 0.1
+    },
+    "CIFAR10-ConvNet-3-BN": {
+        "optimizer": "sgd",
+        "lr_scheduler": "step",
+        "weight_decay": 0.0005,
+        "momentum": 0.9,
+        "num_epochs": 200,
+        "batch_size": 512,
+        "lr": 0.01,
+        "step_size": 100,
         "gamma": 0.1
     },
     "CIFAR100-ConvNet-3": {
@@ -61,43 +72,21 @@ REAL_DATA_TRAINING_CONFIG = {
         "lr_scheduler": "step",
         "weight_decay": 0.0005,
         "momentum": 0.9,
-        "num_epochs": 1000,
+        "num_epochs": 200,
         "batch_size": 512,
         "lr": 0.01,
-        "step_size": 500,
+        "step_size": 100,
         "gamma": 0.1
     },
-    "CIFAR100-ResNet-18-BN": {
+    "CIFAR100-ConvNet-3-BN": {
         "optimizer": "sgd",
         "lr_scheduler": "step",
         "weight_decay": 0.0005,
         "momentum": 0.9,
-        "num_epochs": 100,
+        "num_epochs": 200,
         "batch_size": 512,
         "lr": 0.01,
-        "step_size": 50,
-        "gamma": 0.1
-    },
-    "CIFAR100-AlexNet": {
-        "optimizer": "sgd",
-        "lr_scheduler": "step",
-        "weight_decay": 0.0005,
-        "momentum": 0.9,
-        "num_epochs": 100,
-        "batch_size": 512,
-        "lr": 0.01,
-        "step_size": 50,
-        "gamma": 0.1
-    },
-    "CIFAR100-VGG-11": {
-        "optimizer": "sgd",
-        "lr_scheduler": "step",
-        "weight_decay": 0.0005,
-        "momentum": 0.9,
-        "num_epochs": 100,
-        "batch_size": 512,
-        "lr": 0.01,
-        "step_size": 50,
+        "step_size": 100,
         "gamma": 0.1
     }
 }

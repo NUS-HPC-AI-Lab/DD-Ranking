@@ -6,16 +6,17 @@ from .networks import ConvNet, MLP, LeNet, AlexNet, VGG, ResNet, BasicBlock, Bot
 
 
 def parse_model_name(model_name):
-    
     if "-" not in model_name:
-        depth, batchnorm = 0, False
-    else:
-        depth = int(model_name.split("-")[1])
+        return 0, False
+    try:
+        depth = model_name.split("-")[1]
         if "BN" in model_name and len(model_name.split("-")) > 2 and model_name.split("-")[2] == "BN":
             batchnorm = True
         else:
             batchnorm = False
-    return depth, batchnorm
+    except:
+        raise ValueError("Model name must be in the format of <model_name>-[<config>]-[<batchnorm>]")
+    return config, batchnorm
         
 
 def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, pretrained=False, model_path=None):
@@ -45,7 +46,7 @@ def get_alexnet(model_name, im_size, channel, num_classes, use_torchvision=False
     if use_torchvision:
         model = torchvision.models.alexnet(num_classes=num_classes, pretrained=False)
         if im_size == (32, 32) or im_size == (64, 64):
-            model.features[0] = torch.nn.Conv2d(3, 64, kernel_size=5, stride=1, padding=2)
+            model.features[0] = torch.nn.Conv2d(3, 64, kernel_size=(3,3), stride=(1,1), padding=(1,1), bias=False)
     else:
         model = AlexNet(channel=channel, num_classes=num_classes, res=im_size[0])
     if pretrained:
@@ -109,11 +110,11 @@ def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=Fa
     return model
 
 
-def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrained=False, model_path=None):
+def get_other_models(model_name, num_classes, im_size=(32, 32), pretrained=False):
     try:
-        model = torchvision.models.get_model(model_name, pretrained=pretrained)
+        model = torchvision.models.get_model(model_name, num_classes=num_classes, pretrained=pretrained)
     except:
-        model = timm.create_model(model_name, pretrained=pretrained)
+        model = timm.create_model(model_name, num_classes=num_classes, pretrained=pretrained)
     finally:
         raise ValueError(f"Model {model_name} not found")
     return model
@@ -139,9 +140,9 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
         model = get_vgg(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, batchnorm=batchnorm, 
                         use_torchvision=use_torchvision, pretrained=pretrained, model_path=model_path)
     else:
-        model = get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained, model_path=model_path)
+        model = get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained)
     
-    model = model.to(device)
+    model.to(device)
     return model
 
 
