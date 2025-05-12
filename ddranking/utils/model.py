@@ -9,14 +9,14 @@ def parse_model_name(model_name):
     if "-" not in model_name:
         return 0, False
     try:
-        depth = model_name.split("-")[1]
+        depth = int(model_name.split("-")[1])
         if "BN" in model_name and len(model_name.split("-")) > 2 and model_name.split("-")[2] == "BN":
             batchnorm = True
         else:
             batchnorm = False
     except:
-        raise ValueError("Model name must be in the format of <model_name>-[<config>]-[<batchnorm>]")
-    return config, batchnorm
+        raise ValueError("Model name must be in the format of <model_name>-[<depth>]-[<batchnorm>]")
+    return depth, batchnorm
         
 
 def get_convnet(model_name, im_size, channel, num_classes, net_depth, net_norm, pretrained=False, model_path=None):
