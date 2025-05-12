@@ -110,15 +110,13 @@ def get_resnet(model_name, im_size, channel, num_classes, depth=18, batchnorm=Fa
     return model
 
 
-def get_other_models(model_name, channel, num_classes, im_size=(32, 32), pretrained=False, model_path=None):
+def get_other_models(model_name, num_classes, im_size=(32, 32), pretrained=False):
     try:
-        model = torchvision.models.get_model(model_name, pretrained=False)
+        model = torchvision.models.get_model(model_name, num_classes=num_classes, pretrained=pretrained)
     except:
-        model = timm.create_model(model_name, pretrained=False)
+        model = timm.create_model(model_name, num_classes=num_classes, pretrained=pretrained)
     finally:
         raise ValueError(f"Model {model_name} not found")
-    if pretrained:
-        model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
     return model
 
 
@@ -142,7 +140,7 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
         model = get_vgg(model_name, im_size=im_size, channel=3, num_classes=num_classes, depth=depth, batchnorm=batchnorm, 
                         use_torchvision=use_torchvision, pretrained=pretrained, model_path=model_path)
     else:
-        model = get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained, model_path=model_path)
+        model = get_other_models(model_name, num_classes=num_classes, im_size=im_size, pretrained=pretrained)
     
     model.to(device)
     return model
