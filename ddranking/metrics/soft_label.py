@@ -71,6 +71,13 @@ class SoftLabelEvaluator:
         # setup dist
         if self.use_dist:
             setup_dist(self)
+        else:
+            self.rank = 0
+            self.gpu = 0
+            self.world_size = 1
+        
+        real_batch_size = real_batch_size // self.world_size
+        syn_batch_size = syn_batch_size // self.world_size
 
         channel, im_size, mean, std, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
             dataset, 
@@ -545,6 +552,7 @@ class SoftLabelEvaluator:
             logging(f"Random data soft label acc: {random_data_soft_label_acc:.2f}% under learning rate {best_lr}")
 
             hlr = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
+            hlr = 1.00 * syn_data_hard_label_acc
             ior = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
 
             hard_label_recovery.append(hlr)

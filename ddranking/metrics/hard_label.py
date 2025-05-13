@@ -60,7 +60,14 @@ class HardLabelEvaluator:
 
         if self.use_dist:
             setup_dist(self)
+        else:
+            self.rank = 0
+            self.gpu = 0
+            self.world_size = 1
 
+        real_batch_size = real_batch_size // self.world_size
+        syn_batch_size = syn_batch_size // self.world_size
+    
         self.device = device
 
         channel, im_size, mean, std, num_classes, dst_train, dst_test_real, dst_test_syn, class_map, class_map_inv = get_dataset(
