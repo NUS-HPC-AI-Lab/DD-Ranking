@@ -114,9 +114,10 @@ def get_other_models(model_name, num_classes, im_size=(32, 32), pretrained=False
     try:
         model = torchvision.models.get_model(model_name, num_classes=num_classes, pretrained=pretrained)
     except:
-        model = timm.create_model(model_name, num_classes=num_classes, pretrained=pretrained)
-    finally:
-        raise ValueError(f"Model {model_name} not found")
+        try:
+            model = timm.create_model(model_name, num_classes=num_classes, pretrained=pretrained)
+        except:
+            raise ValueError(f"Model {model_name} not found")
     return model
 
 
@@ -148,4 +149,6 @@ def build_model(model_name: str, num_classes: int, im_size: tuple, pretrained: b
 
 def get_pretrained_model_path(teacher_dir, model_names, dataset):
     
-    return [os.path.join(os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_best.pt")) for model_name in model_names]
+    return [os.path.join(os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_best.pt")) 
+            if os.path.exists(os.path.join(os.path.join(teacher_dir, f"{dataset}", f"{model_name}", "ckpt_best.pt"))) 
+            else None for model_name in model_names]

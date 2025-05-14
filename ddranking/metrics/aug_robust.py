@@ -158,7 +158,7 @@ class AugmentationRobustnessEvaluator:
             pretrained_model_paths = get_pretrained_model_path(teacher_dir, teacher_model_names, dataset)
             self.teacher_models = [
                 build_model(
-                    model_name, 
+                    teacher_model_name, 
                     num_classes=self.num_classes, 
                     im_size=self.im_size,
                     pretrained=True, 
@@ -166,7 +166,7 @@ class AugmentationRobustnessEvaluator:
                     model_path=pretrained_model_path,
                     use_torchvision=tea_use_torchvision
                 )
-                for pretrained_model_path in pretrained_model_paths
+                for teacher_model_name, pretrained_model_path in zip(teacher_model_names, pretrained_model_paths)
             ]
             for teacher_model in self.teacher_models:
                 teacher_model.eval()

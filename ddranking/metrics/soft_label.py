@@ -157,7 +157,7 @@ class SoftLabelEvaluator:
         pretrained_model_paths = get_pretrained_model_path(teacher_dir, teacher_model_names, dataset)
         self.teacher_models = [
             build_model(
-                model_name, 
+                teacher_model_name, 
                 num_classes=self.num_classes, 
                 im_size=self.im_size,
                 pretrained=True, 
@@ -165,7 +165,7 @@ class SoftLabelEvaluator:
                 model_path=pretrained_model_path,
                 use_torchvision=tea_use_torchvision
             )
-            for pretrained_model_path in pretrained_model_paths
+            for teacher_model_name, pretrained_model_path in zip(teacher_model_names, pretrained_model_paths)
         ]
         for teacher_model in self.teacher_models:
             teacher_model.eval()
@@ -552,7 +552,6 @@ class SoftLabelEvaluator:
             logging(f"Random data soft label acc: {random_data_soft_label_acc:.2f}% under learning rate {best_lr}")
 
             hlr = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
-            hlr = 1.00 * syn_data_hard_label_acc
             ior = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
 
             hard_label_recovery.append(hlr)
