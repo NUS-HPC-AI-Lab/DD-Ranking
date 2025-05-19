@@ -16,7 +16,7 @@ from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, 
 from ddranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss, MSEGTLoss
 from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
 from ddranking.config import Config
-from ddranking.utils import REAL_DATA_TRAINING_CONFIG
+from ddranking.utils import REAL_DATA_TRAINING_CONFIG, REAL_DATA_ACC_CACHE
 
 
 class SoftLabelEvaluator:
@@ -25,7 +25,7 @@ class SoftLabelEvaluator:
                  soft_label_criterion: str='kl', loss_fn_kwargs: dict=None, data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, soft_label_mode: str='S', 
                  optimizer: str='sgd', lr_scheduler: str='step', step_size: int=None, weight_decay: float=0.0005, momentum: float=0.9, num_eval: int=5, 
                  im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, use_aug_for_hard: bool=False, random_data_format: str='tensors', 
-                 random_data_path: str=None, real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None, 
+                 random_data_path: str=None, real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None, eval_full_data: bool=False,
                  stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', teacher_model_names: List[str]=None, 
                  custom_train_trans: transforms.Compose=None, custom_val_trans: transforms.Compose=None, device: str="cuda", dist: bool=False):
 
@@ -56,6 +56,7 @@ class SoftLabelEvaluator:
             default_lr = self.config.get('default_lr')
             step_size = self.config.get('step_size')
             save_path = self.config.get('save_path')
+            eval_full_data = self.config.get('eval_full_data')
             num_workers = self.config.get('num_workers')
             stu_use_torchvision = self.config.get('stu_use_torchvision')
             tea_use_torchvision = self.config.get('tea_use_torchvision')
@@ -130,6 +131,7 @@ class SoftLabelEvaluator:
         self.step_size = step_size
         self.test_interval = 20
         self.num_workers = num_workers
+        self.eval_full_data = eval_full_data
         self.device = device
 
         # data augmentation
@@ -522,15 +524,21 @@ class SoftLabelEvaluator:
             )
             logging(f"Syn data hard label acc: {syn_data_hard_label_acc:.2f}% under learning rate {best_lr}")
 
-            full_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
-                image_tensor=None,
-                image_path=None,
-                hard_labels=None,
-                lr=self.default_lr,
-                mode='real',
-                hyper_param_search=False
-            )
-            logging(f"Full data hard label acc: {full_data_hard_label_acc:.2f}% under learning rate {best_lr}")
+            if self.eval_full_data:
+                full_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
+                    image_tensor=None,
+                    image_path=None,
+                    hard_labels=None,
+                    lr=self.default_lr,
+                    mode='real',
+                    hyper_param_search=False
+                )
+                logging(f"Full data hard label acc: {full_data_hard_label_acc:.2f}% under learning rate {best_lr}")
+            else:
+                key = f"{self.dataset}-{self.model_name}"
+                if key not in REAL_DATA_ACC_CACHE:
+                    raise ValueError(f"Full data acc for {key} not found in cache. Please set eval_full_data to True.")
+                full_data_hard_label_acc = REAL_DATA_ACC_CACHE[key]
 
             syn_data_soft_label_acc, best_lr = self._compute_soft_label_metrics_helper(
                 image_tensor=image_tensor,

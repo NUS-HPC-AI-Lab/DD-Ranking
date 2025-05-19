@@ -9,7 +9,13 @@ from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, LambdaLR
 from collections import OrderedDict
 from .meter import MetricLogger, SmoothedValue, accuracy
 from .misc import reduce_across_processes, is_dist_avail_and_initialized
+from ..loss import MSEGTLoss
 
+
+REAL_DATA_ACC_CACHE = {
+    "ImageNet1K-ResNet-18-BN": 56.5,
+    "TinyImageNet-ResNet-18-BN": 46.4
+}
 
 REAL_DATA_TRAINING_CONFIG = {
     "ImageNet1K-ResNet-18-BN": {
@@ -170,13 +176,18 @@ def train_one_epoch(
         images, targets = images.to(device), targets.to(device)
         images = aug_func(images)
 
+        raw_targets = targets.clone()
         if soft_label_mode == 'M':
             tea_outputs = [tea_model(images) for tea_model in tea_models]
             tea_output = torch.stack(tea_outputs, dim=0).mean(dim=0)
             targets = tea_output
 
         output = stu_model(images)
-        loss = loss_fn(output, targets)
+
+        if isinstance(loss_fn, MSEGTLoss):
+            loss = loss_fn(output, targets, raw_targets)
+        else:
+            loss = loss_fn(output, targets)
         
         loss = loss / grad_accum_steps
         accumulated_loss += loss.item()
@@ -206,6 +217,7 @@ def train_one_epoch(
     
     if lr_scheduler is not None:
         lr_scheduler.step()
+
 
 def validate(
     model,
