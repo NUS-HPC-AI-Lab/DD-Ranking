@@ -28,7 +28,7 @@ dd_ranking.metrics.HardLabelEvaluator(config=None,
     custom_val_trans = None,
     device: str = "cuda"
 )
-[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/metrics/hard_label.py)
+[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/metrics/hard_label.py)
 </div>
 
 A class for evaluating the performance of a dataset distillation method with hard labels. User is able to modify the attributes as needed.

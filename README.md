@@ -13,7 +13,7 @@
 Fair and benchmark for dataset distillation.
 </h3> -->
 <p align="center">
-| <a href="https://nus-hpc-ai-lab.github.io/DD-Ranking/"><b>Documentation</b></a> | <a href="https://huggingface.co/spaces/logits/DD-Ranking"><b>Leaderboard</b></a> | <a href=""><b>Paper </b> (Coming Soon)</a> | <a href=""><b>Twitter/X</b> (Coming Soon)</a> | <a href="https://join.slack.com/t/dd-ranking/shared_invite/zt-2xlcuq1mf-hmVcfrtqrIB3qXRjwgB03A"><b>Developer Slack</b></a> |
+| <a href="https://nus-hpc-ai-lab.github.io/DD-Ranking/"><b>Documentation</b></a> | <a href="https://huggingface.co/spaces/logits/DD-Ranking"><b>Leaderboard</b></a> | <a href=""><b>Paper </b> (Coming Soon)</a> | <a href="https://x.com/Richard91316073/status/1890296645486801230"><b>Twitter/X</b></a> | <a href="https://join.slack.com/t/dd-ranking/shared_invite/zt-2xlcuq1mf-hmVcfrtqrIB3qXRjwgB03A"><b>Developer Slack</b></a> |
 </p>
 
 
@@ -21,17 +21,17 @@ Fair and benchmark for dataset distillation.
 
 *Latest News* 🔥
 
-[Latest] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking --upgrade`.
+[Latest] We have fixed some bugs and released a new version of DD-Ranking. Please install the latest version via `pip install ddranking==0.1.4` or `pip install ddranking --upgrade`.
 
 <details>
 <summary>Unfold to see more details.</summary>
 <br>
 
-- [2025/01] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking --upgrade`.
+- [2025/02] We have fixed some bugs and released a new version of DD-Ranking. Please update your package via `pip install ddranking==0.1.4` or `pip install ddranking --upgrade`.
 
 - [2025/01] Our PyPI package is officially released! Users can now install DD-Ranking via `pip install ddranking`.
 
-- [2024/12] We officially released DD-Ranking! DD-Ranking provides us a new benchmark decoupling the impacts from knowledge distillation and data augmentation.
+- [2024/12/28] We officially released DD-Ranking! DD-Ranking provides us a new benchmark decoupling the impacts from knowledge distillation and data augmentation.
 </details>
 
 ---
@@ -236,95 +236,81 @@ Feel free to submit grades to update the DD-Ranking list. We welcome and value a
 Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 
 
-## Team
-
-### Developers:
-*\* Project lead*, *† Corresponding*
-
+## Technical Members:
 - [Zekai Li*](https://lizekai-richard.github.io/) (National University of Singapore)
-- [Xinhao Zhong](https://ndhg1213.github.io/) (National University of Singapore)
+- [Xinhao Zhong*](https://ndhg1213.github.io/) (National University of Singapore)
 - [Zhiyuan Liang](https://jerryliang24.github.io/) (University of Science and Technology of China)
 - [Yuhao Zhou](https://github.com/Soptq) (Sichuan University)
 - [Mingjia Shi](https://bdemo.github.io/homepage/) (Sichuan University)
-- [Ziqiao Wang](https://github.com/wangzq1998) (National University of Singapore)
+- [Dongwen Tang](https://scholar.google.com/citations?user=9lKm_5IAAAAJ) (National University of Singapore)
+- [Ziqiao Wang](https://www.linkedin.com/in/ziqiao-wang-95a4b232b?trk=contact-info) (National University of Singapore)
 - [Wangbo Zhao](https://wangbo-zhao.github.io/) (National University of Singapore)
 - [Xuanlei Zhao](https://oahzxl.github.io/) (National University of Singapore)
 - [Haonan Wang](https://charles-haonan-wang.me/) (National University of Singapore)
 - [Ziheng Qin](https://henryqin1997.github.io/ziheng_qin/) (National University of Singapore)
-- [Kai Wang†](https://kaiwang960112.github.io/) (National University of Singapore)
-
-### Committee:
-
-- [Dai Liu](https://scholar.google.com/citations?user=3aWKpkQAAAAJ&hl=en) (Munich Technology University)
+- [Dai Liu](https://scholar.google.com/citations?user=3aWKpkQAAAAJ&hl=en) (Technical University of Munich)
 - [Kaipeng Zhang](https://kpzhang93.github.io/) (Shanghai AI Lab)
-- [Yuzhang Shang](https://42shawn.github.io/) (University of Illinois at Chicago)
 - [Tianyi Zhou](https://joeyzhouty.github.io/) (A*STAR)
-- [Zheng Zhu](http://www.zhengzhu.net/) (GigaAI)
+- [Zheng Zhu](http://www.zhengzhu.net/) (Tsinghua University)
 - [Kun Wang](https://www.kunwang.net/) (University of Science and Technology of China)
 - [Guang Li](https://www-lmd.ist.hokudai.ac.jp/member/guang-li/) (Hokkaido University)
 - [Junhao Zhang](https://junhaozhang98.github.io/) (National University of Singapore)
 - [Jiawei Liu](https://jia-wei-liu.github.io/) (National University of Singapore)
+- [Zhiheng Ma](https://zhiheng-ma.github.io/) (SUAT)
+- [Yiran Huang](https://www.eml-munich.de/people/yiran-huang) (Technical University of Munich)
 - [Lingjuan Lyu](https://sites.google.com/view/lingjuan-lyu) (Sony)
 - [Jiancheng Lv](https://scholar.google.com/citations?user=0TCaWKwAAAAJ&hl=en) (Sichuan University)
 - [Yaochu Jin](https://en.westlake.edu.cn/faculty/yaochu-jin.html) (Westlake University)
-- [Yiran Huang](https://www.eml-munich.de/people/yiran-huang) (Technical University of Munich)
 - [Zeynep Akata](https://www.eml-munich.de/people/zeynep-akata) (Technical University of Munich)
 - [Jindong Gu](https://jindonggu.github.io/) (Oxford University)
+- [Rama Vedantam](https://ramavedantam.com/) (Independent Researcher)
 - [Mike Shou](https://sites.google.com/view/showlab) (National University of Singapore)
-- [Angela Yao](https://www.comp.nus.edu.sg/~ayao/) (National University of Singapore)
-<!-- - [Xavier Bresson](https://graphdeeplearning.github.io/authors/xavier-bresson/) (National University of Singapore)
-- [Tat-Seng Chua](https://www.chuatatseng.com/) (National University of Singapore) -->
-- [Xindi Wu](https://xindiwu.github.io/) (Princeton University)
 - [Zhiwei Deng](https://lucas2012.github.io/) (Google DeepMind)
-- [Justin Cui](https://scholar.google.com/citations?user=zel3jUcAAAAJ&hl=en) (UC Los Angeles)
-- [George Cazenavette](https://georgecazenavette.github.io/) (Massachusetts Institute of Technology)
 - [Yan Yan](https://tomyan555.github.io/) (University of Illinois at Chicago)
-- [Tianlong Chen](https://tianlong-chen.github.io/) (UNC Chapel Hill)
-- [Zhangyang Wang](https://vita-group.github.io/) (UT Austin)
+- [Yuzhang Shang](https://42shawn.github.io/) (University of Illinois at Chicago)
+- [George Cazenavette](https://georgecazenavette.github.io/) (Massachusetts Institute of Technology)
+- [Xindi Wu](https://xindiwu.github.io/) (Princeton University)
+- [Justin Cui](https://scholar.google.com/citations?user=zel3jUcAAAAJ&hl=en) (University of California, Los Angeles)
+- [Tianlong Chen](https://tianlong-chen.github.io/) (University of North Carolina at Chapel Hill)
+- [Angela Yao](https://www.comp.nus.edu.sg/~ayao/) (National University of Singapore)
+- [Baharan Mirzasoleiman](https://baharanm.github.io/) (University of California, Los Angeles)
+- [Hakan Bilen](https://homepages.inf.ed.ac.uk/hbilen/) (University of Edinburgh)
+- [Manolis Kellis](https://web.mit.edu/manoli/) (Massachusetts Institute of Technology)
 - [Konstantinos N. Plataniotis](https://www.comm.utoronto.ca/~kostas/) (University of Toronto)
 - [Bo Zhao](https://www.bozhao.me/) (Shanghai Jiao Tong University)
-- [Manolis Kellis](https://web.mit.edu/manoli/) (Massachusetts Institute of Technology)
+- [Zhangyang Wang](https://vita-group.github.io/) (University of Texas at Austin)
 - [Yang You](https://www.comp.nus.edu.sg/~youy/) (National University of Singapore)
+- [Kai Wang](https://kaiwang960112.github.io/) (National University of Singapore)
 
+\* *equal contribution*
 
 ## License
 
 DD-Ranking is released under the MIT License. See [LICENSE](./LICENSE) for more details.
 
-<!-- ## Acknowledgement
+## Related Works
 
-DD-Ranking is a community project. The compute resources for development and testing are supported by the following organizations. Thanks for your support! -->
+- [Dataset Distillation](https://arxiv.org/abs/1811.10959), Wang et al., in arXiv 2018.
+- [Dataset Condensation with Gradient Matching](https://arxiv.org/abs/2006.05929), Zhao et al., in ICLR 2020.
+- [Dataset Condensation with Differentiable Siamese Augmentation](https://arxiv.org/abs/2102.08259), Zhao \& Bilen, in ICML 2021.
+- [Dataset Distillation via Matching Training Trajectories](https://arxiv.org/abs/2203.11932), Cazenavette et al., in CVPR 2022.
+- [Dataset Distillation with Distribution Matching](https://arxiv.org/abs/2110.04181), Zhao \& Bilen, in WACV 2023.
+- [Squeeze, Recover and Relabel: Dataset Condensation at ImageNet Scale From A New Perspective](https://arxiv.org/abs/2306.13092), Yin et al., in NeurIPS 2023.
+- [Towards Lossless Dataset Distillation via Difficulty-Aligned Trajectory Matching](https://arxiv.org/abs/2310.05773), Guo et al., in ICLR 2024.
+- [On the Diversity and Realism of Distilled Dataset: An Efficient Dataset Distillation Paradigm](https://arxiv.org/abs/2312.03526), Sun et al., in CVPR 2024.
+- [D4M: Dataset Distillation via Disentangled Diffusion Model](https://arxiv.org/abs/2407.15138), Su et al., in CVPR 2024.
 
-<!-- Note: Please sort them in alphabetical order. -->
-<!-- Note: Please keep these consistent with docs/source/community/sponsors.md -->
 
-<!-- - First Org.
+## Reference
 
-We also have an official fundraising venue through <span style="color: #ff0000;">[TODO]：</span>[the collection website](). We plan to use the fund to support the development, maintenance, and adoption of DD-Ranking. -->
+If you find DD-Ranking useful in your research, please consider citing the following paper:
 
-<!-- Paper to be added -->
-<!-- If a pre-print is wanted, a digital asset could be released first. -->
-
-<!-- ## Citation
-
-If you use DD-Ranking for your research, please cite our [paper]():
 ```bibtex
-@inproceedings{,
-  title={DD-Ranking: },
-  author={},
-  booktitle={},
-  year={2024}
+@misc{li2024ddranking,
+  title = {DD-Ranking: Rethinking the Evaluation of Dataset Distillation},
+  author = {Li, Zekai and Zhong, Xinhao and Liang, Zhiyuan and Zhou, Yuhao and Shi, Mingjia and Wang, Ziqiao and Zhao, Wangbo and Zhao, Xuanlei and Wang, Haonan and Qin, Ziheng and Liu, Dai and Zhang, Kaipeng and Zhou, Tianyi and Zhu, Zheng and Wang, Kun and Li, Guang and Zhang, Junhao and Liu, Jiawei and Huang, Yiran and Lyu, Lingjuan and Lv, Jiancheng and Jin, Yaochu and Akata, Zeynep and Gu, Jindong and Vedantam, Rama and Shou, Mike and Deng, Zhiwei and Yan, Yan and Shang, Yuzhang and Cazenavette, George and Wu, Xindi and Cui, Justin and Chen, Tianlong and Yao, Angela and Kellis, Manolis and Plataniotis, Konstantinos N. and Zhao, Bo and Wang, Zhangyang and You, Yang and Wang, Kai},
+  year = {2024},
+  howpublished = {GitHub repository},
+  url = {https://github.com/NUS-HPC-AI-Lab/DD-Ranking}
 }
 ```
-
-<!-- ## Contact Us
-
-**Community Discussions**: Engage with other users on <span style="color: #ff0000;">[TODO]：</span>[Discord]() for discussions.
-
-**Coordination of Contributions and Development**: Use <span style="color: #ff0000;">[TODO]：</span>[Slack]() for coordinating contributions and managing development efforts.
-
-**Collaborations and Partnerships**: For exploring collaborations or partnerships, reach out via <span style="color: #ff0000;">[TODO]：</span>[email]().
-
-**Technical Queries and Feature Requests**: Utilize GitHub issues or discussions for addressing technical questions and proposing new features.
-
-**Security Disclosures**: Report security vulnerabilities through GitHub's security advisory feature. -->

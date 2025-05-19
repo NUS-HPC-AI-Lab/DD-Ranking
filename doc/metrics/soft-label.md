@@ -33,7 +33,7 @@ dd_ranking.metrics.SoftLabelEvaluator(config: Optional[Config] = None,
     custom_val_trans: Optional[Callable]=None, 
     device: str="cuda"
 )
-[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/metrics/soft_label.py)
+[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/metrics/soft_label.py)
 </div>
 
 A class for evaluating the performance of a dataset distillation method with soft labels. User is able to modify the attributes as needed.

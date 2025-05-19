@@ -1,5 +1,6 @@
 import os
 import time
+import warnings
 import torch
 import random
 import numpy as np
@@ -10,9 +11,9 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torch.nn import CrossEntropyLoss
 from torchvision import transforms, datasets
-from ddranking.utils import build_model, get_pretrained_model_path, get_dataset, TensorDataset
+from ddranking.utils import build_model, get_pretrained_model_path, get_dataset, TensorDataset, save_results, setup_dist
 from ddranking.utils import set_seed, get_optimizer, get_lr_scheduler
-from ddranking.utils import train_one_epoch, validate
+from ddranking.utils import train_one_epoch, validate, logging
 from ddranking.loss import SoftCrossEntropyLoss, KLDivergenceLoss
 from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
 from ddranking.config import Config
@@ -49,6 +50,7 @@ class GeneralEvaluator:
         custom_val_trans: transforms.Compose=None,
         num_workers: int=4,
         save_path: str=None,
+        dist: bool=False,
         device: str="cuda"
     ):
 
@@ -90,6 +92,14 @@ class GeneralEvaluator:
             custom_train_trans = self.config.get('custom_train_trans', None)
             custom_val_trans = self.config.get('custom_val_trans', None)
             device = self.config.get('device', 'cuda')
+            dist = self.config.get('dist', False)
+
+        self.use_dist = dist
+        if dist:
+            setup_dist(device)
+            self.rank = setup_dist(device)
+            self.world_size = torch.distributed.get_world_size()
+            self.device = f'cuda:{self.rank}'
 
         channel, im_size, num_classes, dst_train, dst_test, class_map, class_map_inv = get_dataset(dataset, 
                                                                                                    real_data_path, 
@@ -104,6 +114,7 @@ class GeneralEvaluator:
         self.ipc = ipc
         self.model_name = model_name
         self.stu_use_torchvision = stu_use_torchvision
+        self.tea_use_torchvision = tea_use_torchvision
         self.custom_train_trans = custom_train_trans
         self.use_soft_label = use_soft_label
         if use_soft_label:
@@ -126,7 +137,7 @@ class GeneralEvaluator:
         if not save_path:
             save_path = f"./results/{dataset}/{model_name}/ipc{ipc}/eval_scores.csv"
         if not os.path.exists(os.path.dirname(save_path)):
-            os.makedirs(os.path.dirname(save_path))
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
         self.save_path = save_path
 
         if not use_torchvision:
@@ -144,6 +155,8 @@ class GeneralEvaluator:
             use_torchvision=tea_use_torchvision
         )
         self.teacher_model.eval()
+        if self.use_dist:
+            self.teacher_model = torch.nn.parallel.DistributedDataParallel(self.teacher_model, device_ids=[self.rank])
 
         if data_aug_func is None:
             self.aug_func = None
@@ -155,42 +168,8 @@ class GeneralEvaluator:
             self.aug_func = Cutmix(aug_params)
         else:
             raise ValueError(f"Invalid data augmentation function: {data_aug_func}")
-
-    def generate_soft_labels(self, images):
-        batches = torch.split(images, self.syn_batch_size)
-        soft_labels = []
-        with torch.no_grad():
-            for image_batch in batches:
-                image_batch = image_batch.to(self.device)
-                soft_labels.append(self.teacher_model(image_batch).detach().cpu())
-        soft_labels = torch.cat(soft_labels, dim=0)
-        return soft_labels
-
-    def hyper_param_search(self, loader):
-        lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
-        best_acc = 0
-        best_lr = None
-        for lr in lr_list:
-            print(f"Searching lr: {lr}")
-            model = build_model(
-                model_name=self.model_name, 
-                num_classes=self.num_classes, 
-                im_size=self.im_size, 
-                pretrained=False,
-                use_torchvision=self.stu_use_torchvision,
-                device=self.device
-            )
-            acc = self.compute_metrics_helper(
-                model=model, 
-                loader=loader,
-                lr=lr
-            )
-            if acc > best_acc:
-                best_acc = acc
-                best_lr = lr
-        return best_acc, best_lr
     
-    def get_loss_fn(self):
+    def _get_loss_fn(self):
         if self.use_soft_label:
             if self.soft_label_criterion == 'kl':
                 return KLDivergenceLoss(temperature=self.temperature).to(self.device)
@@ -201,35 +180,219 @@ class GeneralEvaluator:
         else:
             return CrossEntropyLoss().to(self.device)
     
-    def compute_metrics_helper(self, model, loader, lr):
-        loss_fn = self.get_loss_fn()
-        
-        optimizer = get_optimizer(model, self.optimizer, lr, self.weight_decay, self.momentum)
-        scheduler = get_lr_scheduler(optimizer, self.lr_scheduler, self.num_epochs)
-        
+    def _hyper_param_search_for_hard_label(self, image_tensor, image_path, hard_labels):
+        lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
         best_acc = 0
-        for epoch in tqdm(range(self.num_epochs), total=self.num_epochs, desc="Training"):
-            train_one_epoch(
-                model=model, 
-                loader=loader, 
-                optimizer=optimizer, 
-                loss_fn=loss_fn,
-                soft_label_mode=self.soft_label_mode,
-                aug_func=self.aug_func,
-                lr_scheduler=scheduler,
-                tea_model=self.teacher_model,
-                logging=True,
+        best_lr = 0
+        for lr in lr_list:
+            model = build_model(
+                model_name=self.model_name, 
+                num_classes=self.num_classes, 
+                im_size=self.im_size, 
+                pretrained=False,
+                use_torchvision=self.stu_use_torchvision,
                 device=self.device
             )
-            acc = validate(
+            if self.use_dist:
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
+            acc = self._compute_hard_label_metrics(
                 model=model, 
-                loader=loader,
-                logging=True,
-                device=self.device
+                image_tensor=image_tensor,
+                image_path=image_path,
+                lr=lr, 
+                hard_labels=hard_labels
             )
             if acc > best_acc:
                 best_acc = acc
-        return best_acc
+                best_lr = lr
+            del model
+        return best_acc, best_lr
+
+    def _hyper_param_search_for_soft_label(self, image_tensor, image_path, soft_labels):
+        lr_list = [0.001, 0.005, 0.01, 0.05, 0.1]
+        
+        best_acc = 0
+        best_lr = 0
+        for lr in lr_list:
+            model = build_model(
+                model_name=self.model_name, 
+                num_classes=self.num_classes, 
+                im_size=self.im_size,
+                pretrained=False,
+                use_torchvision=self.stu_use_torchvision,
+                device=self.device
+            )
+            if self.use_dist:
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
+            acc = self._compute_soft_label_metrics(
+                model=model, 
+                image_tensor=image_tensor,
+                image_path=image_path,
+                lr=lr, 
+                soft_labels=soft_labels
+            )
+            if acc > best_acc:
+                best_acc = acc
+                best_lr = lr
+            del model
+        return best_acc, best_lr
+    
+    def _compute_hard_label_metrics(self, model, image_tensor, image_path, lr, hard_labels):
+        
+        if image_tensor is None:
+            hard_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
+        else:
+            hard_label_dataset = TensorDataset(image_tensor, hard_labels)
+
+        if self.use_dist:
+            train_sampler = torch.utils.data.distributed.DistributedSampler(hard_label_dataset)
+        else:
+            train_sampler = torch.utils.data.RandomSampler(hard_label_dataset)
+        train_loader = DataLoader(hard_label_dataset, batch_size=self.real_batch_size if mode == 'real' else self.syn_batch_size, 
+                                  num_workers=self.num_workers, sampler=train_sampler)
+
+        loss_fn = torch.nn.CrossEntropyLoss()
+        optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
+        lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs)
+
+        best_acc1 = 0
+        for epoch in tqdm(range(self.num_epochs), total=self.num_epochs, desc="Training with hard labels", disable=self.rank != 0):
+            train_one_epoch(
+                epoch=epoch, 
+                stu_model=model, 
+                loader=train_loader,
+                loss_fn=loss_fn, 
+                optimizer=optimizer,
+                aug_func=self.aug_func if self.use_aug_for_hard else None,
+                lr_scheduler=lr_scheduler, 
+                tea_model=self.teacher_model, 
+                device=self.device
+            )
+            if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
+                metric = validate(
+                    epoch=epoch,
+                    model=model, 
+                    loader=self.test_loader_real,
+                    device=self.device
+                )
+                if metric['top1'] > best_acc1:
+                    best_acc1 = metric['top1']
+
+        return best_acc1
+        
+    def _compute_soft_label_metrics(self, model, image_tensor, image_path, lr, soft_labels):
+        if soft_labels is None:
+            labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), dtype=torch.long, requires_grad=False).view(-1)
+        else:
+            labels = soft_labels
+            
+        if image_tensor is None:
+            soft_label_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
+        else:
+            soft_label_dataset = TensorDataset(image_tensor, labels)
+
+        if self.use_dist:
+            train_sampler = torch.utils.data.distributed.DistributedSampler(soft_label_dataset)
+        else:
+            train_sampler = torch.utils.data.RandomSampler(soft_label_dataset)
+        train_loader = DataLoader(soft_label_dataset, batch_size=self.syn_batch_size, num_workers=self.num_workers, sampler=train_sampler)
+
+        if self.soft_label_criterion == 'sce':
+            loss_fn = SoftCrossEntropyLoss(temperature=self.temperature).to(self.device)
+        elif self.soft_label_criterion == 'kl':
+            loss_fn = KLDivergenceLoss(temperature=self.temperature).to(self.device)
+        else:
+            raise NotImplementedError(f"Soft label criterion {self.soft_label_criterion} not implemented")
+        
+        optimizer = get_optimizer(self.optimizer, model, lr, self.weight_decay, self.momentum)
+        lr_scheduler = get_lr_scheduler(self.lr_scheduler, optimizer, self.num_epochs)
+
+        best_acc1 = 0
+        for epoch in tqdm(range(self.num_epochs), total=self.num_epochs, desc="Training with soft labels", disable=self.rank != 0):
+            train_one_epoch(
+                epoch=epoch, 
+                stu_model=model,
+                loader=train_loader,
+                loss_fn=loss_fn,
+                optimizer=optimizer,
+                aug_func=self.aug_func,
+                soft_label_mode=self.soft_label_mode,
+                lr_scheduler=lr_scheduler,
+                tea_model=self.teacher_model,
+                device=self.device
+            )
+            if epoch > 0.8 * self.num_epochs and (epoch + 1) % self.test_interval == 0:
+                metric = validate(
+                    epoch=epoch,
+                    model=model, 
+                    loader=self.test_loader_syn,
+                    device=self.device
+                )
+                if metric['top1'] > best_acc1:
+                    best_acc1 = metric['top1']
+        
+        return best_acc1
+
+    def _compute_hard_label_metrics_helper(self, model, image_tensor, image_path, hard_labels, lr, hyper_param_search=False):
+        if hyper_param_search:
+            warnings.warn("You are not providing learning rate for the evaluation. By default, we conduct hyper-parameter search for the best learning rate. \
+                           To match your own results, we recommend you to provide the learning rate.")
+            hard_label_acc, best_lr = self.hyper_param_search_for_hard_label(
+                image_tensor=image_tensor,
+                image_path=image_path,
+                hard_labels=hard_labels
+            )
+        else:
+            model = build_model(
+                model_name=self.model_name, 
+                num_classes=self.num_classes, 
+                im_size=self.im_size, 
+                pretrained=False,
+                use_torchvision=self.stu_use_torchvision,
+                device=self.device
+            )
+            if self.use_dist:
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
+            hard_label_acc = self.compute_hard_label_metrics(
+                model=model, 
+                image_tensor=image_tensor,
+                image_path=image_path,
+                lr=lr, 
+                hard_labels=hard_labels,
+                mode=mode
+            )
+            best_lr = lr
+        return hard_label_acc, best_lr
+    
+    def _compute_soft_label_metrics_helper(self, image_tensor, image_path, soft_labels, lr, hyper_param_search=False):
+        if hyper_param_search:
+            warnings.warn("You are not providing learning rate for the evaluation. By default, we conduct hyper-parameter search for the best learning rate. \
+                           To match your own results, we recommend you to provide the learning rate.")
+            soft_label_acc, best_lr = self.hyper_param_search_for_soft_label(
+                image_tensor=image_tensor,
+                image_path=image_path,
+                soft_labels=soft_labels
+            )
+        else:
+            model = build_model(
+                model_name=self.model_name, 
+                num_classes=self.num_classes, 
+                im_size=self.im_size, 
+                pretrained=False,
+                use_torchvision=self.stu_use_torchvision,
+                device=self.device
+            )
+            if self.use_dist:
+                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[self.rank])
+            soft_label_acc = self._compute_soft_label_metrics(
+                model=model,
+                image_tensor=image_tensor,
+                image_path=image_path,
+                lr=lr,
+                soft_labels=soft_labels
+            )
+            best_lr = lr
+        return soft_label_acc, best_lr
         
     def compute_metrics(self, image_tensor: Tensor=None, image_path: str=None, labels: Tensor=None, syn_lr=None):
         if image_tensor is None and image_path is None:
@@ -237,60 +400,47 @@ class GeneralEvaluator:
         
         if self.use_soft_label and self.soft_label_mode == 'S' and labels is None:
             raise ValueError("labels must be provided if soft_label_mode is 'S'")
-        
-        if image_tensor is None:
-            syn_dataset = datasets.ImageFolder(root=image_path, transform=self.custom_train_trans)
-            if labels is not None:
-                syn_dataset.samples = [(path, labels[idx]) for idx, (path, _) in enumerate(syn_dataset.samples)]
-                syn_dataset.targets = labels
-        else:
-            if labels is not None:
-                syn_dataset = TensorDataset(image_tensor, labels, transform=self.custom_train_trans)
-            else:
-                # use hard labels if labels are not provided
-                default_labels = torch.tensor(np.array([np.ones(self.ipc) * i for i in range(self.num_classes)]), 
-                                              dtype=torch.long, requires_grad=False).view(-1)
-                syn_dataset = TensorDataset(image_tensor, default_labels, transform=self.custom_train_trans)
-
-        syn_loader = DataLoader(syn_dataset, batch_size=self.syn_batch_size, shuffle=True, num_workers=4)
 
         accs = []
         lrs = []
         for i in range(self.num_eval):
             set_seed()
-            print(f"########################### {i+1}th Evaluation ###########################")
-            if syn_lr:
-                model = build_model(
-                    model_name=self.model_name, 
-                    num_classes=self.num_classes,
-                    im_size=self.im_size, 
-                    pretrained=False,
-                    use_torchvision=self.stu_use_torchvision,
-                    device=self.device
+            logging(f"########################### {i+1}th Evaluation ###########################")
+            if self.use_soft_label:
+                acc, lr = self._compute_soft_label_metrics_helper(
+                    image_tensor=image_tensor,
+                    image_path=image_path,
+                    soft_labels=syn_dataset.targets,
+                    lr=syn_lr,
+                    hyper_param_search=True if syn_lr is None else False
                 )
-                syn_data_acc = self.compute_metrics_helper(
-                    model=model,
-                    loader=syn_loader,
-                    lr=syn_lr
+            else:
+                acc, lr = self._compute_hard_label_metrics_helper(
+                    image_tensor=image_tensor,
+                    image_path=image_path,
+                    hard_labels=syn_dataset.targets,
+                    lr=syn_lr,
+                    hyper_param_search=True if syn_lr is None else False
                 )
-                del model
-            else:
-                syn_data_acc, best_lr = self.hyper_param_search(syn_loader)
-            accs.append(syn_data_acc)
-            if syn_lr:
-                lrs.append(syn_lr)
-            else:
-                lrs.append(best_lr)
         
-        results_to_save = {
-            "accs": accs,
-            "lrs": lrs
-        }
-        save_results(results_to_save, self.save_path)
+        if self.use_dist:
+            accs_tensor = torch.tensor(accs, device=self.device)
+            lrs_tensor = torch.tensor(lrs, device=self.device)
+            
+            torch.distributed.all_reduce(accs_tensor, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(lrs_tensor, op=torch.distributed.ReduceOp.SUM)
+        
+        if self.rank == 0:
+            results_to_save = {
+                "accs": accs,
+                "lrs": lrs
+            }
+            save_results(results_to_save, self.save_path)
 
-        accs_mean = np.mean(accs)
-        accs_std = np.std(accs)
-        return {
-            "acc_mean": accs_mean,
-            "acc_std": accs_std
-        }
+            accs_mean = np.mean(accs)
+            accs_std = np.std(accs)
+
+            print(f"Acc. Mean: {accs_mean:.2f}%  Std: {accs_std:.2f}")
+        
+        if self.use_dist:
+            torch.distributed.destroy_process_group()
