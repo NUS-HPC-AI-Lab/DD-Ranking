@@ -10,7 +10,7 @@ class MSEGTLoss(nn.Module):
         self.ce_weight = ce_weight
 
     def forward(self, stu_outputs, tea_outputs, ground_truth):
-        mse_loss = F.mse_loss(stu_outputs, ground_truth)
+        mse_loss = F.mse_loss(stu_outputs, tea_outputs)
         ce_loss = F.cross_entropy(stu_outputs, ground_truth)
         loss = self.mse_weight * mse_loss + self.ce_weight * ce_loss
         return loss

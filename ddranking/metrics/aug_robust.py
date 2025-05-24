@@ -58,6 +58,8 @@ class AugmentationRobustnessEvaluator:
             custom_val_trans = self.config.get('custom_val_trans')
             teacher_dir = self.config.get('teacher_dir')
             teacher_model_names = self.config.get('teacher_model_names')
+            random_data_path = self.config.get('random_data_path')
+            random_data_format = self.config.get('random_data_format')
             device = self.config.get('device')
             dist = self.config.get('dist')
         

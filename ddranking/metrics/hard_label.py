@@ -11,10 +11,11 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 from ddranking.utils import build_model, get_pretrained_model_path
 from ddranking.utils import TensorDataset, get_random_data_tensors, get_random_data_path_from_cifar, get_random_data_path, get_dataset, save_results, setup_dist
-from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, get_lr_scheduler, REAL_DATA_TRAINING_CONFIG
+from ddranking.utils import set_seed, train_one_epoch, validate, get_optimizer, get_lr_scheduler
 from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
 from ddranking.config import Config
 from ddranking.utils import logging, broadcast_string
+from ddranking.utils import REAL_DATA_ACC_CACHE, REAL_DATA_TRAINING_CONFIG
 
 
 class HardLabelEvaluator:
@@ -24,7 +25,7 @@ class HardLabelEvaluator:
                  step_size: int=None, weight_decay: float=0.0005, momentum: float=0.9, use_zca: bool=False, num_eval: int=5, 
                  im_size: tuple=(32, 32), num_epochs: int=300, real_batch_size: int=256, syn_batch_size: int=256, use_torchvision: bool=False,
                  default_lr: float=0.01, num_workers: int=4, save_path: str=None, custom_train_trans=None, custom_val_trans=None, device: str="cuda", 
-                 dist: bool=False, random_data_format: str='tensor', random_data_path: str=None):
+                 dist: bool=False, random_data_format: str='tensor', random_data_path: str=None, eval_full_data: bool=False):
         
         if config is not None:
             self.config = config
@@ -55,7 +56,8 @@ class HardLabelEvaluator:
             dist = self.config.get('dist', False)
             random_data_format = self.config.get('random_data_format', 'tensors')
             random_data_path = self.config.get('random_data_path')
-        
+            eval_full_data = self.config.get('eval_full_data', False)
+
         self.use_dist = dist
 
         if self.use_dist:
@@ -119,7 +121,8 @@ class HardLabelEvaluator:
         self.test_interval = 10
         self.use_torchvision = use_torchvision
         self.device = device
-
+        self.eval_full_data = eval_full_data
+        
         if data_aug_func == 'dsa':
             self.aug_func = DSA(aug_params)
         elif data_aug_func == 'zca':
@@ -348,16 +351,21 @@ class HardLabelEvaluator:
             )
             logging(f"Syn data hard label acc: {syn_data_hard_label_acc:.2f}% under learning rate {best_lr}")
 
-            full_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
-                image_tensor=None,
-                image_path=None,
-                hard_labels=None,
-                lr=self.default_lr,
-                mode='real',
-                hyper_param_search=False
-            )
-            logging(f"Full data hard label acc: {full_data_hard_label_acc:.2f}% under learning rate {best_lr}")
-
+            if self.eval_full_data:
+                full_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
+                    image_tensor=None,
+                    image_path=None,
+                    hard_labels=None,
+                    lr=self.default_lr,
+                    mode='real',
+                    hyper_param_search=False
+                )
+                logging(f"Full data hard label acc: {full_data_hard_label_acc:.2f}% under learning rate {best_lr}")
+            else:
+                key = f"{self.dataset}-{self.model_name}"
+                if key not in REAL_DATA_ACC_CACHE:
+                    raise ValueError(f"Full data acc for {key} not found in cache. Please set eval_full_data to True.")
+                full_data_hard_label_acc = REAL_DATA_ACC_CACHE[key]
             
             random_data_path, random_data_tensors, random_data_hard_labels = self._get_random_data_helper(eval_iter=i)            
             random_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
