@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ddranking"
-version = "0.1.4"
+version = "0.2.0"
 description = "DD-Ranking: Rethinking the Evaluation of Dataset Distillation"
 readme = "README.md"
 requires-python = ">=3.8"

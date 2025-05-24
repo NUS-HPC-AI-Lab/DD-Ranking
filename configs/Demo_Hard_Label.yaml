@@ -40,6 +40,10 @@ real_batch_size: 256
 default_lr: 0.01
 num_workers: 4
 device: cuda
+dist: true
+eval_full_data: false
+random_data_path: ./results/my_method_random_data.pt
+random_data_format: tensors
 
 # save path
 save_path: ./results/my_method_hard_label_scores.csv

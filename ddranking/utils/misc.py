@@ -15,6 +15,7 @@ def set_seed(seed=None):
     np.random.seed(seed)
     random.seed(seed)
 
+
 def save_results(results, save_path):
     df = pd.DataFrame(results)
     df.to_csv(save_path, index=False)

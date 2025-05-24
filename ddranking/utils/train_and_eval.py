@@ -115,19 +115,16 @@ def get_lr_scheduler(lr_scheduler_name, optimizer, num_epochs=None, step_size=No
     if lr_scheduler_name == 'step':
         assert step_size is not None, "step_size must be provided for step scheduler"
         return StepLR(optimizer, step_size=step_size, gamma=gamma if gamma is not None else 0.1)
-    elif lr_scheduler_name == 'cosine':
+    elif lr_scheduler_name == 'cosineannealing':
         assert num_epochs is not None, "num_epochs must be provided for cosine scheduler"
         return CosineAnnealingLR(optimizer, T_max=num_epochs)
-    elif lr_scheduler_name == 'lambda_cos':
+    elif lr_scheduler_name == 'cosine':
         assert num_epochs is not None, "num_epochs must be provided for lambda cosine scheduler"
         return LambdaLR(optimizer, lambda step: 0.5 * (1.0 + math.cos(math.pi * step / num_epochs / 2))
             if step <= num_epochs
             else 0,
             last_epoch=-1,
         )
-    elif lr_scheduler_name == 'lambda_step':
-        assert num_epochs is not None, "num_epochs must be provided for lambda step scheduler"
-        return LambdaLR(optimizer, lambda step: (1.0 - step / num_epochs) if step <= num_epochs else 0, last_epoch=-1)
     else:
         raise NotImplementedError(f"LR Scheduler {lr_scheduler_name} not implemented")
 
