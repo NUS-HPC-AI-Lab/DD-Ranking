@@ -24,12 +24,12 @@ However, since the essence of soft labels is **knowledge distillation**, we find
 
 This makes us wonder: **Can the test accuracy of the model trained on distilled data reflect the real informativeness of the distilled data?**
 
-Additionally, we have discoverd unfairness of using only test accuracy to demonstrate one's performance from the following three aspects:
-1. Results of using hard and soft labels are not directly comparable since soft labels introduce teacher knowledge.
-2. Strategies of using soft labels are diverse. For instance, different objective functions are used during evaluation, such as soft Cross-Entropy and Kullback–Leibler divergence. Also, one image may be mapped to one or multiple soft labels.
-3. Different data augmentations are used during evaluation.
+We summaize the evaluation configurations of existing works in the following table, with different colors highlighting different values for each configuration.
+![configurations](./static/configurations.png)
+As can be easily seen, the evaluation configurations are diverse, leading to unfairness of using only test accuracy to demonstrate one's performance.
+Among these inconsistencies, two critical factors significantly undermine the fairness of current evaluation protocols: label representation (including the corresponding loss function) and data augmentation techniques.
 
-Motivated by this, we propose DD-Ranking, a new benchmark for DD evaluation. DD-Ranking provides a fair evaluation scheme for DD methods, and can decouple the impacts from knowledge distillation and data augmentation to reflect the real informativeness of the distilled data.
+Motivated by this, we propose DD-Ranking, a new benchmark for DD evaluation. DD-Ranking provides a fair evaluation scheme for DD methods that can decouple the impacts from knowledge distillation and data augmentation to reflect the real informativeness of the distilled data.
 
 ## Features
 
@@ -38,29 +38,35 @@ Motivated by this, we propose DD-Ranking, a new benchmark for DD evaluation. DD-
 - **Extensible**: DD-Ranking supports various datasets and models.
 - **Customizable**: DD-Ranking supports various data augmentations and soft label strategies.
 
-## DD-Ranking Score
+## DD-Ranking Benchmark
 
 Revisit the original goal of dataset distillation: 
 > The idea is to synthesize a small number of data points that do not need to come from the correct data distribution, but will, when given to the learning algorithm as training data, approximate the model trained on the original data. (Wang et al., 2020)
 >
 
-The evaluation method for DD-Ranking is grounded in the essence of dataset distillation, aiming to better reflect the information content of the synthesized data by assessing the following two aspects:  
-1. The degree to which the real dataset is recovered under hard labels (hard label recovery): \\( \text{HLR} = \text{Acc.} \text{real-hard} - \text{Acc.} \text{syn-hard} \\)
+### Label-Robust Score (LRS)
+For the label representation, we introduce the Label-Robust Score (LRS) to evaluate the informativeness of the synthesized data using the following two aspects:
+1. The degree to which the real dataset is recovered under hard labels (hard label recovery): $\text{HLR}=\text{Acc.}{\text{real-hard}}-\text{Acc.}{\text{syn-hard}}$.  
 
-2. The improvement over random selection when using personalized evaluation methods (improvement over random): \\( \text{IOR} = \text{Acc.} \text{syn-any} - \text{Acc.} \text{rdm-any} \\)
+2. The improvement over random selection when using personalized evaluation methods (improvement over random): $\text{IOR}=\text{Acc.}{\text{syn-any}}-\text{Acc.}{\text{rdm-any}}$.
+$\text{Acc.}$ is the accuracy of models trained on different samples. Samples' marks are as follows:
+- $\text{real-hard}$: Real dataset with hard labels;
+- $\text{syn-hard}$: Synthetic dataset with hard labels;
+- $\text{syn-any}$: Synthetic dataset with personalized evaluation methods (hard or soft labels);
+- $\text{rdm-any}$: Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.
 
-\\(\text{Acc.}\\) is the accuracy of models trained on different samples. Samples' marks are as follows:
+LRS is defined as a weight sum of $\text{IOR}$ and $-\text{HLR}$ to rank different methods:
+$\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]$.
+Then, the LRS is normalized to $[0, 1]$ as follows:
+$\text{LRS} = (e^{\alpha}-e^{-1}) / (e - e^{-1})$
 
-- \\(\text{real-hard}\\): Real dataset with hard labels;
-- \\(\text{syn-hard}\\): Synthetic dataset with hard labels;
-- \\(\text{syn-any}\\): Synthetic dataset with personalized evaluation methods (hard or soft labels);
-- \\(\text{rdm-any}\\): Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.
+By default, we set $w = 0.5$ on the leaderboard, meaning that both $\text{IOR}$ and $\text{HLR}$ are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.
 
-DD-Ranking uses a weight sum of \\(\text{IOR}\\) and \\(-\text{HLR}\\) to rank different methods:
-\\[\alpha = w \text{IOR} - (1-w) \text{HLR}, \quad w \in [0, 1]\\]
+### Augmentation-Robust Score (ARS)
+To disentangle data augmentation’s impact, we introduce the augmentation-robust score (ARS) which continues to leverage the relative improvement over randomly selected data. Specifically, we first evaluate synthetic data and a randomly selected subset under the same setting to obtain $\text{Acc.}{\text{syn-aug}}$ and $\text{Acc.}{\text{rdm-aug}}$ (same as IOR). Next, we evaluate both synthetic data and random data again without the data augmentation, and results are denoted as $\text{Acc.}{\text{syn-naug}}$ and $\text{Acc.}{\text{rdm-naug}}$.
+Both differences, $\text{accsyn-aug} - \text{accrdm-aug}$ and $\text{accsyn-naug} - \text{accrdm-naug}$, are positively correlated to the real informativeness of the distilled dataset.
 
-Formally, the **DD-Ranking Score (DDRS)** is defined as:
-\\[\text{DDRS} = \frac{e^{\alpha} - e^{-1}}{e - e^{-1}} \\]
-
-By default, we set \\(w = 0.5\\) on the leaderboard, meaning that both \\(\text{IOR}\\) and \\(\text{HLR}\\) are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.
+ARS is a weighted sum of the two differences:
+$\beta = \gamma(\text{accsyn-aug} - \text{accrdm-aug}) + (1 - \gamma)(\text{accsyn-naug} - \text{accrdm-naug})$,
+and normalized to $[0, 1]$ similarly.
 

@@ -155,10 +155,12 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="dd-ranking-metrics"><a class="header" href="#dd-ranking-metrics">DD-Ranking Metrics</a></h1>
-<p>DD-Ranking provides a set of metrics to evaluate the real informativeness of datasets distilled by different methods. We categorize dataset distillation methods by the type of labels they use: hard label and soft label. For each label type, we provide a evaluation class that computes hard label recovery (HLR), improvement over random (IOR), and the DD-Ranking score. Additionally, we provide a general evaluation class, integrating most of exisiting evaluation methods, that computes the traditional test accuracy.</p>
+<p>DD-Ranking provides a set of metrics to evaluate the real informativeness of datasets distilled by different methods. The unfairness of existing evaluation is mainly caused by two factors, the label representation and the data augmentation. We design the label-robust score (LRS) and the augmentation robust score (ARS) to disentangle the impact of label representation and data augmentation on the evaluation, respectively.</p>
+<h2 id="evaluation-classes"><a class="header" href="#evaluation-classes">Evaluation Classes</a></h2>
 <ul>
 <li><a href="hard-label.html">HardLabelEvaluator</a> computes HLR, IOR, and DD-Ranking score for methods using hard labels.</li>
 <li><a href="soft-label.html">SoftLabelEvaluator</a> computes HLR, IOR, and DD-Ranking score for methods using soft labels.</li>
+<li><a href="ars.html">AugmentationRobustScore</a> computes the augmentation robust score for methods using soft labels.</li>
 <li><a href="general.html">GeneralEvaluator</a> computes the traditional test accuracy for existing methods.</li>
 </ul>
 

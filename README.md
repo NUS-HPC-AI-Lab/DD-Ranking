@@ -152,17 +152,17 @@ python setup.py install
 ```
 ### Quickstart
 
-Below is a step-by-step guide on how to use our `ddranking`. This demo is based on LRS on soft labels (source code can be found in `demo_soft.py`). You can find LRS on hard labels in `demo_hard.py` and ARS in `demo_aug.py`.
+Below is a step-by-step guide on how to use our `ddranking`. This demo is based on LRS on soft labels (source code can be found in `demo_lrs_soft.py`). You can find LRS on hard labels in `demo_lrs_hard.py` and ARS in `demo_aug.py`.
 DD-Ranking supports multi-GPU Distributed evaluation. You can simply use `torchrun` to launch the evaluation.
 
 **Step1**: Intialize a soft-label metric evaluator object. Config files are recommended for users to specify hyper-parameters. Sample config files are provided [here](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/tree/main/configs).
 
 ```python
-from ddranking.metrics import SoftLabelEvaluator
+from ddranking.metrics import LabelRobustScoreSoft
 from ddranking.config import Config
 
-config = Config.from_file("./configs/Demo_Soft_Label.yaml")
-soft_label_metric_calc = SoftLabelEvaluator(config)
+config = Config.from_file("./configs/Demo_LRS_Soft_Label.yaml")
+lrs_soft_metric = LabelRobustScoreSoft(config)
 ```
 
 <details>
@@ -194,7 +194,7 @@ random_data_path = "./random_data"          # Specify your random data path
 save_path = f"./results/{dataset}/{model_name}/IPC{ipc}/dm_hard_scores.csv"
 
 """ We only list arguments that usually need specifying"""
-soft_label_metric_calc = SoftLabelEvaluator(
+lrs_soft_metric = LabelRobustScoreSoft(
     dataset=dataset,
     real_data_path=real_data_dir, 
     ipc=ipc,
@@ -233,9 +233,9 @@ syn_lr = torch.load('/your/path/to/syn/lr.pt')
 **Step 3:** Compute the metric.
 
 ```python
-metric = soft_label_metric_calc.compute_metrics(image_tensor=syn_images, soft_labels=soft_labels, syn_lr=syn_lr)
+lrs_soft_metric.compute_metrics(image_tensor=syn_images, soft_labels=soft_labels, syn_lr=syn_lr)
 # alternatively, you can specify the image folder path to compute the metric
-soft_label_metric_calc.compute_metrics(image_path='./your/path/to/syn/images', soft_labels=soft_labels, syn_lr=syn_lr)
+lrs_soft_metric.compute_metrics(image_path='./your/path/to/syn/images', soft_labels=soft_labels, syn_lr=syn_lr)
 ```
 
 The following results will be printed and saved to `save_path`:

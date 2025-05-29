@@ -18,7 +18,7 @@ from ddranking.aug import DSA, Mixup, Cutmix, ZCAWhitening
 from ddranking.config import Config
 
 
-class AugmentationRobustnessEvaluator:
+class AugmentationRobustScore:
 
     def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
                  data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, label_type: str='soft', soft_label_mode: str='S', soft_label_criterion: str='kl', 
@@ -618,4 +618,11 @@ class AugmentationRobustnessEvaluator:
         if self.use_dist:
             torch.distributed.destroy_process_group()
 
-
+        return {
+            "with_aug_scores_mean": with_aug_scores_mean,
+            "with_aug_scores_std": with_aug_scores_std,
+            "without_aug_scores_mean": without_aug_scores_mean,
+            "without_aug_scores_std": without_aug_scores_std,
+            "augmentation_robust_score_mean": ars_mean,
+            "augmentation_robust_score_std": ars_std
+        }

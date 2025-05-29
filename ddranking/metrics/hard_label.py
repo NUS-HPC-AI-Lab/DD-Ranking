@@ -18,13 +18,13 @@ from ddranking.utils import logging, broadcast_string
 from ddranking.utils import REAL_DATA_ACC_CACHE, REAL_DATA_TRAINING_CONFIG
 
 
-class HardLabelEvaluator:
+class LabelRobustScoreHard:
 
     def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
                  data_aug_func: str='cutmix', aug_params: dict={'cutmix_p': 1.0}, optimizer: str='sgd', lr_scheduler: str='step', 
                  step_size: int=None, weight_decay: float=0.0005, momentum: float=0.9, use_zca: bool=False, num_eval: int=5, 
                  im_size: tuple=(32, 32), num_epochs: int=300, real_batch_size: int=256, syn_batch_size: int=256, use_torchvision: bool=False,
-                 default_lr: float=0.01, num_workers: int=4, save_path: str=None, custom_train_trans=None, custom_val_trans=None, device: str="cuda", 
+                 num_workers: int=4, save_path: str=None, custom_train_trans=None, custom_val_trans=None, device: str="cuda", 
                  dist: bool=False, random_data_format: str='tensor', random_data_path: str=None, eval_full_data: bool=False):
         
         if config is not None:
@@ -45,7 +45,6 @@ class HardLabelEvaluator:
             num_epochs = self.config.get('num_epochs')
             real_batch_size = self.config.get('real_batch_size')
             syn_batch_size = self.config.get('syn_batch_size')
-            default_lr = self.config.get('default_lr')
             save_path = self.config.get('save_path')
             use_zca = self.config.get('use_zca')
             use_torchvision = self.config.get('use_torchvision')
@@ -116,7 +115,6 @@ class HardLabelEvaluator:
         self.real_batch_size = real_batch_size
         self.syn_batch_size = syn_batch_size
         self.num_epochs = num_epochs
-        self.default_lr = default_lr
         self.num_workers = num_workers
         self.test_interval = 10
         self.use_torchvision = use_torchvision
@@ -357,7 +355,7 @@ class HardLabelEvaluator:
                     image_tensor=None,
                     image_path=None,
                     hard_labels=None,
-                    lr=self.default_lr,
+                    lr=None,
                     mode='real',
                     hyper_param_search=False
                 )
@@ -423,3 +421,12 @@ class HardLabelEvaluator:
 
         if self.use_dist:
             torch.distributed.destroy_process_group()
+
+        return {
+            "hard_label_recovery_mean": hard_label_recovery_mean,
+            "hard_label_recovery_std": hard_label_recovery_std,
+            "improvement_over_random_mean": improvement_over_random_mean,
+            "improvement_over_random_std": improvement_over_random_std,
+            "label_robust_score_mean": lrs_mean,
+            "label_robust_score_std": lrs_std
+        }

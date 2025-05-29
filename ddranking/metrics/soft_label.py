@@ -19,13 +19,13 @@ from ddranking.config import Config
 from ddranking.utils import REAL_DATA_TRAINING_CONFIG, REAL_DATA_ACC_CACHE
 
 
-class SoftLabelEvaluator:
+class LabelRobustScoreSoft:
 
     def __init__(self, config: Config=None, dataset: str='CIFAR10', real_data_path: str='./dataset/', ipc: int=10, model_name: str='ConvNet-3', 
                  soft_label_criterion: str='kl', loss_fn_kwargs: dict=None, data_aug_func: str='cutmix', aug_params: dict={'beta': 1.0}, soft_label_mode: str='S', 
                  optimizer: str='sgd', lr_scheduler: str='step', step_size: int=None, weight_decay: float=0.0005, momentum: float=0.9, num_eval: int=5, 
                  im_size: tuple=(32, 32), num_epochs: int=300, use_zca: bool=False, use_aug_for_hard: bool=False, random_data_format: str='tensors', 
-                 random_data_path: str=None, real_batch_size: int=256, syn_batch_size: int=256, default_lr: float=0.01, save_path: str=None, eval_full_data: bool=False,
+                 random_data_path: str=None, real_batch_size: int=256, syn_batch_size: int=256, save_path: str=None, eval_full_data: bool=False,
                  stu_use_torchvision: bool=False, tea_use_torchvision: bool=False, num_workers: int=4, teacher_dir: str='./teacher_models', teacher_model_names: List[str]=None, 
                  custom_train_trans: transforms.Compose=None, custom_val_trans: transforms.Compose=None, device: str="cuda", dist: bool=False):
 
@@ -53,7 +53,6 @@ class SoftLabelEvaluator:
             random_data_path = self.config.get('random_data_path')
             real_batch_size = self.config.get('real_batch_size')
             syn_batch_size = self.config.get('syn_batch_size')
-            default_lr = self.config.get('default_lr')
             step_size = self.config.get('step_size')
             save_path = self.config.get('save_path')
             eval_full_data = self.config.get('eval_full_data')
@@ -127,7 +126,6 @@ class SoftLabelEvaluator:
         self.real_batch_size = real_batch_size
         self.syn_batch_size = syn_batch_size
         self.num_epochs = num_epochs
-        self.default_lr = default_lr
         self.step_size = step_size
         self.test_interval = 20
         self.num_workers = num_workers
@@ -530,7 +528,7 @@ class SoftLabelEvaluator:
                     image_tensor=None,
                     image_path=None,
                     hard_labels=None,
-                    lr=self.default_lr,
+                    lr=None,
                     mode='real',
                     hyper_param_search=False
                 )
@@ -603,5 +601,14 @@ class SoftLabelEvaluator:
         
         if self.use_dist:
             torch.distributed.destroy_process_group()
+    
+        return {
+            "hard_label_recovery_mean": hard_label_recovery_mean,
+            "hard_label_recovery_std": hard_label_recovery_std,
+            "improvement_over_random_mean": improvement_over_random_mean,
+            "improvement_over_random_std": improvement_over_random_std,
+            "label_robust_score_mean": lrs_mean,
+            "label_robust_score_std": lrs_std
+        }
 
 
