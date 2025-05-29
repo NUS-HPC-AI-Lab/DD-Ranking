@@ -512,7 +512,7 @@ class AugmentationRobustnessEvaluator:
                 )
         return without_aug_acc, best_lr
 
-    def compute_metrics(self, image_tensor: Tensor=None, image_path: str=None, soft_labels: Tensor=None, syn_lr: float=None):
+    def compute_metrics(self, image_tensor: Tensor=None, image_path: str=None, soft_labels: Tensor=None, syn_lr: float=None, ars_lambda: float=0.5):
         if image_tensor is None and image_path is None:
             raise ValueError("Either image_tensor or image_path must be provided")
 
@@ -527,6 +527,7 @@ class AugmentationRobustnessEvaluator:
 
         with_aug_scores = []
         without_aug_scores = []
+        ars_list = []
         seed_list = [0, 1, 42, 1234, 3407]
         for i in range(self.num_eval):
             set_seed(seed_list[i])
@@ -575,24 +576,31 @@ class AugmentationRobustnessEvaluator:
 
             with_aug_score = 1.00 * (syn_data_with_aug_acc - random_data_with_aug_acc)
             without_aug_score = 1.00 * (syn_data_without_aug_acc - random_data_without_aug_acc)
+            beta = ars_lambda * with_aug_score + (1 - ars_lambda) * without_aug_score
+            ars = (np.exp(beta) - np.exp(-1)) / (np.exp(1) - np.exp(-1))
 
             with_aug_scores.append(with_aug_score)
             without_aug_scores.append(without_aug_score)
+            ars_list.append(ars)
         
         if self.use_dist:
             with_aug_scores_tensor = torch.tensor(with_aug_scores, device=self.device)
             without_aug_scores_tensor = torch.tensor(without_aug_scores, device=self.device)
+            ars_tensor = torch.tensor(ars_list, device=self.device)
             
             torch.distributed.all_reduce(with_aug_scores_tensor, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(without_aug_scores_tensor, op=torch.distributed.ReduceOp.SUM)
-            
+            torch.distributed.all_reduce(ars_tensor, op=torch.distributed.ReduceOp.SUM)
+
             with_aug_scores = (with_aug_scores_tensor / self.world_size).cpu().tolist()
             without_aug_scores = (without_aug_scores_tensor / self.world_size).cpu().tolist()
+            ars_list = (ars_tensor / self.world_size).cpu().tolist()
 
         if self.rank == 0:
             results_to_save = {
                 "with_aug_scores": with_aug_scores,
-                "without_aug_scores": without_aug_scores
+                "without_aug_scores": without_aug_scores,
+                "ars_list": ars_list
             }
             save_results(results_to_save, self.save_path)
 
@@ -600,10 +608,13 @@ class AugmentationRobustnessEvaluator:
             with_aug_scores_std = np.std(with_aug_scores)
             without_aug_scores_mean = np.mean(without_aug_scores)
             without_aug_scores_std = np.std(without_aug_scores)
+            ars_mean = np.mean(ars_list)
+            ars_std = np.std(ars_list)
 
             logging(f"With Augmentation Mean: {with_aug_scores_mean:.2f}%  Std: {with_aug_scores_std:.2f}")
             logging(f"Without Augmentation Mean: {without_aug_scores_mean:.2f}%  Std: {without_aug_scores_std:.2f}")
-        
+            logging(f"Augmentation-Robust Score Mean: {ars_mean:.2f}%  Std: {ars_std:.2f}")
+
         if self.use_dist:
             torch.distributed.destroy_process_group()
 

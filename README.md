@@ -13,7 +13,7 @@
 Fair and benchmark for dataset distillation.
 </h3> -->
 <p align="center">
-| <a href="https://nus-hpc-ai-lab.github.io/DD-Ranking/"><b>Documentation</b></a> | <a href="https://huggingface.co/spaces/logits/DD-Ranking"><b>Leaderboard</b></a> | <a href=""><b>Paper (Coming Soon)</b> </a> | <a href="https://x.com/Richard91316073/status/1890296645486801230"><b>Twitter/X</b></a> | <a href="https://join.slack.com/t/dd-ranking/shared_invite/zt-2xlcuq1mf-hmVcfrtqrIB3qXRjwgB03A"><b>Developer Slack</b></a> |
+| <a href="https://nus-hpc-ai-lab.github.io/DD-Ranking/"><b>Documentation</b></a> | <a href="https://huggingface.co/spaces/logits/DD-Ranking"><b>Leaderboard</b></a> | <a href="https://arxiv.org/abs/2505.13300"><b>Paper</b> </a> | <a href="https://x.com/Richard91316073/status/1890296645486801230"><b>Twitter/X</b></a> | <a href="https://join.slack.com/t/dd-ranking/shared_invite/zt-2xlcuq1mf-hmVcfrtqrIB3qXRjwgB03A"><b>Developer Slack</b></a> |
 </p>
 
 
@@ -52,10 +52,10 @@ However, since the essence of soft labels is **knowledge distillation**, we find
 
 This makes us wonder: **Can the test accuracy of the model trained on distilled data reflect the real informativeness of the distilled data?**
 
-Additionally, we have discoverd unfairness of using only test accuracy to demonstrate one's performance from the following three aspects:
-1. Results of using hard and soft labels are not directly comparable since soft labels introduce teacher knowledge.
-2. Strategies of using soft labels are diverse. For instance, different objective functions are used during evaluation, such as soft Cross-Entropy and Kullback–Leibler divergence. Also, one image may be mapped to one or multiple soft labels.
-3. Different data augmentations are used during evaluation.
+We summaize the evaluation configurations of existing works in the following table, with different colors highlighting different values for each configuration.
+![configurations](./static/configurations.png)
+As can be easily seen, the evaluation configurations are diverse, leading to unfairness of using only test accuracy to demonstrate one's performance.
+Among these inconsistencies, two critical factors significantly undermine the fairness of current evaluation protocols: label representation (including the corresponding loss function) and data augmentation techniques.
 
 Motivated by this, we propose DD-Ranking, a new benchmark for DD evaluation. DD-Ranking provides a fair evaluation scheme for DD methods that can decouple the impacts from knowledge distillation and data augmentation to reflect the real informativeness of the distilled data.
 
@@ -76,7 +76,8 @@ Revisit the original goal of dataset distillation:
 > The idea is to synthesize a small number of data points that do not need to come from the correct data distribution, but will, when given to the learning algorithm as training data, approximate the model trained on the original data. (Wang et al., 2020)
 >
 
-The evaluation method for DD-Ranking is grounded in the essence of dataset distillation, aiming to better reflect the informativeness of the synthesized data by assessing the following two aspects:  
+#### Label-Robust Score (LRS)
+For the label representation, we introduce the Label-Robust Score (LRS) to evaluate the informativeness of the synthesized data using the following two aspects:
 1. The degree to which the real dataset is recovered under hard labels (hard label recovery): $\text{HLR}=\text{Acc.}{\text{real-hard}}-\text{Acc.}{\text{syn-hard}}$.  
 
 2. The improvement over random selection when using personalized evaluation methods (improvement over random): $\text{IOR}=\text{Acc.}{\text{syn-any}}-\text{Acc.}{\text{rdm-any}}$.
@@ -86,13 +87,20 @@ $\text{Acc.}$ is the accuracy of models trained on different samples. Samples' m
 - $\text{syn-any}$: Synthetic dataset with personalized evaluation methods (hard or soft labels);
 - $\text{rdm-any}$: Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.
 
-DD-Ranking uses a weight sum of $\text{IOR}$ and $-\text{HLR}$ to rank different methods:
-$\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]$
-
-Formally, the **DD-Ranking Score (DDRS)** is defined as:
-$(e^{\alpha}-e^{-1}) / (e - e^{-1})$
+LRS is defined as a weight sum of $\text{IOR}$ and $-\text{HLR}$ to rank different methods:
+$\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]$.
+Then, the LRS is normalized to $[0, 1]$ as follows:
+$\text{LRS} = (e^{\alpha}-e^{-1}) / (e - e^{-1})$
 
 By default, we set $w = 0.5$ on the leaderboard, meaning that both $\text{IOR}$ and $\text{HLR}$ are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.
+
+#### Augmentation-Robust Score (ARS)
+To disentangle data augmentation’s impact, we introduce the augmentation-robust score (ARS) which continues to leverage the relative improvement over randomly selected data. Specifically, we first evaluate synthetic data and a randomly selected subset under the same setting to obtain $\text{Acc.}{\text{syn-aug}}$ and $\text{Acc.}{\text{rdm-aug}}$ (same as IOR). Next, we evaluate both synthetic data and random data again without the data augmentation, and results are denoted as $\text{Acc.}{\text{syn-naug}}$ and $\text{Acc.}{\text{rdm-naug}}$.
+Both differences, $\text{accsyn-aug} - \text{accrdm-aug}$ and $\text{accsyn-naug} - \text{accrdm-naug}$, are positively correlated to the real informativeness of the distilled dataset.
+
+ARS is a weighted sum of the two differences:
+$\beta = \gamma(\text{accsyn-aug} - \text{accrdm-aug}) + (1 - \gamma)(\text{accsyn-naug} - \text{accrdm-naug})$,
+and normalized to $[0, 1]$ similarly.
 
 </details>
 
@@ -116,7 +124,12 @@ DD-Ranking currently includes the following datasets and methods (categorized by
 |CIFAR-10|DC|DATM|
 |CIFAR-100|DSA|SRe2L|
 |TinyImageNet|DM|RDED|
-||MTT|D4M|
+|ImageNet1K|MTT|D4M|
+| | DataDAM | EDF |
+| |         | CDA |
+| |         | DWA |
+| |         | EDC |
+| |         | G-VBSM |
 
 
 
@@ -139,7 +152,8 @@ python setup.py install
 ```
 ### Quickstart
 
-Below is a step-by-step guide on how to use our `dd_ranking`. This demo is based on soft labels (source code can be found in `demo_soft.py`). You can find hard label demo in `demo_hard.py`.
+Below is a step-by-step guide on how to use our `ddranking`. This demo is based on LRS on soft labels (source code can be found in `demo_soft.py`). You can find LRS on hard labels in `demo_hard.py` and ARS in `demo_aug.py`.
+DD-Ranking supports multi-GPU Distributed evaluation. You can simply use `torchrun` to launch the evaluation.
 
 **Step1**: Intialize a soft-label metric evaluator object. Config files are recommended for users to specify hyper-parameters. Sample config files are provided [here](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/tree/main/configs).
 
@@ -158,11 +172,12 @@ soft_label_metric_calc = SoftLabelEvaluator(config)
 device = "cuda"
 method_name = "DATM"                    # Specify your method name
 ipc = 10                                # Specify your IPC
-dataset = "CIFAR10"                     # Specify your dataset name
-syn_data_dir = "./data/CIFAR10/IPC10/"  # Specify your synthetic data path
+dataset = "CIFAR100"                     # Specify your dataset name
+syn_data_dir = "./data/CIFAR100/IPC10/"  # Specify your synthetic data path
 real_data_dir = "./datasets"            # Specify your dataset path
 model_name = "ConvNet-3"                # Specify your model name
 teacher_dir = "./teacher_models"		# Specify your path to teacher model chcekpoints
+teacher_model_names = ["ConvNet-3"]      # Specify your teacher model names
 im_size = (32, 32)                      # Specify your image size
 dsa_params = {                          # Specify your data augmentation parameters
     "prob_flip": 0.5,
@@ -174,6 +189,8 @@ dsa_params = {                          # Specify your data augmentation paramet
     "ratio_crop_pad": 0.125,
     "ratio_cutout": 0.5
 }
+random_data_format = "tensor"              # Specify your random data format (tensor or image)
+random_data_path = "./random_data"          # Specify your random data path
 save_path = f"./results/{dataset}/{model_name}/IPC{ipc}/dm_hard_scores.csv"
 
 """ We only list arguments that usually need specifying"""
@@ -184,13 +201,19 @@ soft_label_metric_calc = SoftLabelEvaluator(
     model_name=model_name,
     soft_label_criterion='sce',  # Use Soft Cross Entropy Loss
     soft_label_mode='S',         # Use one-to-one image to soft label mapping
+    loss_fn_kwargs={'temperature': 1.0, 'scale_loss': False},
     data_aug_func='dsa',         # Use DSA data augmentation
     aug_params=dsa_params,       # Specify dsa parameters
     im_size=im_size,
+    random_data_format=random_data_format,
+    random_data_path=random_data_path,
     stu_use_torchvision=False,
     tea_use_torchvision=False,
-    teacher_dir='./teacher_models',
+    teacher_dir=teacher_dir,
+    teacher_model_names=teacher_model_names,
+    num_eval=5,
     device=device,
+    dist=True,
     save_path=save_path
 )
 ```
@@ -212,22 +235,19 @@ syn_lr = torch.load('/your/path/to/syn/lr.pt')
 ```python
 metric = soft_label_metric_calc.compute_metrics(image_tensor=syn_images, soft_labels=soft_labels, syn_lr=syn_lr)
 # alternatively, you can specify the image folder path to compute the metric
-metric = soft_label_metric_calc.compute_metrics(image_path='./your/path/to/syn/images', soft_labels=soft_labels, syn_lr=syn_lr)
+soft_label_metric_calc.compute_metrics(image_path='./your/path/to/syn/images', soft_labels=soft_labels, syn_lr=syn_lr)
 ```
 
-The following results will be returned to you:
+The following results will be printed and saved to `save_path`:
 - `HLR mean`: The mean of hard label recovery over `num_eval` runs.
 - `HLR std`: The standard deviation of hard label recovery over `num_eval` runs.
 - `IOR mean`: The mean of improvement over random over `num_eval` runs.
 - `IOR std`: The standard deviation of improvement over random over `num_eval` runs.
+- `LRS mean`: The mean of Label-Robust Score over `num_eval` runs.
+- `LRS std`: The standard deviation of Label-Robust Score over `num_eval` runs.
 
 Check out our <span style="color: #ff0000;">[documentation](https://nus-hpc-ai-lab.github.io/DD-Ranking/)</span> to learn more.
 
-## Coming Soon
-
-- [ ] Evaluation results on ImageNet subsets.
-- [ ] More baseline methods.
-- [ ] DD-Ranking scores that decouple the impacts from data augmentation.
 
 ## Contributing
 
@@ -236,7 +256,7 @@ Feel free to submit grades to update the DD-Ranking list. We welcome and value a
 Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 
 
-## Technical Members:
+<!-- ## Technical Members:
 - [Zekai Li*](https://lizekai-richard.github.io/) (National University of Singapore)
 - [Xinhao Zhong*](https://ndhg1213.github.io/) (National University of Singapore)
 - [Zhiyuan Liang](https://jerryliang24.github.io/) (University of Science and Technology of China)
@@ -282,23 +302,11 @@ Please check out [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 - [Yang You](https://www.comp.nus.edu.sg/~youy/) (National University of Singapore)
 - [Kai Wang](https://kaiwang960112.github.io/) (National University of Singapore)
 
-\* *equal contribution*
+\* *equal contribution* -->
 
 ## License
 
 DD-Ranking is released under the MIT License. See [LICENSE](./LICENSE) for more details.
-
-## Related Works
-
-- [Dataset Distillation](https://arxiv.org/abs/1811.10959), Wang et al., in arXiv 2018.
-- [Dataset Condensation with Gradient Matching](https://arxiv.org/abs/2006.05929), Zhao et al., in ICLR 2020.
-- [Dataset Condensation with Differentiable Siamese Augmentation](https://arxiv.org/abs/2102.08259), Zhao \& Bilen, in ICML 2021.
-- [Dataset Distillation via Matching Training Trajectories](https://arxiv.org/abs/2203.11932), Cazenavette et al., in CVPR 2022.
-- [Dataset Distillation with Distribution Matching](https://arxiv.org/abs/2110.04181), Zhao \& Bilen, in WACV 2023.
-- [Squeeze, Recover and Relabel: Dataset Condensation at ImageNet Scale From A New Perspective](https://arxiv.org/abs/2306.13092), Yin et al., in NeurIPS 2023.
-- [Towards Lossless Dataset Distillation via Difficulty-Aligned Trajectory Matching](https://arxiv.org/abs/2310.05773), Guo et al., in ICLR 2024.
-- [On the Diversity and Realism of Distilled Dataset: An Efficient Dataset Distillation Paradigm](https://arxiv.org/abs/2312.03526), Sun et al., in CVPR 2024.
-- [D4M: Dataset Distillation via Disentangled Diffusion Model](https://arxiv.org/abs/2407.15138), Su et al., in CVPR 2024.
 
 
 ## Reference
@@ -306,11 +314,13 @@ DD-Ranking is released under the MIT License. See [LICENSE](./LICENSE) for more 
 If you find DD-Ranking useful in your research, please consider citing the following paper:
 
 ```bibtex
-@misc{li2024ddranking,
-  title = {DD-Ranking: Rethinking the Evaluation of Dataset Distillation},
-  author = {Li, Zekai and Zhong, Xinhao and Liang, Zhiyuan and Zhou, Yuhao and Shi, Mingjia and Wang, Ziqiao and Zhao, Wangbo and Zhao, Xuanlei and Wang, Haonan and Qin, Ziheng and Liu, Dai and Zhang, Kaipeng and Zhou, Tianyi and Zhu, Zheng and Wang, Kun and Li, Guang and Zhang, Junhao and Liu, Jiawei and Huang, Yiran and Lyu, Lingjuan and Lv, Jiancheng and Jin, Yaochu and Akata, Zeynep and Gu, Jindong and Vedantam, Rama and Shou, Mike and Deng, Zhiwei and Yan, Yan and Shang, Yuzhang and Cazenavette, George and Wu, Xindi and Cui, Justin and Chen, Tianlong and Yao, Angela and Kellis, Manolis and Plataniotis, Konstantinos N. and Zhao, Bo and Wang, Zhangyang and You, Yang and Wang, Kai},
-  year = {2024},
-  howpublished = {GitHub repository},
-  url = {https://github.com/NUS-HPC-AI-Lab/DD-Ranking}
+@misc{li2025ddrankingrethinkingevaluationdataset,
+      title={DD-Ranking: Rethinking the Evaluation of Dataset Distillation}, 
+      author={Zekai Li and Xinhao Zhong and Samir Khaki and Zhiyuan Liang and Yuhao Zhou and Mingjia Shi and Ziqiao Wang and Xuanlei Zhao and Wangbo Zhao and Ziheng Qin and Mengxuan Wu and Pengfei Zhou and Haonan Wang and David Junhao Zhang and Jia-Wei Liu and Shaobo Wang and Dai Liu and Linfeng Zhang and Guang Li and Kun Wang and Zheng Zhu and Zhiheng Ma and Joey Tianyi Zhou and Jiancheng Lv and Yaochu Jin and Peihao Wang and Kaipeng Zhang and Lingjuan Lyu and Yiran Huang and Zeynep Akata and Zhiwei Deng and Xindi Wu and George Cazenavette and Yuzhang Shang and Justin Cui and Jindong Gu and Qian Zheng and Hao Ye and Shuo Wang and Xiaobo Wang and Yan Yan and Angela Yao and Mike Zheng Shou and Tianlong Chen and Hakan Bilen and Baharan Mirzasoleiman and Manolis Kellis and Konstantinos N. Plataniotis and Zhangyang Wang and Bo Zhao and Yang You and Kai Wang},
+      year={2025},
+      eprint={2505.13300},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2505.13300}, 
 }
 ```

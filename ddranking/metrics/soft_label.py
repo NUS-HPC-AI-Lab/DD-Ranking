@@ -66,7 +66,7 @@ class SoftLabelEvaluator:
             teacher_model_names = self.config.get('teacher_model_names')
             device = self.config.get('device')
             dist = self.config.get('dist')
-        
+
         self.use_dist = dist
         self.device = device
         # setup dist
@@ -494,7 +494,7 @@ class SoftLabelEvaluator:
             return random_data_path, None, None
     
     
-    def compute_metrics(self, image_tensor: Tensor=None, image_path: str=None, soft_labels: Tensor=None, syn_lr: float=None):
+    def compute_metrics(self, image_tensor: Tensor=None, image_path: str=None, soft_labels: Tensor=None, syn_lr: float=None, lrs_lambda: float=0.5):
         if image_tensor is None and image_path is None:
             raise ValueError("Either image_tensor or image_path must be provided")
 
@@ -509,6 +509,7 @@ class SoftLabelEvaluator:
 
         hard_label_recovery = []
         improvement_over_random = []
+        lrs_list = []
         seed_list = [0, 1, 42, 1234, 3407]
         for i in range(self.num_eval):
             set_seed(seed_list[i])
@@ -561,24 +562,31 @@ class SoftLabelEvaluator:
 
             hlr = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
             ior = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
+            alpha = lrs_lambda * ior - (1 - lrs_lambda) * hlr
+            lrs = (np.exp(alpha) - np.exp(-1)) / (np.exp(1) - np.exp(-1))
 
             hard_label_recovery.append(hlr)
             improvement_over_random.append(ior)
+            lrs_list.append(lrs)
         
         if self.use_dist:
             hard_label_recovery_tensor = torch.tensor(hard_label_recovery, device=self.device)
             improvement_over_random_tensor = torch.tensor(improvement_over_random, device=self.device)
+            lrs_tensor = torch.tensor(lrs_list, device=self.device)
             
             torch.distributed.all_reduce(hard_label_recovery_tensor, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(improvement_over_random_tensor, op=torch.distributed.ReduceOp.SUM)
-            
+            torch.distributed.all_reduce(lrs_tensor, op=torch.distributed.ReduceOp.SUM)
+
             hard_label_recovery = (hard_label_recovery_tensor / self.world_size).cpu().tolist()
             improvement_over_random = (improvement_over_random_tensor / self.world_size).cpu().tolist()
+            lrs_list = (lrs_tensor / self.world_size).cpu().tolist()
 
         if self.rank == 0:
             results_to_save = {
                 "hard_label_recovery": hard_label_recovery,
-                "improvement_over_random": improvement_over_random
+                "improvement_over_random": improvement_over_random,
+                "lrs": lrs_list
             }
             save_results(results_to_save, self.save_path)
 
@@ -586,9 +594,12 @@ class SoftLabelEvaluator:
             hard_label_recovery_std = np.std(hard_label_recovery)
             improvement_over_random_mean = np.mean(improvement_over_random)
             improvement_over_random_std = np.std(improvement_over_random)
+            lrs_mean = np.mean(lrs_list)
+            lrs_std = np.std(lrs_list)
 
             logging(f"Hard Label Recovery Mean: {hard_label_recovery_mean:.2f}%  Std: {hard_label_recovery_std:.2f}")
             logging(f"Improvement Over Random Mean: {improvement_over_random_mean:.2f}%  Std: {improvement_over_random_std:.2f}")
+            logging(f"Label-Robust Score Mean: {lrs_mean:.2f}%  Std: {lrs_std:.2f}")
         
         if self.use_dist:
             torch.distributed.destroy_process_group()
