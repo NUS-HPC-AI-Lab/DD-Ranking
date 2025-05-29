@@ -46,9 +46,8 @@ custom_val_trans:
       mean: [0.485, 0.456, 0.406]
       std: [0.229, 0.224, 0.225]
 
-use_aug_for_hard: false
-
 # soft label settings
+label_type: soft
 soft_label_mode: M
 soft_label_criterion: kl
 loss_fn_kwargs:
@@ -59,16 +58,15 @@ loss_fn_kwargs:
 optimizer: adamw
 lr_scheduler: cosine
 weight_decay: 0.01
+momentum: 0.9
 num_eval: 5
 num_epochs: 300
 num_workers: 4
 device: cuda
 dist: true
-eval_full_data: false
-syn_batch_size: 1024
-real_batch_size: 1024
+batch_size: 1024
 random_data_path: ./random_data/my_method/ImageNet1K/IPC10/
 random_data_format: image
 
 # save path
-save_path: ./my_method_soft_label_scores.csv
+save_path: ./my_method_ars_scores.csv
