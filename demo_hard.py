@@ -1,14 +1,14 @@
 import os
 import torch
 import warnings
-from ddranking.metrics import HardLabelEvaluator
+from ddranking.metrics import LabelRobustScoreHard
 from ddranking.config import Config
 warnings.filterwarnings("ignore")
 
 
 """ Use config file to specify the arguments (Recommended) """
-config = Config.from_file("./configs/Demo_Hard_Label.yaml")
-hard_label_evaluator = HardLabelEvaluator(config)
+config = Config.from_file("./configs/Demo_LRS_Hard_Label.yaml")
+hard_label_evaluator = LabelRobustScoreHard(config)
 
 syn_data_dir = "./baselines/DM/CIFAR10/IPC10/"
 syn_images = torch.load(os.path.join(syn_data_dir, f"images.pt"), map_location='cpu')
@@ -39,12 +39,11 @@ dsa_params = {
 
 syn_images = torch.load(os.path.join(syn_data_dir, f"images.pt"), map_location='cpu')
 save_path = f"./results/{dataset}/{model_name}/IPC{ipc}/dm_hard_scores.csv"
-hard_label_evaluator = HardLabelEvaluator(
+hard_label_evaluator = LabelRobustScoreHard(
     dataset=dataset, 
     real_data_path=data_dir, 
     ipc=ipc, 
     model_name=model_name,
-    default_lr=0.01,
     optimizer='sgd',             # Use SGD optimizer
     lr_scheduler='step',         # Use StepLR learning rate scheduler
     weight_decay=0.0005,
@@ -57,10 +56,15 @@ hard_label_evaluator = HardLabelEvaluator(
     num_epochs=1000,
     num_workers=4,
     use_torchvision=False,
-    syn_batch_size=128,
+    syn_batch_size=256,
     real_batch_size=256,
+    custom_train_trans=None,
     custom_val_trans=None,
     device=device,
-    save_path=save_path
+    dist=True,
+    save_path=save_path,
+    random_data_format='tensor',
+    random_data_path='./random_data',
+    eval_full_data=True,
 )
 print(hard_label_evaluator.compute_metrics(image_tensor=syn_images, syn_lr=0.01))
