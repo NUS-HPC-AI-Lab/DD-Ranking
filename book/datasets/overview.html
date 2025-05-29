@@ -166,6 +166,7 @@
 <li><strong>data_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the dataset.</li>
 <li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Image size.</li>
 <li><strong>use_zca</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use ZCA whitening. When set to True, the dataset will <strong>not be</strong> normalized using the mean and standard deviation of the training set.</li>
+<li><strong>custom_train_trans</strong>(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation on the training set.</li>
 <li><strong>custom_val_trans</strong>(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation on the validation set.</li>
 <li><strong>device</strong>(<span style="color:#FF6B00;">str</span>): Device for performing ZCA whitening.</li>
 </ul>
@@ -194,6 +195,15 @@
 <li><strong>channels</strong>: <code>3</code></li>
 <li><strong>im_size</strong>: <code>(64, 64)</code></li>
 <li><strong>num_classes</strong>: <code>200</code></li>
+<li><strong>mean</strong>: <code>[0.485, 0.456, 0.406]</code></li>
+<li><strong>std</strong>: <code>[0.229, 0.224, 0.225]</code></li>
+</ul>
+</li>
+<li><strong>ImageNet1K</strong>
+<ul>
+<li><strong>channels</strong>: <code>3</code></li>
+<li><strong>im_size</strong>: <code>(224, 224)</code></li>
+<li><strong>num_classes</strong>: <code>1000</code></li>
 <li><strong>mean</strong>: <code>[0.485, 0.456, 0.406]</code></li>
 <li><strong>std</strong>: <code>[0.229, 0.224, 0.225]</code></li>
 </ul>
@@ -229,6 +239,22 @@
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 

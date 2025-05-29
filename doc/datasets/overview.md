@@ -14,6 +14,7 @@ ddranking.utils.get_dataset(dataset: str, data_path: str, im_size: tuple, use_zc
 - **data_path**(<span style="color:#FF6B00;">str</span>): Path to the dataset.
 - **im_size**(<span style="color:#FF6B00;">tuple</span>): Image size.
 - **use_zca**(<span style="color:#FF6B00;">bool</span>): Whether to use ZCA whitening. When set to True, the dataset will **not be** normalized using the mean and standard deviation of the training set.
+- **custom_train_trans**(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation on the training set.
 - **custom_val_trans**(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation on the validation set.
 - **device**(<span style="color:#FF6B00;">str</span>): Device for performing ZCA whitening.
 
@@ -35,5 +36,11 @@ Currently, we support the following datasets with default settings. We will keep
     - **channels**: `3`
     - **im_size**: `(64, 64)`
     - **num_classes**: `200`
+    - **mean**: `[0.485, 0.456, 0.406]`
+    - **std**: `[0.229, 0.224, 0.225]`
+- **ImageNet1K**
+    - **channels**: `3`
+    - **im_size**: `(224, 224)`
+    - **num_classes**: `1000`
     - **mean**: `[0.485, 0.456, 0.406]`
     - **std**: `[0.229, 0.224, 0.225]`
