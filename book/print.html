@@ -192,30 +192,36 @@ Among these inconsistencies, two critical factors significantly undermine the fa
 <p>For the label representation, we introduce the Label-Robust Score (LRS) to evaluate the informativeness of the synthesized data using the following two aspects:</p>
 <ol>
 <li>
-<p>The degree to which the real dataset is recovered under hard labels (hard label recovery): $\text{HLR}=\text{Acc.}{\text{real-hard}}-\text{Acc.}{\text{syn-hard}}$.</p>
+<p>The degree to which the real dataset is recovered under hard labels (hard label recovery): \( \text{HLR}=\text{Acc.}{\text{real-hard}}-\text{Acc.}{\text{syn-hard}} \).</p>
 </li>
 <li>
-<p>The improvement over random selection when using personalized evaluation methods (improvement over random): $\text{IOR}=\text{Acc.}{\text{syn-any}}-\text{Acc.}{\text{rdm-any}}$.
-$\text{Acc.}$ is the accuracy of models trained on different samples. Samples' marks are as follows:</p>
+<p>The improvement over random selection when using personalized evaluation methods (improvement over random): \( \text{IOR}=\text{Acc.}{\text{syn-any}}-\text{Acc.}{\text{rdm-any}} \).
+\(\text{Acc.}\) is the accuracy of models trained on different samples. Samples' marks are as follows:</p>
 </li>
 </ol>
 <ul>
-<li>$\text{real-hard}$: Real dataset with hard labels;</li>
-<li>$\text{syn-hard}$: Synthetic dataset with hard labels;</li>
-<li>$\text{syn-any}$: Synthetic dataset with personalized evaluation methods (hard or soft labels);</li>
-<li>$\text{rdm-any}$: Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.</li>
+<li>\(\text{real-hard}\): Real dataset with hard labels;</li>
+<li>\(\text{syn-hard}\): Synthetic dataset with hard labels;</li>
+<li>\(\text{syn-any}\): Synthetic dataset with personalized evaluation methods (hard or soft labels);</li>
+<li>\(\text{rdm-any}\): Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.</li>
 </ul>
-<p>LRS is defined as a weight sum of $\text{IOR}$ and $-\text{HLR}$ to rank different methods:
-$\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]$.
-Then, the LRS is normalized to $[0, 1]$ as follows:
-$\text{LRS} = (e^{\alpha}-e^{-1}) / (e - e^{-1})$</p>
-<p>By default, we set $w = 0.5$ on the leaderboard, meaning that both $\text{IOR}$ and $\text{HLR}$ are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.</p>
+<p>LRS is defined as a weight sum of \(\text{IOR}\) and \(-\text{HLR}\) to rank different methods:
+\[
+\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]
+\]
+Then, the LRS is normalized to \([0, 1]\) as follows:
+\[
+\text{LRS} = 100% \times (e^{\alpha}-e^{-1}) / (e - e^{-1})
+\]</p>
+<p>By default, we set \(w = 0.5\) on the leaderboard, meaning that both \(\text{IOR}\) and \(\text{HLR}\) are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.</p>
 <h3 id="augmentation-robust-score-ars"><a class="header" href="#augmentation-robust-score-ars">Augmentation-Robust Score (ARS)</a></h3>
-<p>To disentangle data augmentation’s impact, we introduce the augmentation-robust score (ARS) which continues to leverage the relative improvement over randomly selected data. Specifically, we first evaluate synthetic data and a randomly selected subset under the same setting to obtain $\text{Acc.}{\text{syn-aug}}$ and $\text{Acc.}{\text{rdm-aug}}$ (same as IOR). Next, we evaluate both synthetic data and random data again without the data augmentation, and results are denoted as $\text{Acc.}{\text{syn-naug}}$ and $\text{Acc.}{\text{rdm-naug}}$.
-Both differences, $\text{accsyn-aug} - \text{accrdm-aug}$ and $\text{accsyn-naug} - \text{accrdm-naug}$, are positively correlated to the real informativeness of the distilled dataset.</p>
+<p>To disentangle data augmentation’s impact, we introduce the augmentation-robust score (ARS) which continues to leverage the relative improvement over randomly selected data. Specifically, we first evaluate synthetic data and a randomly selected subset under the same setting to obtain \(\text{Acc.}{\text{syn-aug}}\) and \(\text{Acc.}{\text{rdm-aug}}\) (same as IOR). Next, we evaluate both synthetic data and random data again without the data augmentation, and results are denoted as \(\text{Acc.}{\text{syn-naug}}\) and \(\text{Acc.}{\text{rdm-naug}}\).
+Both differences, \(\text{Acc.syn-aug} - \text{Acc.rdm-aug}\) and \(\text{Acc.syn-naug} - \text{Acc.rdm-naug}\), are positively correlated to the real informativeness of the distilled dataset.</p>
 <p>ARS is a weighted sum of the two differences:
-$\beta = \gamma(\text{accsyn-aug} - \text{accrdm-aug}) + (1 - \gamma)(\text{accsyn-naug} - \text{accrdm-naug})$,
-and normalized to $[0, 1]$ similarly.</p>
+\[
+\beta = \gamma(\text{Acc.syn-aug} - \text{Acc.rdm-aug}) + (1 - \gamma)(\text{Acc.syn-naug} - \text{Acc.rdm-naug})
+\]
+and normalized similarly.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="contributing"><a class="header" href="#contributing">Contributing</a></h1>
 <p>Welcome! We are glad that you by willing to contribute to the field of dataset distillation.</p>
 <ul>
@@ -327,13 +333,491 @@ lrs_soft_metric = LabelRobustScoreSoft(
 <p>DD-Ranking provides a set of metrics to evaluate the real informativeness of datasets distilled by different methods. The unfairness of existing evaluation is mainly caused by two factors, the label representation and the data augmentation. We design the label-robust score (LRS) and the augmentation robust score (ARS) to disentangle the impact of label representation and data augmentation on the evaluation, respectively.</p>
 <h2 id="evaluation-classes"><a class="header" href="#evaluation-classes">Evaluation Classes</a></h2>
 <ul>
-<li><a href="metrics/hard-label.html">HardLabelEvaluator</a> computes HLR, IOR, and DD-Ranking score for methods using hard labels.</li>
-<li><a href="metrics/soft-label.html">SoftLabelEvaluator</a> computes HLR, IOR, and DD-Ranking score for methods using soft labels.</li>
-<li><a href="metrics/ars.html">AugmentationRobustScore</a> computes the augmentation robust score for methods using soft labels.</li>
+<li><a href="metrics/lrs-hard-label.html">LabelRobustScoreHard</a> computes HLR, IOR, and LRS for methods using hard labels.</li>
+<li><a href="metrics/lrs-soft-label.html">LabelRobustScoreSoft</a> computes HLR, IOR, and LRS for methods using soft labels.</li>
+<li><a href="metrics/ars.html">AugmentationRobustScore</a> computes the ARS for methods using soft labels.</li>
 <li><a href="metrics/general.html">GeneralEvaluator</a> computes the traditional test accuracy for existing methods.</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="hard-label"><a class="header" href="#hard-label">Hard Label</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="soft-label"><a class="header" href="#soft-label">Soft Label</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="labelrobustscorehard"><a class="header" href="#labelrobustscorehard">LabelRobustScoreHard</a></h2>
+<div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
+<p><span style="color:#FF6B00;">CLASS</span>
+dd_ranking.metrics.LabelRobustScoreHard(config=None,
+dataset: str = 'CIFAR10',
+real_data_path: str = './dataset/',
+ipc: int = 10,
+model_name: str = 'ConvNet-3',
+data_aug_func: str = 'cutmix',
+aug_params: dict = {'cutmix_p': 1.0},
+optimizer: str = 'sgd',
+lr_scheduler: str = 'step',
+step_size: int = None,
+weight_decay: float = 0.0005,
+momentum: float = 0.9,
+use_zca: bool = False,
+num_eval: int = 5,
+im_size: tuple = (32, 32),
+num_epochs: int = 300,
+real_batch_size: int = 256,
+syn_batch_size: int = 256,
+use_torchvision: bool = False,
+eval_full_data: bool = False,
+random_data_format: str = 'tensor',
+random_data_path: str = './dataset/',
+num_workers: int = 4,
+save_path: Optional[str] = None,
+custom_train_trans: Optional[Callable] = None,
+custom_val_trans: Optional[Callable] = None,
+device: str = "cuda",
+dist: bool = False
+)
+<a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/metrics/hard_label.py"><strong>[SOURCE]</strong></a></p>
+</div>
+<p>A class for evaluating the performance of a dataset distillation method with hard labels. User is able to modify the attributes as needed.</p>
+<h3 id="parameters"><a class="header" href="#parameters">Parameters</a></h3>
+<ul>
+<li><strong>config</strong>(<span style="color:#FF6B00;">Optional[Config]</span>): Config object for specifying all attributes. See <a href="metrics/../config/overview.html">config</a> for more details.</li>
+<li><strong>dataset</strong>(<span style="color:#FF6B00;">str</span>): Name of the real dataset.</li>
+<li><strong>real_data_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the real dataset.</li>
+<li><strong>ipc</strong>(<span style="color:#FF6B00;">int</span>): Images per class.</li>
+<li><strong>model_name</strong>(<span style="color:#FF6B00;">str</span>): Name of the surrogate model. See <a href="metrics/../models/overview.html">models</a> for more details.</li>
+<li><strong>data_aug_func</strong>(<span style="color:#FF6B00;">str</span>): Data augmentation function used during training. Currently supports <code>dsa</code>, <code>cutmix</code>, <code>mixup</code>. See <a href="metrics/../augmentations/overview.html">augmentations</a> for more details.</li>
+<li><strong>aug_params</strong>(<span style="color:#FF6B00;">dict</span>): Parameters for the data augmentation function.</li>
+<li><strong>optimizer</strong>(<span style="color:#FF6B00;">str</span>): Name of the optimizer. Currently supports torch-based optimizers - <code>sgd</code>, <code>adam</code>, and <code>adamw</code>.</li>
+<li><strong>lr_scheduler</strong>(<span style="color:#FF6B00;">str</span>): Name of the learning rate scheduler. Currently supports torch-based schedulers - <code>step</code>, <code>cosine</code>, <code>lambda_step</code>, and <code>cosineannealing</code>.</li>
+<li><strong>weight_decay</strong>(<span style="color:#FF6B00;">float</span>): Weight decay for the optimizer.</li>
+<li><strong>momentum</strong>(<span style="color:#FF6B00;">float</span>): Momentum for the optimizer.</li>
+<li><strong>step_size</strong>(<span style="color:#FF6B00;">int</span>): Step size for the learning rate scheduler.</li>
+<li><strong>use_zca</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use ZCA whitening.</li>
+<li><strong>num_eval</strong>(<span style="color:#FF6B00;">int</span>): Number of evaluations to perform.</li>
+<li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Size of the images.</li>
+<li><strong>num_epochs</strong>(<span style="color:#FF6B00;">int</span>): Number of epochs to train.</li>
+<li><strong>real_batch_size</strong>(<span style="color:#FF6B00;">int</span>): Batch size for the real dataset.</li>
+<li><strong>syn_batch_size</strong>(<span style="color:#FF6B00;">int</span>): Batch size for the synthetic dataset.</li>
+<li><strong>use_torchvision</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use torchvision to initialize the model.</li>
+<li><strong>eval_full_data</strong>(<span style="color:#FF6B00;">bool</span>): Whether to evaluate on the full dataset.</li>
+<li><strong>random_data_format</strong>(<span style="color:#FF6B00;">str</span>): Format of the randomly selected dataset. Currently supports <code>tensor</code> and <code>image</code>.</li>
+<li><strong>random_data_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the randomly selected dataset.</li>
+<li><strong>num_workers</strong>(<span style="color:#FF6B00;">int</span>): Number of workers for data loading.</li>
+<li><strong>save_path</strong>(<span style="color:#FF6B00;">Optional[str]</span>): Path to save the results.</li>
+<li><strong>custom_train_trans</strong>(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation function when loading synthetic data. Only support torchvision transformations. See <a href="metrics/../augmentations/torchvision.html">torchvision-based transformations</a> for more details.</li>
+<li><strong>custom_val_trans</strong>(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation function when loading test dataset. Only support torchvision transformations. See <a href="metrics/../augmentations/torchvision.html">torchvision-based transformations</a> for more details.</li>
+<li><strong>device</strong>(<span style="color:#FF6B00;">str</span>): Device to use for evaluation, <code>cuda</code> or <code>cpu</code>.</li>
+<li><strong>dist</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use distributed evaluation.</li>
+</ul>
+<h3 id="methods"><a class="header" href="#methods">Methods</a></h3>
+<div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px; margin-left:15px; margin-right:15px;">
+<p>compute_metrics(image_tensor: Tensor = None, image_path: str = None, hard_labels: Tensor = None, syn_lr: float = None, lrs_lambda: float = 0.5)</p>
+</div>
+<p>This method computes the HLR, IOR, and LRS for the given image and hard labels (if provided). In each evaluation round, we set a different random seed and perform the following steps:</p>
+<ol>
+<li>Compute the test accuracy of the surrogate model on the synthetic dataset under hard labels. We tune the learning rate for the best performance if <code>syn_lr</code> is not provided.</li>
+<li>Compute the test accuracy of the surrogate model on the real dataset under the same setting as step 1.</li>
+<li>Compute the test accuracy of the surrogate model on the randomly selected dataset under the same setting as step 1.</li>
+<li>Compute the HLR and IOR scores.</li>
+<li>Compute the LRS.</li>
+</ol>
+<p>The final scores are the average of the scores from <code>num_eval</code> rounds.</p>
+<h4 id="parameters-1"><a class="header" href="#parameters-1">Parameters</a></h4>
+<ul>
+<li><strong>image_tensor</strong>(<span style="color:#FF6B00;">Tensor</span>): Image tensor. Must specify when <code>image_path</code> is not provided. We require the shape to be <code>(N x IPC, C, H, W)</code> where <code>N</code> is the number of classes.</li>
+<li><strong>image_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the image. Must specify when <code>image_tensor</code> is not provided.</li>
+<li><strong>hard_labels</strong>(<span style="color:#FF6B00;">Tensor</span>): Hard label tensor. The first dimension must be the same as <code>image_tensor</code>.</li>
+<li><strong>syn_lr</strong>(<span style="color:#FF6B00;">float</span>): Learning rate for the synthetic dataset. If not specified, the learning rate will be tuned automatically.</li>
+<li><strong>lrs_lambda</strong>(<span style="color:#FF6B00;">float</span>): Weighting parameter for the LRS.</li>
+</ul>
+<h4 id="returns"><a class="header" href="#returns">Returns</a></h4>
+<p>A dictionary with the following keys:</p>
+<ul>
+<li><strong>hard_label_recovery_mean</strong>: Mean of HLR scores from <code>num_eval</code> rounds.</li>
+<li><strong>hard_label_recovery_std</strong>: Standard deviation of HLR scores from <code>num_eval</code> rounds.</li>
+<li><strong>improvement_over_random_mean</strong>: Mean of improvement over random scores from <code>num_eval</code> rounds.</li>
+<li><strong>improvement_over_random_std</strong>: Standard deviation of improvement over random scores from <code>num_eval</code> rounds.</li>
+<li><strong>label_robust_score_mean</strong>: Mean of LRS scores from <code>num_eval</code> rounds.</li>
+<li><strong>label_robust_score_std</strong>: Standard deviation of LRS scores from <code>num_eval</code> rounds.</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<p>with config file:</p>
+<pre><code class="language-python">&gt;&gt;&gt; config = Config('/path/to/config.yaml')
+&gt;&gt;&gt; evaluator = LabelRobustScoreHard(config=config)
+# load the image and hard labels
+&gt;&gt;&gt; image_tensor, hard_labels = ...
+# compute the metrics
+&gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, hard_labels=hard_labels)
+# alternatively, you can provide the image path
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', hard_labels=hard_labels)
+</code></pre>
+<p>with keyword arguments:</p>
+<pre><code class="language-python">&gt;&gt;&gt; evaluator = LabelRobustScoreHard(
+...     dataset='CIFAR10',
+...     real_data_path='./dataset/',
+...     ipc=10,
+...     model_name='ConvNet-3',
+...     data_aug_func='dsa',
+...     aug_params={
+...         "prob_flip": 0.5,
+...         "ratio_rotate": 15.0,
+...         "saturation": 2.0,
+...         "brightness": 1.0,
+...         "contrast": 0.5,
+...         "ratio_scale": 1.2,
+...         "ratio_crop_pad": 0.125,
+...         "ratio_cutout": 0.5
+...     },
+...     optimizer='sgd',
+...     lr_scheduler='step',
+...     weight_decay=0.0005,
+...     momentum=0.9,
+...     step_size=500,
+...     num_epochs=1000,
+...     real_batch_size=256,
+...     syn_batch_size=256,
+...     use_torchvision=False,
+...     eval_full_data=True,
+...     random_data_format='tensor',
+...     random_data_path='./random_data/',
+...     num_workers=4,
+...     save_path='./results/',
+...     use_zca=False,
+...     num_eval=5,
+...     device='cuda',
+...     dist=True
+... )
+# load the image and hard labels
+&gt;&gt;&gt; image_tensor, hard_labels = ...
+# compute the metrics
+&gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, hard_labels=hard_labels)
+# alternatively, you can provide the image path
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', hard_labels=hard_labels)
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="labelrobustscoresoft"><a class="header" href="#labelrobustscoresoft">LabelRobustScoreSoft</a></h2>
+<div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
+<p><span style="color:#FF6B00;">CLASS</span>
+dd_ranking.metrics.LabelRobustScoreSoft(config: Optional[Config] = None,
+dataset: str = 'CIFAR10',
+real_data_path: str = './dataset/',
+ipc: int = 10,
+model_name: str = 'ConvNet-3',
+soft_label_mode: str='S',
+soft_label_criterion: str='kl',
+loss_fn_kwargs: dict=None,
+data_aug_func: str='cutmix',
+aug_params: dict={'cutmix_p': 1.0},
+optimizer: str='sgd',
+lr_scheduler: str='step',
+weight_decay: float=0.0005,
+momentum: float=0.9,
+step_size: int=None,
+num_eval: int=5,
+im_size: tuple=(32, 32),
+num_epochs: int=300,
+use_zca: bool=False,
+use_aug_for_hard: bool=False,
+random_data_format: str='tensor',
+random_data_path: str=None,
+real_batch_size: int=256,
+syn_batch_size: int=256,
+save_path: str=None,
+eval_full_data: bool=False,
+stu_use_torchvision: bool=False,
+tea_use_torchvision: bool=False,
+num_workers: int=4,
+teacher_dir: str='./teacher_models',
+teacher_model_names: list=None,
+custom_train_trans: Optional[Callable]=None,
+custom_val_trans: Optional[Callable]=None,
+device: str="cuda",
+dist: bool=False
+)
+<a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/metrics/soft_label.py"><strong>[SOURCE]</strong></a></p>
+</div>
+<p>A class for evaluating the performance of a dataset distillation method with soft labels. User is able to modify the attributes as needed.</p>
+<h3 id="parameters-2"><a class="header" href="#parameters-2">Parameters</a></h3>
+<ul>
+<li><strong>config</strong>(<span style="color:#FF6B00;">Optional[Config]</span>): Config object for specifying all attributes. See <a href="metrics/../config/overview.html">config</a> for more details.</li>
+<li><strong>dataset</strong>(<span style="color:#FF6B00;">str</span>): Name of the real dataset.</li>
+<li><strong>real_data_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the real dataset.</li>
+<li><strong>ipc</strong>(<span style="color:#FF6B00;">int</span>): Images per class.</li>
+<li><strong>model_name</strong>(<span style="color:#FF6B00;">str</span>): Name of the surrogate model. See <a href="metrics/../models/overview.html">models</a> for more details.</li>
+<li><strong>soft_label_mode</strong>(<span style="color:#FF6B00;">str</span>): Number of soft labels per image. <code>S</code> for single soft label, <code>M</code> for multiple soft labels.</li>
+<li><strong>soft_label_criterion</strong>(<span style="color:#FF6B00;">str</span>): Loss function for using soft labels. Currently supports <code>kl</code> for KL divergence, <code>sce</code> for soft cross-entropy, and <code>mse_gt</code> for MSEGT loss introduced in EDC.</li>
+<li><strong>loss_fn_kwargs</strong>(<span style="color:#FF6B00;">dict</span>): Keyword arguments for the loss function. <code>temperature</code> and <code>scale_loss</code> for KL and SCE loss, and <code>mse_weight</code> and <code>ce_weight</code> for MSE and CE loss.</li>
+<li><strong>data_aug_func</strong>(<span style="color:#FF6B00;">str</span>): Data augmentation function used during training. Currently supports <code>dsa</code>, <code>cutmix</code>, <code>mixup</code>. See <a href="metrics/../augmentations/overview.html">augmentations</a> for more details.</li>
+<li><strong>aug_params</strong>(<span style="color:#FF6B00;">dict</span>): Parameters for the data augmentation function.</li>
+<li><strong>use_aug_for_hard</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use the data augmentation specified in <code>data_aug_func</code> for hard label evaluation.</li>
+<li><strong>optimizer</strong>(<span style="color:#FF6B00;">str</span>): Name of the optimizer. Currently supports torch-based optimizers - <code>sgd</code>, <code>adam</code>, and <code>adamw</code>.</li>
+<li><strong>lr_scheduler</strong>(<span style="color:#FF6B00;">str</span>): Name of the learning rate scheduler. Currently supports torch-based schedulers - <code>step</code>, <code>cosine</code>, <code>lambda_step</code>, and <code>cosineannealing</code>.</li>
+<li><strong>weight_decay</strong>(<span style="color:#FF6B00;">float</span>): Weight decay for the optimizer.</li>
+<li><strong>momentum</strong>(<span style="color:#FF6B00;">float</span>): Momentum for the optimizer.</li>
+<li><strong>step_size</strong>(<span style="color:#FF6B00;">int</span>): Step size for the learning rate scheduler.</li>
+<li><strong>use_zca</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use ZCA whitening.</li>
+<li><strong>num_eval</strong>(<span style="color:#FF6B00;">int</span>): Number of evaluations to perform.</li>
+<li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Size of the images.</li>
+<li><strong>num_epochs</strong>(<span style="color:#FF6B00;">int</span>): Number of epochs to train.</li>
+<li><strong>real_batch_size</strong>(<span style="color:#FF6B00;">int</span>): Batch size for the real dataset.</li>
+<li><strong>syn_batch_size</strong>(<span style="color:#FF6B00;">int</span>): Batch size for the synthetic dataset.</li>
+<li><strong>stu_use_torchvision</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use torchvision to initialize the student model.</li>
+<li><strong>tea_use_torchvision</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use torchvision to initialize the teacher model.</li>
+<li><strong>teacher_dir</strong>(<span style="color:#FF6B00;">str</span>): Path to the teacher model.</li>
+<li><strong>teacher_model_names</strong>(<span style="color:#FF6B00;">list</span>): List of teacher model names.</li>
+<li><strong>random_data_format</strong>(<span style="color:#FF6B00;">str</span>): Format of the random data, <code>tensor</code> or <code>image</code>.</li>
+<li><strong>random_data_path</strong>(<span style="color:#FF6B00;">str</span>): Path to save the random data.</li>
+<li><strong>eval_full_data</strong>(<span style="color:#FF6B00;">bool</span>): Whether to compute the test accuracy on the full dataset (might be time-consuming on large datasets such as ImageNet1K, so we have provided a full dataset performance cache).</li>
+<li><strong>num_workers</strong>(<span style="color:#FF6B00;">int</span>): Number of workers for data loading.</li>
+<li><strong>save_path</strong>(<span style="color:#FF6B00;">Optional[str]</span>): Path to save the results.</li>
+<li><strong>custom_train_trans</strong>(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation function when loading synthetic data. Only support torchvision transformations. See <a href="metrics/../augmentations/torchvision.html">torchvision-based transformations</a> for more details.</li>
+<li><strong>custom_val_trans</strong>(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation function when loading test dataset. Only support torchvision transformations. See <a href="metrics/../augmentations/torchvision.html">torchvision-based transformations</a> for more details.</li>
+<li><strong>device</strong>(<span style="color:#FF6B00;">str</span>): Device to use for evaluation, <code>cuda</code> or <code>cpu</code>.</li>
+<li><strong>dist</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use distributed training.</li>
+</ul>
+<h3 id="methods-1"><a class="header" href="#methods-1">Methods</a></h3>
+<div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px; margin-left:15px; margin-right:15px;">
+<p>compute_metrics(image_tensor: Tensor = None, image_path: str = None, soft_labels: Tensor = None, syn_lr: float = None, lrs_lambda: float = 0.5)</p>
+</div>
+<div style="margin-left:15px; margin-right:15px;">
+This method computes the HLR, IOR, and LRS for the given image and soft labels (if provided). In each evaluation round, we set a different random seed and perform the following steps:
+<ol>
+<li>Compute the test accuracy of the surrogate model on the synthetic dataset under hard labels. We perform learning rate tuning for the best performance.</li>
+<li>Compute the test accuracy of the surrogate model on the real dataset under the same setting as step 1.</li>
+<li>Compute the test accuracy of the surrogate model on the synthetic dataset under soft labels.</li>
+<li>Compute the test accuracy of the surrogate model on the randomly selected dataset under the same setting as step 3.</li>
+<li>Compute the HLR and IOR scores.</li>
+<li>Compute the LRS.</li>
+</ol>
+<p>The final scores are the average of the scores from <code>num_eval</code> rounds.</p>
+<h4 id="parameters-3"><a class="header" href="#parameters-3">Parameters</a></h4>
+<ul>
+<li><strong>image_tensor</strong>(<span style="color:#FF6B00;">Tensor</span>): Image tensor. Must specify when <code>image_path</code> is not provided. We require the shape to be <code>(N x IPC, C, H, W)</code> where <code>N</code> is the number of classes.</li>
+<li><strong>image_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the image. Must specify when <code>image_tensor</code> is not provided.</li>
+<li><strong>soft_labels</strong>(<span style="color:#FF6B00;">Tensor</span>): Soft label tensor. Must specify when <code>soft_label_mode</code> is <code>S</code>. The first dimension must be the same as <code>image_tensor</code>.</li>
+<li><strong>syn_lr</strong>(<span style="color:#FF6B00;">float</span>): Learning rate for the synthetic dataset. If not specified, the learning rate will be tuned automatically.</li>
+<li><strong>lrs_lambda</strong>(<span style="color:#FF6B00;">float</span>): Weighting parameter for the LRS.</li>
+</ul>
+<h4 id="returns-1"><a class="header" href="#returns-1">Returns</a></h4>
+<p>A dictionary with the following keys:</p>
+<ul>
+<li><strong>hard_label_recovery_mean</strong>: Mean of HLR scores from <code>num_eval</code> rounds.</li>
+<li><strong>hard_label_recovery_std</strong>: Standard deviation of HLR scores from <code>num_eval</code> rounds.</li>
+<li><strong>improvement_over_random_mean</strong>: Mean of improvement over random scores from <code>num_eval</code> rounds.</li>
+<li><strong>improvement_over_random_std</strong>: Standard deviation of improvement over random scores from <code>num_eval</code> rounds.</li>
+<li><strong>label_robust_score_mean</strong>: Mean of LRS from <code>num_eval</code> rounds.</li>
+<li><strong>label_robust_score_std</strong>: Standard deviation of LRS from <code>num_eval</code> rounds.</li>
+</ul>
+</div>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<p>with config file:</p>
+<pre><code class="language-python">&gt;&gt;&gt; config = Config('/path/to/config.yaml')
+&gt;&gt;&gt; evaluator = LabelRobustScoreSoft(config=config)
+# load image and soft labels
+&gt;&gt;&gt; image_tensor, soft_labels = ... 
+# compute metrics
+&gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, soft_labels=soft_labels)
+# alternatively, provide image path
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', soft_labels=soft_labels) 
+</code></pre>
+<p>with keyword arguments:</p>
+<pre><code class="language-python">&gt;&gt;&gt; evaluator = LabelRobustScoreSoft(
+...     dataset='TinyImageNet',
+...     real_data_path='./dataset/',
+...     ipc=10,
+...     model_name='ResNet-18-BN',
+...     soft_label_mode='M',
+...     soft_label_criterion='kl',
+...     loss_fn_kwargs={
+...         "temperature": 30.0,
+...         "scale_loss": False,
+...     },
+...     data_aug_func='mixup',
+...     aug_params={
+...         "mixup_p": 0.8,
+...     },
+...     optimizer='sgd',
+...     lr_scheduler='step',
+...     num_epochs=300,
+...     step_size=100,
+...     weight_decay=0.0005,
+...     momentum=0.9,
+...     use_zca=False,
+...     use_aug_for_hard=False,
+...     stu_use_torchvision=True,
+...     tea_use_torchvision=True,
+...     num_workers=4,
+...     save_path='./results',
+...     eval_full_data=False,
+...     random_data_format='image',
+...     random_data_path='./random_data',
+...     num_eval=5,
+...     device='cuda'
+... )
+# load image and soft labels
+&gt;&gt;&gt; image_tensor, soft_labels = ... 
+# compute metrics
+&gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, soft_labels=soft_labels)
+# alternatively, provide image path
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', soft_labels=soft_labels) 
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="augmentationrobustscore"><a class="header" href="#augmentationrobustscore">AugmentationRobustScore</a></h2>
+<div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
+<p><span style="color:#FF6B00;">CLASS</span>
+dd_ranking.metrics.AugmentationRobustScore(config: Optional[Config] = None,
+dataset: str = 'ImageNet1K',
+real_data_path: str = './dataset/',
+ipc: int = 10,
+model_name: str = 'ResNet-18-BN',
+label_type: str = 'soft',
+soft_label_mode: str='S',
+soft_label_criterion: str='kl',
+loss_fn_kwargs: dict=None,
+data_aug_func: str='cutmix',
+aug_params: dict={'cutmix_p': 1.0},
+optimizer: str='sgd',
+lr_scheduler: str='step',
+weight_decay: float=0.0005,
+momentum: float=0.9,
+step_size: int=None,
+num_eval: int=5,
+im_size: tuple=(224, 224),
+num_epochs: int=300,
+use_zca: bool=False,
+random_data_format: str='image',
+random_data_path: str=None,
+real_batch_size: int=256,
+syn_batch_size: int=256,
+save_path: str=None,
+stu_use_torchvision: bool=False,
+tea_use_torchvision: bool=False,
+num_workers: int=4,
+teacher_dir: str='./teacher_models',
+teacher_model_names: list=None,
+custom_train_trans: Optional[Callable]=None,
+custom_val_trans: Optional[Callable]=None,
+device: str="cuda",
+dist: bool=False
+)
+<a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/metrics/aug_robust.py"><strong>[SOURCE]</strong></a></p>
+</div>
+<p>A class for evaluating the performance of a dataset distillation method with soft labels. User is able to modify the attributes as needed.</p>
+<h3 id="parameters-4"><a class="header" href="#parameters-4">Parameters</a></h3>
+<ul>
+<li><strong>config</strong>(<span style="color:#FF6B00;">Optional[Config]</span>): Config object for specifying all attributes. See <a href="metrics/../config/overview.html">config</a> for more details.</li>
+<li><strong>dataset</strong>(<span style="color:#FF6B00;">str</span>): Name of the real dataset.</li>
+<li><strong>real_data_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the real dataset.</li>
+<li><strong>ipc</strong>(<span style="color:#FF6B00;">int</span>): Images per class.</li>
+<li><strong>model_name</strong>(<span style="color:#FF6B00;">str</span>): Name of the surrogate model. See <a href="metrics/../models/overview.html">models</a> for more details.</li>
+<li><strong>label_type</strong>(<span style="color:#FF6B00;">str</span>): Type of label representation. <code>soft</code> for soft labels, <code>hard</code> for hard labels.</li>
+<li><strong>soft_label_mode</strong>(<span style="color:#FF6B00;">str</span>): Number of soft labels per image. <code>S</code> for single soft label, <code>M</code> for multiple soft labels.</li>
+<li><strong>soft_label_criterion</strong>(<span style="color:#FF6B00;">str</span>): Loss function for using soft labels. Currently supports <code>kl</code> for KL divergence, <code>sce</code> for soft cross-entropy, and <code>mse_gt</code> for MSEGT loss introduced in EDC.</li>
+<li><strong>loss_fn_kwargs</strong>(<span style="color:#FF6B00;">dict</span>): Keyword arguments for the loss function, e.g. <code>temperature</code> and <code>scale_loss</code> for KL and SCE loss, and <code>mse_weight</code> and <code>ce_weight</code> for MSEGT loss.</li>
+<li><strong>data_aug_func</strong>(<span style="color:#FF6B00;">str</span>): Data augmentation function used during training. Currently supports <code>dsa</code>, <code>cutmix</code>, <code>mixup</code>. See <a href="metrics/../augmentations/overview.html">augmentations</a> for more details.</li>
+<li><strong>aug_params</strong>(<span style="color:#FF6B00;">dict</span>): Parameters for the data augmentation function.</li>
+<li><strong>optimizer</strong>(<span style="color:#FF6B00;">str</span>): Name of the optimizer. Currently supports torch-based optimizers - <code>sgd</code>, <code>adam</code>, and <code>adamw</code>.</li>
+<li><strong>lr_scheduler</strong>(<span style="color:#FF6B00;">str</span>): Name of the learning rate scheduler. Currently supports torch-based schedulers - <code>step</code>, <code>cosine</code>, <code>lambda_step</code>, and <code>cosineannealing</code>.</li>
+<li><strong>weight_decay</strong>(<span style="color:#FF6B00;">float</span>): Weight decay for the optimizer.</li>
+<li><strong>momentum</strong>(<span style="color:#FF6B00;">float</span>): Momentum for the optimizer.</li>
+<li><strong>step_size</strong>(<span style="color:#FF6B00;">int</span>): Step size for the learning rate scheduler.</li>
+<li><strong>use_zca</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use ZCA whitening.</li>
+<li><strong>num_eval</strong>(<span style="color:#FF6B00;">int</span>): Number of evaluations to perform.</li>
+<li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Size of the images.</li>
+<li><strong>num_epochs</strong>(<span style="color:#FF6B00;">int</span>): Number of epochs to train.</li>
+<li><strong>real_batch_size</strong>(<span style="color:#FF6B00;">int</span>): Batch size for the real dataset.</li>
+<li><strong>syn_batch_size</strong>(<span style="color:#FF6B00;">int</span>): Batch size for the synthetic dataset.</li>
+<li><strong>stu_use_torchvision</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use torchvision to initialize the student model.</li>
+<li><strong>tea_use_torchvision</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use torchvision to initialize the teacher model.</li>
+<li><strong>teacher_dir</strong>(<span style="color:#FF6B00;">str</span>): Path to the teacher model.</li>
+<li><strong>teacher_model_names</strong>(<span style="color:#FF6B00;">list</span>): List of teacher model names.</li>
+<li><strong>random_data_format</strong>(<span style="color:#FF6B00;">str</span>): Format of the random data, <code>tensor</code> or <code>image</code>.</li>
+<li><strong>random_data_path</strong>(<span style="color:#FF6B00;">str</span>): Path to save the random data.</li>
+<li><strong>num_workers</strong>(<span style="color:#FF6B00;">int</span>): Number of workers for data loading.</li>
+<li><strong>save_path</strong>(<span style="color:#FF6B00;">Optional[str]</span>): Path to save the results.</li>
+<li><strong>custom_train_trans</strong>(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation function when loading synthetic data. Only support torchvision transformations. See <a href="metrics/../augmentations/torchvision.html">torchvision-based transformations</a> for more details.</li>
+<li><strong>custom_val_trans</strong>(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation function when loading test dataset. Only support torchvision transformations. See <a href="metrics/../augmentations/torchvision.html">torchvision-based transformations</a> for more details.</li>
+<li><strong>device</strong>(<span style="color:#FF6B00;">str</span>): Device to use for evaluation, <code>cuda</code> or <code>cpu</code>.</li>
+<li><strong>dist</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use distributed training.</li>
+</ul>
+<h3 id="methods-2"><a class="header" href="#methods-2">Methods</a></h3>
+<div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px; margin-left:15px; margin-right:15px;">
+<p>compute_metrics(image_tensor: Tensor = None, image_path: str = None, soft_labels: Tensor = None, syn_lr: float = None, ars_lambda: float = 0.5)</p>
+</div>
+<div style="margin-left:15px; margin-right:15px;">
+This method computes the ARS score for the given image and soft labels (if provided). In each evaluation round, we set a different random seed and perform the following steps:
+<ol>
+<li>Compute the test accuracy of the surrogate model on the synthetic dataset without data augmentation.</li>
+<li>Compute the test accuracy of the surrogate model on the synthetic dataset with data augmentation.</li>
+<li>Compute the test accuracy of the surrogate model on the randomly selected dataset without data augmentation. We perform learning rate tuning for the best performance.</li>
+<li>Compute the test accuracy of the surrogate model on the randomly selected dataset with data augmentation. We perform learning rate tuning for the best performance.</li>
+<li>Compute the ARS score.</li>
+</ol>
+<p>The final scores are the average of the scores from <code>num_eval</code> rounds.</p>
+<h4 id="parameters-5"><a class="header" href="#parameters-5">Parameters</a></h4>
+<ul>
+<li><strong>image_tensor</strong>(<span style="color:#FF6B00;">Tensor</span>): Image tensor. Must specify when <code>image_path</code> is not provided. We require the shape to be <code>(N x IPC, C, H, W)</code> where <code>N</code> is the number of classes.</li>
+<li><strong>image_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the image. Must specify when <code>image_tensor</code> is not provided.</li>
+<li><strong>soft_labels</strong>(<span style="color:#FF6B00;">Tensor</span>): Soft label tensor. Must specify when <code>soft_label_mode</code> is <code>S</code>. The first dimension must be the same as <code>image_tensor</code>.</li>
+<li><strong>syn_lr</strong>(<span style="color:#FF6B00;">float</span>): Learning rate for the synthetic dataset. If not specified, the learning rate will be tuned automatically.</li>
+<li><strong>ars_lambda</strong>(<span style="color:#FF6B00;">float</span>): Weighting parameter for the ARS.</li>
+</ul>
+<h4 id="returns-2"><a class="header" href="#returns-2">Returns</a></h4>
+<p>A dictionary with the following keys:</p>
+<ul>
+<li><strong>with_aug_mean</strong>: Mean of test accuracy scores with data augmentation from <code>num_eval</code> rounds.</li>
+<li><strong>with_aug_std</strong>: Standard deviation of test accuracy scores with data augmentation from <code>num_eval</code> rounds.</li>
+<li><strong>without_aug_mean</strong>: Mean of test accuracy scores without data augmentation from <code>num_eval</code> rounds.</li>
+<li><strong>without_aug_std</strong>: Standard deviation of test accuracy scores without data augmentation from <code>num_eval</code> rounds.</li>
+<li><strong>augmentation_robust_score_mean</strong>: Mean of ARS scores from <code>num_eval</code> rounds.</li>
+<li><strong>augmentation_robust_score_std</strong>: Standard deviation of ARS scores from <code>num_eval</code> rounds.</li>
+</ul>
+</div>
+<h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
+<p>with config file:</p>
+<pre><code class="language-python">&gt;&gt;&gt; config = Config('/path/to/config.yaml')
+&gt;&gt;&gt; evaluator = AugmentationRobustScore(config=config)
+# load image and soft labels
+&gt;&gt;&gt; image_tensor, soft_labels = ... 
+# compute metrics
+&gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, soft_labels=soft_labels)
+# alternatively, provide image path
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', soft_labels=soft_labels) 
+</code></pre>
+<p>with keyword arguments:</p>
+<pre><code class="language-python">&gt;&gt;&gt; evaluator = AugmentationRobustScore(
+...     dataset='ImageNet1K',
+...     real_data_path='./dataset/',
+...     ipc=10,
+...     model_name='ResNet-18-BN',
+...     label_type='soft',
+...     soft_label_mode='M',
+...     soft_label_criterion='kl',
+...     loss_fn_kwargs={
+...         "temperature": 30.0,
+...         "scale_loss": False,
+...     },
+...     data_aug_func='mixup',
+...     aug_params={
+...         "mixup_p": 0.8,
+...     },
+...     optimizer='adamw',
+...     lr_scheduler='cosine',
+...     num_epochs=300,
+...     weight_decay=0.0005,
+...     momentum=0.9,
+...     use_zca=False,
+...     stu_use_torchvision=True,
+...     tea_use_torchvision=True,
+...     num_workers=4,
+...     save_path='./results',
+...     random_data_format='image',
+...     random_data_path='./random_data',
+...     teacher_dir='./teacher_models',
+...     teacher_model_names=['ResNet-18-BN'],
+...     num_eval=5,
+...     device='cuda'
+... )
+# load image and soft labels
+&gt;&gt;&gt; image_tensor, soft_labels = ... 
+# compute metrics
+&gt;&gt;&gt; evaluator.compute_metrics(image_tensor=image_tensor, soft_labels=soft_labels)
+# alternatively, provide image path
+&gt;&gt;&gt; evaluator.compute_metrics(image_path='path/to/image/folder/', soft_labels=soft_labels) 
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="generalevaluator"><a class="header" href="#generalevaluator">GeneralEvaluator</a></h2>
 <div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
 <p><span style="color:#FF6B00;">CLASS</span>
@@ -370,29 +854,29 @@ device: str="cuda"
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/metrics/general.py"><strong>[SOURCE]</strong></a></p>
 </div>
 <p>A class for evaluating the traditional test accuracy of a surrogate model on the synthetic dataset under various settings (label type, data augmentation, etc.).</p>
-<h3 id="parameters"><a class="header" href="#parameters">Parameters</a></h3>
+<h3 id="parameters-6"><a class="header" href="#parameters-6">Parameters</a></h3>
 <p>Same as <a href="metrics/soft-label.html">Soft Label Evaluator</a>.</p>
-<h3 id="methods"><a class="header" href="#methods">Methods</a></h3>
+<h3 id="methods-3"><a class="header" href="#methods-3">Methods</a></h3>
 <div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px; margin-left:15px; margin-right:15px;">
 <p>compute_metrics(image_tensor: Tensor = None, image_path: str = None, labels: Tensor = None, syn_lr: float = None)</p>
 </div>
 <div style="margin-left:15px; margin-right:15px;">
 This method computes the test accuracy of the surrogate model on the synthetic dataset under various settings (label type, data augmentation, etc.).
-<h4 id="parameters-1"><a class="header" href="#parameters-1">Parameters</a></h4>
+<h4 id="parameters-7"><a class="header" href="#parameters-7">Parameters</a></h4>
 <ul>
 <li><strong>image_tensor</strong>(<span style="color:#FF6B00;">Tensor</span>): Image tensor. Must specify when <code>image_path</code> is not provided. We require the shape to be <code>(N x IPC, C, H, W)</code> where <code>N</code> is the number of classes.</li>
 <li><strong>image_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the image. Must specify when <code>image_tensor</code> is not provided.</li>
 <li><strong>labels</strong>(<span style="color:#FF6B00;">Tensor</span>): Label tensor. It can be either hard labels or soft labels. When <code>soft_label_mode=S</code>, the label tensor must be provided.</li>
 <li><strong>syn_lr</strong>(<span style="color:#FF6B00;">float</span>): Learning rate for the synthetic dataset. If not specified, the learning rate will be tuned automatically.</li>
 </ul>
-<h4 id="returns"><a class="header" href="#returns">Returns</a></h4>
+<h4 id="returns-3"><a class="header" href="#returns-3">Returns</a></h4>
 <p>A dictionary with the following keys:</p>
 <ul>
 <li><strong>acc_mean</strong>: Mean of test accuracy from <code>num_eval</code> rounds.</li>
 <li><strong>acc_std</strong>: Standard deviation of test accuracy from <code>num_eval</code> rounds.</li>
 </ul>
 </div>
-<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<h3 id="examples-2"><a class="header" href="#examples-2">Examples</a></h3>
 <p>with config file:</p>
 <pre><code class="language-python">&gt;&gt;&gt; config = Config('/path/to/config.yaml')
 &gt;&gt;&gt; evaluator = GeneralEvaluator(config=config)
@@ -476,7 +960,7 @@ Our implementation of DSA is adopted from <a href="https://github.com/VICO-UoE/D
 ddranking.aug.DSA(params: dict, seed: int, aug_mode: str)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/aug/dsa.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-2"><a class="header" href="#parameters-2">Parameters</a></h3>
+<h3 id="parameters-8"><a class="header" href="#parameters-8">Parameters</a></h3>
 <ul>
 <li><strong>params</strong>(<span style="color:#FF6B00;">dict</span>): Parameters for the DSA augmentations. We require the parameters to be in the format of <code>{'param_name': param_value}</code>. For example, <code>{'flip': 0.5, 'rotate': 15.0, 'scale': 1.2, 'crop': 0.125, 'cutout': 0.5, 'brightness': 1.0, 'contrast': 0.5, 'saturation': 2.0}</code>.</li>
 <li><strong>seed</strong>(<span style="color:#FF6B00;">int</span>): Random seed. Default is <code>-1</code>.</li>
@@ -496,7 +980,7 @@ ddranking.aug.DSA(params: dict, seed: int, aug_mode: str)
 ddranking.aug.Cutmix(params: dict)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/aug/cutmix.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-3"><a class="header" href="#parameters-3">Parameters</a></h3>
+<h3 id="parameters-9"><a class="header" href="#parameters-9">Parameters</a></h3>
 <ul>
 <li><strong>params</strong>(<span style="color:#FF6B00;">dict</span>): Parameters for the cutmix augmentation. We require the parameters to be in the format of <code>{'param_name': param_value}</code>. For cutmix, only <code>beta</code> (beta distribution parameter) needs to be specified, e.g. <code>{'beta': 1.0}</code>.</li>
 </ul>
@@ -514,7 +998,7 @@ ddranking.aug.Cutmix(params: dict)
 ddranking.aug.Mixup(params: dict)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/aug/mixup.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-4"><a class="header" href="#parameters-4">Parameters</a></h3>
+<h3 id="parameters-10"><a class="header" href="#parameters-10">Parameters</a></h3>
 <ul>
 <li><strong>params</strong>(<span style="color:#FF6B00;">dict</span>): Parameters for the mixup augmentation. We require the parameters to be in the format of <code>{'param_name': param_value}</code>. For mixup, only <code>lambda</code> (mixup strength) needs to be specified, e.g. <code>{'lambda': 0.8}</code>.</li>
 </ul>
@@ -562,7 +1046,7 @@ ddranking.aug.Mixup(params: dict)
 im_size: tuple, channel: int, num_classes: int, net_depth: int, net_norm: str, pretrained: bool, model_path: str)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/model.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-5"><a class="header" href="#parameters-5">Parameters</a></h3>
+<h3 id="parameters-11"><a class="header" href="#parameters-11">Parameters</a></h3>
 <ul>
 <li><strong>model_name</strong>(<span style="color:#FF6B00;">str</span>): Name of the model. Please navigate to <a href="models/models/overview.html">models</a> for the model naming convention in DD-Ranking.</li>
 <li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Image size.</li>
@@ -578,7 +1062,7 @@ im_size: tuple, channel: int, num_classes: int, net_depth: int, net_norm: str, p
 <p>dd_ranking.utils.networks.ConvNet(channel, num_classes, net_width, net_depth, net_act, net_norm, net_pooling, im_size)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/utils/networks.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-6"><a class="header" href="#parameters-6">Parameters</a></h3>
+<h3 id="parameters-12"><a class="header" href="#parameters-12">Parameters</a></h3>
 <p>We only list the parameters that are not present in <code>get_convnet</code>.</p>
 <ul>
 <li><strong>net_width</strong>(<span style="color:#FF6B00;">int</span>): Width of the network.</li>
@@ -592,7 +1076,7 @@ im_size: tuple, channel: int, num_classes: int, net_depth: int, net_norm: str, p
 <p>ddranking.utils.get_alexnet(model_name: str, im_size: tuple, channel: int, num_classes: int, pretrained: bool, model_path: str)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/model.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-7"><a class="header" href="#parameters-7">Parameters</a></h3>
+<h3 id="parameters-13"><a class="header" href="#parameters-13">Parameters</a></h3>
 <ul>
 <li><strong>model_name</strong>(<span style="color:#FF6B00;">str</span>): Name of the model. Please navigate to <a href="models/models/overview.html">models</a> for the model naming convention in DD-Ranking.</li>
 <li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Image size.</li>
@@ -609,7 +1093,7 @@ im_size: tuple, channel: int, num_classes: int, net_depth: int, net_norm: str, p
 im_size: tuple, channel: int, num_classes: int, depth: int, batchnorm: bool, use_torchvision: bool, pretrained: bool, model_path: str)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/model.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-8"><a class="header" href="#parameters-8">Parameters</a></h3>
+<h3 id="parameters-14"><a class="header" href="#parameters-14">Parameters</a></h3>
 <ul>
 <li><strong>model_name</strong>(<span style="color:#FF6B00;">str</span>): Name of the model. Please navigate to <a href="models/models/overview.html">models</a> for the model naming convention in DD-Ranking.</li>
 <li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Image size.</li>
@@ -635,7 +1119,7 @@ model.maxpool = torch.nn.Identity()
 <p>ddranking.utils.get_lenet(model_name: str, im_size: tuple, channel: int, num_classes: int, pretrained: bool, model_path: str)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/model.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-9"><a class="header" href="#parameters-9">Parameters</a></h3>
+<h3 id="parameters-15"><a class="header" href="#parameters-15">Parameters</a></h3>
 <ul>
 <li><strong>model_name</strong>(<span style="color:#FF6B00;">str</span>): Name of the model. Please navigate to <a href="models/models/overview.html">models</a> for the model naming convention in DD-Ranking.</li>
 <li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Image size.</li>
@@ -652,7 +1136,7 @@ model.maxpool = torch.nn.Identity()
 im_size: tuple, channel: int, num_classes: int, depth: int, batchnorm: bool, use_torchvision: bool, pretrained: bool, model_path: str)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/model.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-10"><a class="header" href="#parameters-10">Parameters</a></h3>
+<h3 id="parameters-16"><a class="header" href="#parameters-16">Parameters</a></h3>
 <ul>
 <li><strong>model_name</strong>(<span style="color:#FF6B00;">str</span>): Name of the model. Please navigate to <a href="models/models/overview.html">models</a> for the model naming convention in DD-Ranking.</li>
 <li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Image size.</li>
@@ -696,7 +1180,7 @@ When using torchvision VGG on image size smaller than 224 x 224, we make the fol
 <p>ddranking.utils.get_mlp(model_name: str, im_size: tuple, channel: int, num_classes: int, pretrained: bool, model_path: str)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/model.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-11"><a class="header" href="#parameters-11">Parameters</a></h3>
+<h3 id="parameters-17"><a class="header" href="#parameters-17">Parameters</a></h3>
 <ul>
 <li><strong>model_name</strong>(<span style="color:#FF6B00;">str</span>): Name of the model. Please navigate to <a href="models/models/overview.html">models</a> for the model naming convention in DD-Ranking.</li>
 <li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Image size.</li>
@@ -711,7 +1195,7 @@ When using torchvision VGG on image size smaller than 224 x 224, we make the fol
 <p>ddranking.utils.get_dataset(dataset: str, data_path: str, im_size: tuple, use_zca: bool, custom_val_trans: Optional[Callable], device: str)
 <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/data.py"><strong>[SOURCE]</strong></a></p>
 </div>
-<h3 id="parameters-12"><a class="header" href="#parameters-12">Parameters</a></h3>
+<h3 id="parameters-18"><a class="header" href="#parameters-18">Parameters</a></h3>
 <ul>
 <li><strong>dataset</strong>(<span style="color:#FF6B00;">str</span>): Name of the dataset.</li>
 <li><strong>data_path</strong>(<span style="color:#FF6B00;">str</span>): Path to the dataset.</li>
@@ -849,6 +1333,22 @@ evaluator = LabelRobustScoreSoft(config)
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 

@@ -46,27 +46,33 @@ Revisit the original goal of dataset distillation:
 
 ### Label-Robust Score (LRS)
 For the label representation, we introduce the Label-Robust Score (LRS) to evaluate the informativeness of the synthesized data using the following two aspects:
-1. The degree to which the real dataset is recovered under hard labels (hard label recovery): $\text{HLR}=\text{Acc.}{\text{real-hard}}-\text{Acc.}{\text{syn-hard}}$.  
+1. The degree to which the real dataset is recovered under hard labels (hard label recovery): \\( \text{HLR}=\text{Acc.}{\text{real-hard}}-\text{Acc.}{\text{syn-hard}} \\).  
 
-2. The improvement over random selection when using personalized evaluation methods (improvement over random): $\text{IOR}=\text{Acc.}{\text{syn-any}}-\text{Acc.}{\text{rdm-any}}$.
-$\text{Acc.}$ is the accuracy of models trained on different samples. Samples' marks are as follows:
-- $\text{real-hard}$: Real dataset with hard labels;
-- $\text{syn-hard}$: Synthetic dataset with hard labels;
-- $\text{syn-any}$: Synthetic dataset with personalized evaluation methods (hard or soft labels);
-- $\text{rdm-any}$: Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.
+2. The improvement over random selection when using personalized evaluation methods (improvement over random): \\( \text{IOR}=\text{Acc.}{\text{syn-any}}-\text{Acc.}{\text{rdm-any}} \\).
+\\(\text{Acc.}\\) is the accuracy of models trained on different samples. Samples' marks are as follows:
+- \\(\text{real-hard}\\): Real dataset with hard labels;
+- \\(\text{syn-hard}\\): Synthetic dataset with hard labels;
+- \\(\text{syn-any}\\): Synthetic dataset with personalized evaluation methods (hard or soft labels);
+- \\(\text{rdm-any}\\): Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.
 
-LRS is defined as a weight sum of $\text{IOR}$ and $-\text{HLR}$ to rank different methods:
-$\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]$.
-Then, the LRS is normalized to $[0, 1]$ as follows:
-$\text{LRS} = (e^{\alpha}-e^{-1}) / (e - e^{-1})$
+LRS is defined as a weight sum of \\(\text{IOR}\\) and \\(-\text{HLR}\\) to rank different methods:
+\\[
+\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]
+\\]
+Then, the LRS is normalized to \\([0, 1]\\) as follows:
+\\[
+\text{LRS} = 100\% \times (e^{\alpha}-e^{-1}) / (e - e^{-1})
+\\]
 
-By default, we set $w = 0.5$ on the leaderboard, meaning that both $\text{IOR}$ and $\text{HLR}$ are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.
+By default, we set \\(w = 0.5\\) on the leaderboard, meaning that both \\(\text{IOR}\\) and \\(\text{HLR}\\) are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.
 
 ### Augmentation-Robust Score (ARS)
-To disentangle data augmentation’s impact, we introduce the augmentation-robust score (ARS) which continues to leverage the relative improvement over randomly selected data. Specifically, we first evaluate synthetic data and a randomly selected subset under the same setting to obtain $\text{Acc.}{\text{syn-aug}}$ and $\text{Acc.}{\text{rdm-aug}}$ (same as IOR). Next, we evaluate both synthetic data and random data again without the data augmentation, and results are denoted as $\text{Acc.}{\text{syn-naug}}$ and $\text{Acc.}{\text{rdm-naug}}$.
-Both differences, $\text{accsyn-aug} - \text{accrdm-aug}$ and $\text{accsyn-naug} - \text{accrdm-naug}$, are positively correlated to the real informativeness of the distilled dataset.
+To disentangle data augmentation’s impact, we introduce the augmentation-robust score (ARS) which continues to leverage the relative improvement over randomly selected data. Specifically, we first evaluate synthetic data and a randomly selected subset under the same setting to obtain \\(\text{Acc.}{\text{syn-aug}}\\) and \\(\text{Acc.}{\text{rdm-aug}}\\) (same as IOR). Next, we evaluate both synthetic data and random data again without the data augmentation, and results are denoted as \\(\text{Acc.}{\text{syn-naug}}\\) and \\(\text{Acc.}{\text{rdm-naug}}\\).
+Both differences, \\(\text{Acc.syn-aug} - \text{Acc.rdm-aug}\\) and \\(\text{Acc.syn-naug} - \text{Acc.rdm-naug}\\), are positively correlated to the real informativeness of the distilled dataset.
 
 ARS is a weighted sum of the two differences:
-$\beta = \gamma(\text{accsyn-aug} - \text{accrdm-aug}) + (1 - \gamma)(\text{accsyn-naug} - \text{accrdm-naug})$,
-and normalized to $[0, 1]$ similarly.
+\\[
+\beta = \gamma(\text{Acc.syn-aug} - \text{Acc.rdm-aug}) + (1 - \gamma)(\text{Acc.syn-naug} - \text{Acc.rdm-naug})
+\\]
+and normalized similarly.
 

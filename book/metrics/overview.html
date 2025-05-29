@@ -158,9 +158,9 @@
 <p>DD-Ranking provides a set of metrics to evaluate the real informativeness of datasets distilled by different methods. The unfairness of existing evaluation is mainly caused by two factors, the label representation and the data augmentation. We design the label-robust score (LRS) and the augmentation robust score (ARS) to disentangle the impact of label representation and data augmentation on the evaluation, respectively.</p>
 <h2 id="evaluation-classes"><a class="header" href="#evaluation-classes">Evaluation Classes</a></h2>
 <ul>
-<li><a href="hard-label.html">HardLabelEvaluator</a> computes HLR, IOR, and DD-Ranking score for methods using hard labels.</li>
-<li><a href="soft-label.html">SoftLabelEvaluator</a> computes HLR, IOR, and DD-Ranking score for methods using soft labels.</li>
-<li><a href="ars.html">AugmentationRobustScore</a> computes the augmentation robust score for methods using soft labels.</li>
+<li><a href="lrs-hard-label.html">LabelRobustScoreHard</a> computes HLR, IOR, and LRS for methods using hard labels.</li>
+<li><a href="lrs-soft-label.html">LabelRobustScoreSoft</a> computes HLR, IOR, and LRS for methods using soft labels.</li>
+<li><a href="ars.html">AugmentationRobustScore</a> computes the ARS for methods using soft labels.</li>
 <li><a href="general.html">GeneralEvaluator</a> computes the traditional test accuracy for existing methods.</li>
 </ul>
 
@@ -172,7 +172,7 @@
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../metrics/hard-label.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../metrics/lrs-hard-label.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -186,13 +186,29 @@
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../metrics/hard-label.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../metrics/lrs-hard-label.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 

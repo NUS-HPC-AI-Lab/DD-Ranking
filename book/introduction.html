@@ -191,30 +191,36 @@ Among these inconsistencies, two critical factors significantly undermine the fa
 <p>For the label representation, we introduce the Label-Robust Score (LRS) to evaluate the informativeness of the synthesized data using the following two aspects:</p>
 <ol>
 <li>
-<p>The degree to which the real dataset is recovered under hard labels (hard label recovery): $\text{HLR}=\text{Acc.}{\text{real-hard}}-\text{Acc.}{\text{syn-hard}}$.</p>
+<p>The degree to which the real dataset is recovered under hard labels (hard label recovery): \( \text{HLR}=\text{Acc.}{\text{real-hard}}-\text{Acc.}{\text{syn-hard}} \).</p>
 </li>
 <li>
-<p>The improvement over random selection when using personalized evaluation methods (improvement over random): $\text{IOR}=\text{Acc.}{\text{syn-any}}-\text{Acc.}{\text{rdm-any}}$.
-$\text{Acc.}$ is the accuracy of models trained on different samples. Samples' marks are as follows:</p>
+<p>The improvement over random selection when using personalized evaluation methods (improvement over random): \( \text{IOR}=\text{Acc.}{\text{syn-any}}-\text{Acc.}{\text{rdm-any}} \).
+\(\text{Acc.}\) is the accuracy of models trained on different samples. Samples' marks are as follows:</p>
 </li>
 </ol>
 <ul>
-<li>$\text{real-hard}$: Real dataset with hard labels;</li>
-<li>$\text{syn-hard}$: Synthetic dataset with hard labels;</li>
-<li>$\text{syn-any}$: Synthetic dataset with personalized evaluation methods (hard or soft labels);</li>
-<li>$\text{rdm-any}$: Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.</li>
+<li>\(\text{real-hard}\): Real dataset with hard labels;</li>
+<li>\(\text{syn-hard}\): Synthetic dataset with hard labels;</li>
+<li>\(\text{syn-any}\): Synthetic dataset with personalized evaluation methods (hard or soft labels);</li>
+<li>\(\text{rdm-any}\): Randomly selected dataset (under the same compression ratio) with the same personalized evaluation methods.</li>
 </ul>
-<p>LRS is defined as a weight sum of $\text{IOR}$ and $-\text{HLR}$ to rank different methods:
-$\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]$.
-Then, the LRS is normalized to $[0, 1]$ as follows:
-$\text{LRS} = (e^{\alpha}-e^{-1}) / (e - e^{-1})$</p>
-<p>By default, we set $w = 0.5$ on the leaderboard, meaning that both $\text{IOR}$ and $\text{HLR}$ are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.</p>
+<p>LRS is defined as a weight sum of \(\text{IOR}\) and \(-\text{HLR}\) to rank different methods:
+\[
+\alpha = w\text{IOR}-(1-w)\text{HLR}, \quad w \in [0, 1]
+\]
+Then, the LRS is normalized to \([0, 1]\) as follows:
+\[
+\text{LRS} = 100% \times (e^{\alpha}-e^{-1}) / (e - e^{-1})
+\]</p>
+<p>By default, we set \(w = 0.5\) on the leaderboard, meaning that both \(\text{IOR}\) and \(\text{HLR}\) are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.</p>
 <h3 id="augmentation-robust-score-ars"><a class="header" href="#augmentation-robust-score-ars">Augmentation-Robust Score (ARS)</a></h3>
-<p>To disentangle data augmentation’s impact, we introduce the augmentation-robust score (ARS) which continues to leverage the relative improvement over randomly selected data. Specifically, we first evaluate synthetic data and a randomly selected subset under the same setting to obtain $\text{Acc.}{\text{syn-aug}}$ and $\text{Acc.}{\text{rdm-aug}}$ (same as IOR). Next, we evaluate both synthetic data and random data again without the data augmentation, and results are denoted as $\text{Acc.}{\text{syn-naug}}$ and $\text{Acc.}{\text{rdm-naug}}$.
-Both differences, $\text{accsyn-aug} - \text{accrdm-aug}$ and $\text{accsyn-naug} - \text{accrdm-naug}$, are positively correlated to the real informativeness of the distilled dataset.</p>
+<p>To disentangle data augmentation’s impact, we introduce the augmentation-robust score (ARS) which continues to leverage the relative improvement over randomly selected data. Specifically, we first evaluate synthetic data and a randomly selected subset under the same setting to obtain \(\text{Acc.}{\text{syn-aug}}\) and \(\text{Acc.}{\text{rdm-aug}}\) (same as IOR). Next, we evaluate both synthetic data and random data again without the data augmentation, and results are denoted as \(\text{Acc.}{\text{syn-naug}}\) and \(\text{Acc.}{\text{rdm-naug}}\).
+Both differences, \(\text{Acc.syn-aug} - \text{Acc.rdm-aug}\) and \(\text{Acc.syn-naug} - \text{Acc.rdm-naug}\), are positively correlated to the real informativeness of the distilled dataset.</p>
 <p>ARS is a weighted sum of the two differences:
-$\beta = \gamma(\text{accsyn-aug} - \text{accrdm-aug}) + (1 - \gamma)(\text{accsyn-naug} - \text{accrdm-naug})$,
-and normalized to $[0, 1]$ similarly.</p>
+\[
+\beta = \gamma(\text{Acc.syn-aug} - \text{Acc.rdm-aug}) + (1 - \gamma)(\text{Acc.syn-naug} - \text{Acc.rdm-naug})
+\]
+and normalized similarly.</p>
 
                     </main>
 
@@ -239,6 +245,22 @@ and normalized to $[0, 1]$ similarly.</p>
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 
