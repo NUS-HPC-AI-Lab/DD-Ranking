@@ -31,6 +31,7 @@ custom_val_trans: null
 # training specifics
 optimizer: sgd
 lr_scheduler: step
+step_size: 500
 weight_decay: 0.0005
 momentum: 0.9
 num_eval: 5
@@ -40,6 +41,10 @@ real_batch_size: 256
 default_lr: 0.01
 num_workers: 4
 device: cuda
+dist: true
+eval_full_data: false
+random_data_path: ./results/my_method_random_data.pt
+random_data_format: tensor
 
 # save path
 save_path: ./results/my_method_hard_label_scores.csv

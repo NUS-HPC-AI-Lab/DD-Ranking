@@ -1,9 +1,9 @@
-## HardLabelEvaluator
+## LabelRobustScoreHard
 
 <div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
 
 <span style="color:#FF6B00;">CLASS</span> 
-dd_ranking.metrics.HardLabelEvaluator(config=None,
+dd_ranking.metrics.LabelRobustScoreHard(config=None,
     dataset: str = 'CIFAR10',
     real_data_path: str = './dataset/',
     ipc: int = 10,
@@ -12,6 +12,7 @@ dd_ranking.metrics.HardLabelEvaluator(config=None,
     aug_params: dict = {'cutmix_p': 1.0},
     optimizer: str = 'sgd',
     lr_scheduler: str = 'step',
+    step_size: int = None,
     weight_decay: float = 0.0005,
     momentum: float = 0.9,
     use_zca: bool = False,
@@ -21,12 +22,15 @@ dd_ranking.metrics.HardLabelEvaluator(config=None,
     real_batch_size: int = 256,
     syn_batch_size: int = 256,
     use_torchvision: bool = False,
-    default_lr: float = 0.01,
+    eval_full_data: bool = False,
+    random_data_format: str = 'tensor',
+    random_data_path: str = './dataset/',
     num_workers: int = 4,
     save_path: Optional[str] = None,
-    custom_train_trans = None,
-    custom_val_trans = None,
-    device: str = "cuda"
+    custom_train_trans: Optional[Callable] = None,
+    custom_val_trans: Optional[Callable] = None,
+    device: str = "cuda",
+    dist: bool = False
 )
 [**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/metrics/hard_label.py)
 </div>
@@ -43,9 +47,10 @@ A class for evaluating the performance of a dataset distillation method with har
 - **data_aug_func**(<span style="color:#FF6B00;">str</span>): Data augmentation function used during training. Currently supports `dsa`, `cutmix`, `mixup`. See [augmentations](../augmentations/overview.md) for more details.
 - **aug_params**(<span style="color:#FF6B00;">dict</span>): Parameters for the data augmentation function.
 - **optimizer**(<span style="color:#FF6B00;">str</span>): Name of the optimizer. Currently supports torch-based optimizers - `sgd`, `adam`, and `adamw`.
-- **lr_scheduler**(<span style="color:#FF6B00;">str</span>): Name of the learning rate scheduler. Currently supports torch-based schedulers - `step`, `cosine`, `lambda_step`, and `lambda_cos`.
+- **lr_scheduler**(<span style="color:#FF6B00;">str</span>): Name of the learning rate scheduler. Currently supports torch-based schedulers - `step`, `cosine`, `lambda_step`, and `cosineannealing`.
 - **weight_decay**(<span style="color:#FF6B00;">float</span>): Weight decay for the optimizer.
 - **momentum**(<span style="color:#FF6B00;">float</span>): Momentum for the optimizer.
+- **step_size**(<span style="color:#FF6B00;">int</span>): Step size for the learning rate scheduler.
 - **use_zca**(<span style="color:#FF6B00;">bool</span>): Whether to use ZCA whitening.
 - **num_eval**(<span style="color:#FF6B00;">int</span>): Number of evaluations to perform.
 - **im_size**(<span style="color:#FF6B00;">tuple</span>): Size of the images.
@@ -53,25 +58,29 @@ A class for evaluating the performance of a dataset distillation method with har
 - **real_batch_size**(<span style="color:#FF6B00;">int</span>): Batch size for the real dataset.
 - **syn_batch_size**(<span style="color:#FF6B00;">int</span>): Batch size for the synthetic dataset.
 - **use_torchvision**(<span style="color:#FF6B00;">bool</span>): Whether to use torchvision to initialize the model.
-- **default_lr**(<span style="color:#FF6B00;">float</span>): Default learning rate for the optimizer, typically used for training on the real dataset.
+- **eval_full_data**(<span style="color:#FF6B00;">bool</span>): Whether to evaluate on the full dataset.
+- **random_data_format**(<span style="color:#FF6B00;">str</span>): Format of the randomly selected dataset. Currently supports `tensor` and `image`.
+- **random_data_path**(<span style="color:#FF6B00;">str</span>): Path to the randomly selected dataset.
 - **num_workers**(<span style="color:#FF6B00;">int</span>): Number of workers for data loading.
 - **save_path**(<span style="color:#FF6B00;">Optional[str]</span>): Path to save the results.
 - **custom_train_trans**(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation function when loading synthetic data. Only support torchvision transformations. See [torchvision-based transformations](../augmentations/torchvision.md) for more details.
 - **custom_val_trans**(<span style="color:#FF6B00;">Optional[Callable]</span>): Custom transformation function when loading test dataset. Only support torchvision transformations. See [torchvision-based transformations](../augmentations/torchvision.md) for more details.
 - **device**(<span style="color:#FF6B00;">str</span>): Device to use for evaluation, `cuda` or `cpu`.
+- **dist**(<span style="color:#FF6B00;">bool</span>): Whether to use distributed evaluation.
 
 ### Methods
 <div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px; margin-left:15px; margin-right:15px;">
 
-compute_metrics(image_tensor: Tensor = None, image_path: str = None, hard_labels: Tensor = None, syn_lr: float = None)
+compute_metrics(image_tensor: Tensor = None, image_path: str = None, hard_labels: Tensor = None, syn_lr: float = None, lrs_lambda: float = 0.5)
 </div>
 
-This method computes the HLR, IOR, and DD-Ranking scores for the given image and soft labels (if provided). In each evaluation round, we set a different random seed and perform the following steps:
+This method computes the HLR, IOR, and LRS for the given image and hard labels (if provided). In each evaluation round, we set a different random seed and perform the following steps:
 
 1. Compute the test accuracy of the surrogate model on the synthetic dataset under hard labels. We tune the learning rate for the best performance if `syn_lr` is not provided.
 2. Compute the test accuracy of the surrogate model on the real dataset under the same setting as step 1.
 3. Compute the test accuracy of the surrogate model on the randomly selected dataset under the same setting as step 1.
 4. Compute the HLR and IOR scores.
+5. Compute the LRS.
 
 The final scores are the average of the scores from `num_eval` rounds.
 
@@ -81,6 +90,7 @@ The final scores are the average of the scores from `num_eval` rounds.
 - **image_path**(<span style="color:#FF6B00;">str</span>): Path to the image. Must specify when `image_tensor` is not provided.
 - **hard_labels**(<span style="color:#FF6B00;">Tensor</span>): Hard label tensor. The first dimension must be the same as `image_tensor`.
 - **syn_lr**(<span style="color:#FF6B00;">float</span>): Learning rate for the synthetic dataset. If not specified, the learning rate will be tuned automatically.
+- **lrs_lambda**(<span style="color:#FF6B00;">float</span>): Weighting parameter for the LRS.
 
 #### Returns
 
@@ -90,13 +100,15 @@ A dictionary with the following keys:
 - **hard_label_recovery_std**: Standard deviation of HLR scores from `num_eval` rounds.
 - **improvement_over_random_mean**: Mean of improvement over random scores from `num_eval` rounds.
 - **improvement_over_random_std**: Standard deviation of improvement over random scores from `num_eval` rounds.
+- **label_robust_score_mean**: Mean of LRS scores from `num_eval` rounds.
+- **label_robust_score_std**: Standard deviation of LRS scores from `num_eval` rounds.
 
 **Examples:**
 
 with config file:
 ```python
 >>> config = Config('/path/to/config.yaml')
->>> evaluator = HardLabelEvaluator(config=config)
+>>> evaluator = LabelRobustScoreHard(config=config)
 # load the image and hard labels
 >>> image_tensor, hard_labels = ...
 # compute the metrics
@@ -107,8 +119,10 @@ with config file:
 
 with keyword arguments:
 ```python
->>> evaluator = HardLabelEvaluator(
+>>> evaluator = LabelRobustScoreHard(
 ...     dataset='CIFAR10',
+...     real_data_path='./dataset/',
+...     ipc=10,
 ...     model_name='ConvNet-3',
 ...     data_aug_func='dsa',
 ...     aug_params={
@@ -125,9 +139,20 @@ with keyword arguments:
 ...     lr_scheduler='step',
 ...     weight_decay=0.0005,
 ...     momentum=0.9,
+...     step_size=500,
+...     num_epochs=1000,
+...     real_batch_size=256,
+...     syn_batch_size=256,
+...     use_torchvision=False,
+...     eval_full_data=True,
+...     random_data_format='tensor',
+...     random_data_path='./random_data/',
+...     num_workers=4,
+...     save_path='./results/',
 ...     use_zca=False,
 ...     num_eval=5,
-...     device='cuda'
+...     device='cuda',
+...     dist=True
 ... )
 # load the image and hard labels
 >>> image_tensor, hard_labels = ...

@@ -4,13 +4,13 @@ packages = find_packages()
 
 setup(
     name='ddranking',  # Package name
-    version='0.1.4',  # Version number
+    version='0.2.0',  # Version number
     description='DD-Ranking: Rethinking the Evaluation of Dataset Distillation',
     long_description=open('README.md').read(),  # Use your README as the long description
     long_description_content_type='text/markdown',
     author='Data Intelligence Team',
     author_email='lizekai@u.nus.edu',
-    include_dirs=['ddranking', 'configs'],
+    include_dirs=['ddranking', 'configs', 'static'],
     include_package_data=True,
     packages=packages,  # Automatically discover submodules
     install_requires=[
