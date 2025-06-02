@@ -179,8 +179,7 @@ num_epochs: int=300,
 use_zca: bool=False,
 random_data_format: str='image',
 random_data_path: str=None,
-real_batch_size: int=256,
-syn_batch_size: int=256,
+batch_size: int=256,
 save_path: str=None,
 stu_use_torchvision: bool=False,
 tea_use_torchvision: bool=False,
@@ -217,8 +216,7 @@ dist: bool=False
 <li><strong>num_eval</strong>(<span style="color:#FF6B00;">int</span>): Number of evaluations to perform.</li>
 <li><strong>im_size</strong>(<span style="color:#FF6B00;">tuple</span>): Size of the images.</li>
 <li><strong>num_epochs</strong>(<span style="color:#FF6B00;">int</span>): Number of epochs to train.</li>
-<li><strong>real_batch_size</strong>(<span style="color:#FF6B00;">int</span>): Batch size for the real dataset.</li>
-<li><strong>syn_batch_size</strong>(<span style="color:#FF6B00;">int</span>): Batch size for the synthetic dataset.</li>
+<li><strong>batch_size</strong>(<span style="color:#FF6B00;">int</span>): Batch size for the model training.</li>
 <li><strong>stu_use_torchvision</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use torchvision to initialize the student model.</li>
 <li><strong>tea_use_torchvision</strong>(<span style="color:#FF6B00;">bool</span>): Whether to use torchvision to initialize the teacher model.</li>
 <li><strong>teacher_dir</strong>(<span style="color:#FF6B00;">str</span>): Path to the teacher model.</li>
@@ -347,22 +345,6 @@ This method computes the ARS score for the given image and soft labels (if provi
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 
