@@ -22,7 +22,7 @@ use_zca: false
 custom_train_trans: 
   - name: RandomResizedCrop
     args:
-      size: 224
+      size: 64
       scale: [0.08, 1.0]
   - name: RandomHorizontalFlip
     args:
