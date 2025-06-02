@@ -11,10 +11,10 @@
 # Reference Guide
 
 - [Metrics](metrics/overview.md)
-    - [Hard Label](metrics/lrs-hard-label.md)
-    - [Soft Label](metrics/lrs-soft-label.md)
-    - [Augmentation Robust Score](metrics/ars.md)
-    - [General](metrics/general.md)
+    - [LabelRobustScoreHard](metrics/lrs-hard-label.md)
+    - [LabelRobustScoreSoft](metrics/lrs-soft-label.md)
+    - [AugmentationRobustScore](metrics/ars.md)
+    - [GeneralEvaluator](metrics/general.md)
 
 - [Augmentations](augmentations/overview.md)
     - [DSA](augmentations/dsa.md)
