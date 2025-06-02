@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>General - DD-Ranking API Documentation</title>
+        <title>GeneralEvaluator - DD-Ranking API Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -187,7 +187,7 @@ custom_train_trans: Optional[Callable]=None,
 custom_val_trans: Optional[Callable]=None,
 device: str="cuda"
 )
-<a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/metrics/general.py"><strong>[SOURCE]</strong></a></p>
+<a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/metrics/general.py"><strong>[SOURCE]</strong></a></p>
 </div>
 <p>A class for evaluating the traditional test accuracy of a surrogate model on the synthetic dataset under various settings (label type, data augmentation, etc.).</p>
 <h3 id="parameters"><a class="header" href="#parameters">Parameters</a></h3>
@@ -255,7 +255,7 @@ This method computes the test accuracy of the surrogate model on the synthetic d
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../metrics/soft-label.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../metrics/ars.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -269,7 +269,7 @@ This method computes the test accuracy of the surrogate model on the synthetic d
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../metrics/soft-label.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../metrics/ars.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
@@ -280,6 +280,22 @@ This method computes the test accuracy of the surrogate model on the synthetic d
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 

@@ -2,6 +2,7 @@ import yaml
 import json
 from typing import Dict, Any
 from torchvision import transforms
+from torchvision.transforms import v2
 
 class Config:
     """Configuration object to manage individual configurations."""
@@ -30,7 +31,12 @@ class Config:
             name = transform["name"]
             args = transform.get("args", [])
             if isinstance(args, dict):
-                transform_list.append(getattr(transforms, name)(**args))
+                if hasattr(transforms, name):
+                    transform_list.append(getattr(transforms, name)(**args))
+                elif hasattr(v2, name):
+                    transform_list.append(getattr(v2, name)(**args))
+                else:
+                    raise NotImplementedError
             else:
                 transform_list.append(getattr(transforms, name)(*args))
         

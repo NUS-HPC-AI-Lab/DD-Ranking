@@ -155,11 +155,11 @@
                 <div id="content" class="content">
                     <main>
                         <h2 id="lenet"><a class="header" href="#lenet">LeNet</a></h2>
-<p>Our <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/utils/networks.py">implementation</a> of LeNet is based on <a href="https://github.com/VICO-UoE/DatasetCondensation">DC</a>.</p>
+<p>Our <a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/networks.py">implementation</a> of LeNet is based on <a href="https://github.com/VICO-UoE/DatasetCondensation">DC</a>.</p>
 <p>We provide the following interface to initialize a LeNet model:</p>
 <div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
-<p>dd_ranking.utils.get_lenet(model_name: str, im_size: tuple, channel: int, num_classes: int, pretrained: bool, model_path: str)
-<a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/utils/model.py"><strong>[SOURCE]</strong></a></p>
+<p>ddranking.utils.get_lenet(model_name: str, im_size: tuple, channel: int, num_classes: int, pretrained: bool, model_path: str)
+<a href="https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/model.py"><strong>[SOURCE]</strong></a></p>
 </div>
 <h3 id="parameters"><a class="header" href="#parameters">Parameters</a></h3>
 <ul>
@@ -200,6 +200,22 @@
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 

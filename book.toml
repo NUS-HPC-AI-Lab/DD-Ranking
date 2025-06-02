@@ -3,7 +3,7 @@
 # * template https://github.com/kg4zow/mdbook-template/
 
 [book]
-authors             = ["Data Intelligence Team"]
+authors             = ["DD-Ranking Team"]
 language            = "en"
 multilingual        = false
 src                 = "doc"

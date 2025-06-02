@@ -1,13 +1,13 @@
 ## MLP
 
-Our [implementation](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/utils/networks.py) of MLP is based on [DC](https://github.com/VICO-UoE/DatasetCondensation). 
+Our [implementation](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/networks.py) of MLP is based on [DC](https://github.com/VICO-UoE/DatasetCondensation). 
 
 We provide the following interface to initialize a MLP model:
 
 <div style="background-color:#F7F7F7; padding:15px; border:1px solid #E0E0E0; border-top:3px solid #FF0000; font-family:monospace; font-size:14px;">
 
-dd_ranking.utils.get_mlp(model_name: str, im_size: tuple, channel: int, num_classes: int, pretrained: bool, model_path: str)
-[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/dd_ranking/utils/model.py)
+ddranking.utils.get_mlp(model_name: str, im_size: tuple, channel: int, num_classes: int, pretrained: bool, model_path: str)
+[**[SOURCE]**](https://github.com/NUS-HPC-AI-Lab/DD-Ranking/blob/main/ddranking/utils/model.py)
 </div>
 
 ### Parameters
