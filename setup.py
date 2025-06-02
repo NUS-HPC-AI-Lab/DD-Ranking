@@ -8,7 +8,7 @@ setup(
     description='DD-Ranking: Rethinking the Evaluation of Dataset Distillation',
     long_description=open('README.md').read(),  # Use your README as the long description
     long_description_content_type='text/markdown',
-    author='Data Intelligence Team',
+    author='DD-Ranking Team',
     author_email='lizekai@u.nus.edu',
     include_dirs=['ddranking', 'configs', 'static'],
     include_package_data=True,
@@ -18,7 +18,7 @@ setup(
         'numpy',
         'torchvision',
         'tqdm',
-        'scipy',
+        'scipy<1.16.0',
         'pandas',
         'kornia',
         'timm'
