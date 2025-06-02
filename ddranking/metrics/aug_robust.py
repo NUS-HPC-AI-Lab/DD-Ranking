@@ -528,9 +528,9 @@ class AugmentationRobustScore:
         with_aug_scores = []
         without_aug_scores = []
         ars_list = []
-        seed_list = [0, 1, 42, 1234, 3407]
+
         for i in range(self.num_eval):
-            set_seed(seed_list[i])
+            set_seed()
             logging(f"================ EVALUATION RUN {i+1}/{self.num_eval} ================")
 
             syn_data_with_aug_acc, best_lr = self._compute_with_aug_metrics_helper(
@@ -541,7 +541,7 @@ class AugmentationRobustScore:
                 lr=syn_lr,
                 hyper_param_search=True if syn_lr is None else False
             )
-            logging(f"With augmentation acc: {syn_data_with_aug_acc:.2f}% under learning rate {best_lr}")
+            logging(f"With augmentation acc: {syn_data_with_aug_acc:.2f}%")
 
             random_data_path, random_data_tensors, random_data_hard_labels, random_data_soft_labels = self._get_random_data_helper(eval_iter=i)
             random_data_with_aug_acc, best_lr = self._compute_with_aug_metrics_helper(
@@ -552,7 +552,7 @@ class AugmentationRobustScore:
                 lr=None,
                 hyper_param_search=True
             )
-            logging(f"Without augmentation acc: {random_data_with_aug_acc:.2f}% under learning rate {best_lr}")
+            logging(f"Without augmentation acc: {random_data_with_aug_acc:.2f}%")
 
             syn_data_without_aug_acc, best_lr = self._compute_without_aug_metrics_helper(
                 image_tensor=image_tensor,
@@ -562,7 +562,7 @@ class AugmentationRobustScore:
                 lr=syn_lr,
                 hyper_param_search=True if syn_lr is None else False
             )
-            logging(f"Without augmentation acc: {syn_data_without_aug_acc:.2f}% under learning rate {best_lr}")
+            logging(f"Without augmentation acc: {syn_data_without_aug_acc:.2f}%")
             
             random_data_without_aug_acc, best_lr = self._compute_without_aug_metrics_helper(
                 image_tensor=random_data_tensors,
@@ -572,7 +572,7 @@ class AugmentationRobustScore:
                 lr=None,
                 hyper_param_search=True
             )
-            logging(f"Without augmentation acc: {random_data_without_aug_acc:.2f}% under learning rate {best_lr}")
+            logging(f"Without augmentation acc: {random_data_without_aug_acc:.2f}%")
 
             with_aug_score = 1.00 * (syn_data_with_aug_acc - random_data_with_aug_acc)
             without_aug_score = 1.00 * (syn_data_without_aug_acc - random_data_without_aug_acc)

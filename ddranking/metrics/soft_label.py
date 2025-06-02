@@ -508,9 +508,9 @@ class LabelRobustScoreSoft:
         hard_label_recovery = []
         improvement_over_random = []
         lrs_list = []
-        seed_list = [0, 1, 42, 1234, 3407]
+        
         for i in range(self.num_eval):
-            set_seed(seed_list[i])
+            set_seed()
             logging(f"================ EVALUATION RUN {i+1}/{self.num_eval} ================")
 
             syn_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
@@ -521,7 +521,7 @@ class LabelRobustScoreSoft:
                 mode='syn',
                 hyper_param_search=True
             )
-            logging(f"Syn data hard label acc: {syn_data_hard_label_acc:.2f}% under learning rate {best_lr}")
+            logging(f"Syn data hard label acc: {syn_data_hard_label_acc:.2f}%")
 
             if self.eval_full_data:
                 full_data_hard_label_acc, best_lr = self._compute_hard_label_metrics_helper(
@@ -532,7 +532,7 @@ class LabelRobustScoreSoft:
                     mode='real',
                     hyper_param_search=False
                 )
-                logging(f"Full data hard label acc: {full_data_hard_label_acc:.2f}% under learning rate {best_lr}")
+                logging(f"Full data hard label acc: {full_data_hard_label_acc:.2f}%")
             else:
                 key = f"{self.dataset}-{self.model_name}"
                 if key not in REAL_DATA_ACC_CACHE:
@@ -546,7 +546,7 @@ class LabelRobustScoreSoft:
                 lr=syn_lr,
                 hyper_param_search=True if syn_lr is None else False
             )
-            logging(f"Syn data soft label acc: {syn_data_soft_label_acc:.2f}% under learning rate {best_lr}")
+            logging(f"Syn data soft label acc: {syn_data_soft_label_acc:.2f}%")
 
             random_data_path, random_data_tensors, random_data_soft_labels = self._get_random_data_helper(eval_iter=i)
             random_data_soft_label_acc, best_lr = self._compute_soft_label_metrics_helper(
@@ -556,7 +556,7 @@ class LabelRobustScoreSoft:
                 lr=None,
                 hyper_param_search=True
             )
-            logging(f"Random data soft label acc: {random_data_soft_label_acc:.2f}% under learning rate {best_lr}")
+            logging(f"Random data soft label acc: {random_data_soft_label_acc:.2f}%")
 
             hlr = 1.00 * (full_data_hard_label_acc - syn_data_hard_label_acc)
             ior = 1.00 * (syn_data_soft_label_acc - random_data_soft_label_acc)
