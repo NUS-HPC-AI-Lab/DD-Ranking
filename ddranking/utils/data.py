@@ -77,6 +77,7 @@ def get_dataset(dataset, data_path, im_size, use_zca, custom_val_trans, device):
         dst_test_syn = datasets.CIFAR10(data_path, train=False, download=True, transform=transform if custom_val_trans is None else custom_val_trans)
         class_map = {x: x for x in range(num_classes)}
         class_map_inv = {x: x for x in range(num_classes)}
+        
     elif dataset == 'CIFAR100':
         channel = 3
         im_size = (32, 32) if not im_size else im_size
