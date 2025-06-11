@@ -1,0 +1,48 @@
+# real data
+dataset: CIFAR100
+real_data_path: ./dataset/
+
+# synthetic data
+ipc: 1
+im_size: [32, 32]
+
+# agent model
+model_name: ConvNet-3
+use_torchvision: false
+
+# data augmentation
+data_aug_func: 'dsa'
+aug_params:
+  flip: 0.5
+  rotate: 15.0
+  saturation: 2.0
+  brightness: 1.0
+  contrast: 0.5
+  scale: 1.2
+  crop: 0.125
+  cutout: 0.5
+
+custom_train_trans: null
+custom_val_trans: null
+use_zca: false
+
+# training specifics
+optimizer: sgd
+lr_scheduler: step
+step_size: 500
+weight_decay: 0.0005
+momentum: 0.9
+num_eval: 5
+num_epochs: 1000
+syn_batch_size: 256
+real_batch_size: 256
+default_lr: 0.01
+num_workers: 4
+device: cuda
+dist: true
+eval_full_data: true
+
+# save path
+save_path: ./results/cifar100/ipc1/dm.csv
+random_data_format: tensor
+random_data_path: ./random_data/DM/CIFAR100/ipc1

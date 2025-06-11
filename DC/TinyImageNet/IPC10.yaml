@@ -1,0 +1,39 @@
+# real data
+dataset: TinyImageNet
+real_data_path: ./dataset/tiny-imagenet-200/
+
+# synthetic data
+ipc: 10
+im_size: [64, 64]
+
+# agent model
+model_name: ConvNet-4
+use_torchvision: false
+
+# data augmentation
+data_aug_func: null
+aug_params: null
+
+custom_train_trans: null
+custom_val_trans: null
+use_zca: false
+
+# training specifics
+optimizer: sgd
+lr_scheduler: step
+step_size: 500
+weight_decay: 0.0005
+momentum: 0.9
+num_eval: 5
+num_epochs: 1000
+syn_batch_size: 256
+real_batch_size: 256
+num_workers: 4
+device: cuda
+dist: true
+eval_full_data: true
+
+# save path
+save_path: ./results/tinyimagenet/ipc10/dc.csv
+random_data_format: tensor
+random_data_path: ./random_data/DC/TinyImageNet/ipc10/
