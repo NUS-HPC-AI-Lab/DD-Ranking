@@ -61,7 +61,7 @@ LRS is defined as a weight sum of \\(\text{IOR}\\) and \\(-\text{HLR}\\) to rank
 \\]
 Then, the LRS is normalized to \\([0, 1]\\) as follows:
 \\[
-\text{LRS} = 100% \times (e^{\alpha}-e^{-1}) / (e - e^{-1})
+\text{LRS} = (e^{\alpha}-e^{-1}) / (e - e^{-1}) \times 100 \\%
 \\]
 
 By default, we set \\(w = 0.5\\) on the leaderboard, meaning that both \\(\text{IOR}\\) and \\(\text{HLR}\\) are equally important. Users can adjust the weights to emphasize one aspect on the leaderboard.
